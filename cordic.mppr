@@ -1,0 +1,14 @@
+
+Constraints file: cordic.pcf.
+
+Level/      Design      Timing      Number      Run         NCD
+Cost [ncd]  Score       Score       Unrouted    Time        Status
+----------  ------      --------    --------    -----       ------------
+H_H_1   *   140         0           0           0:04        Complete        
+H_H_2   *   140         0           0           0:02        Complete        
+H_H_3   *   140         0           0           0:02        Complete        
+
+
+* : Design saved.
+
+PAR done!
