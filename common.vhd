@@ -26,8 +26,9 @@ package common is
 	constant SAMPLE_PERIOD_FX316 : pipeline_integer := 1; -- NOT ENOUGH PRECISION: 0.8192!! BE CAREFULL!!
 	constant SAMPLE_PERIOD_FX316_S : signed(PIPELINE_WIDTH - 1 downto 0) := B"0_00_00000_00000001";
 
-	constant AC_FREQ_SAMPLE_SCALED_FX316 : pipeline_integer := 41; -- 50*Ts*2^PIPELINE_PREC
-	constant AC_FREQ_SAMPLE_SCALED_FX316_S : signed(PIPELINE_WIDTH - 1 downto 0) := B"0_00_00000_00101001";
+	constant AC_FREQ_SAMPLE_SCALED_FX316 : pipeline_integer := 257; -- 2*Pi*50*Ts*2^PIPELINE_PREC
+                                                                        -- = 257.35
+	constant AC_FREQ_SAMPLE_SCALED_FX316_S : signed(PIPELINE_WIDTH - 1 downto 0) := B"0_00_00001_00000001";
 
 	-- Math constants
 	constant EXAMPLE_VAL_FX316 : pipeline_integer := 26312;
@@ -45,7 +46,7 @@ package common is
 	constant PI_FX316 : pipeline_integer := 25736;
 	constant PI_FX316_V : std_logic_vector(PIPELINE_WIDTH - 1 downto 0) := X"6488";
 	constant MINUS_PI_FX316 : pipeline_integer := -25736;
-	constant MINUS_TWO_PI_FX417_V : std_logic_vector(PIPELINE_WIDTH downto 0) := B"0_110_01001_00010000"; -- TODO: REVIEW LAST BIT
+	constant MINUS_TWO_PI_FX417_V : std_logic_vector(PIPELINE_WIDTH downto 0) := B"1_001_10110_11110000";
 
 	-- Filter constants
 	-- constant PHASE_LOOP_PI_I_CONST_FX316 : pipeline_integer := xxx; OVERFLOW!!!
