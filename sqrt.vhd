@@ -18,8 +18,9 @@
 --
 -- Dependencies:
 -- 
--- Revision:
--- Revision 0.03 - Better parametrization
+-- *** Changelog ***
+-- MARK -> revision 0.02 has been tested. Works OK. Noise and precision not
+-- clearly obtained. Co-simulation should be run
 -- Revision 0.02 - Some corrections (one bit negated) were making tests results fail. Test is passed now
 -- Revision 0.01 - Original implementation
 -- Additional Comments:
@@ -33,9 +34,6 @@ use WORK.COMMON.all;
 
 entity sqrt is
         -- rev 0.02
-        generic (
-                width : natural := PIPELINE_WIDTH;
-                prec  : natural := PIPELINE_PREC);
 	port (
 		clk, rst, run : in std_logic;
 		i : in std_logic_vector(18 - 1 downto 0); -- In RADIANS!
@@ -126,40 +124,34 @@ begin
 	q_reg : shift_reg
 		generic map (
 			width => 9,
-			dir => SD_LEFT, step_s => 1
-		)
+			dir => SD_LEFT, step_s => 1)
 		port map (
 			clk => clk, load => init, we => '1',
 			s_in(0) => n_adder_msb,
 			-- Xilinx does not accept THIS: p_in => (others => '0'),
 			p_in => std_logic_vector(to_unsigned(0, 9)),
-			o => q_reg_out
-		);
+			o => q_reg_out);
 
 	d_reg : shift_reg
 		generic map (
 			width => width,
-			dir => SD_LEFT, step_s => 2
-		)
+			dir => SD_LEFT, step_s => 2)
 		port map (
 			clk => clk, load => init, we => '1',
 			s_in => B"00",
 			p_in(17 downto 1) => i(16 downto 0), p_in(0) => '0',
 			-- o(width - 1 downto width - 2) => d_reg_out_hi, o(width - 3 downto 0) => open || Incorrect LRM section 1.1.1.2
-			o(width - 1 downto width - 2) => d_reg_out_hi, o(width - 3 downto 0) => garbage_16
-		);
+			o(width - 1 downto width - 2) => d_reg_out_hi, o(width - 3 downto 0) => garbage_16);
 
 	adder : add_sub
 		generic map (
-			width => 11
-		)
+			width => 11)
 		port map (
 			b(10 downto 2) => q_reg_out, b(1) => r_msb, b(0) => '1',
-			a(1 downto 0) => d_reg_out_hi(1 downto 0), a(10 downto 2) => r_reg_out(8 downto 0),-- OR IT'S THE OTHER WAY (a <-> b)?
+			a(1 downto 0) => d_reg_out_hi(1 downto 0), a(10 downto 2) => r_reg_out(8 downto 0), -- OR IT'S THE OTHER WAY (a <-> b)?
 			add_nsub => r_msb,
 			o => adder_out,
-			f_ov => open, f_z => open
-		);
+			f_ov => open, f_z => open);
 			
 	r_reg : reg
 		generic map (
