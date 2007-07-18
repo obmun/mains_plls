@@ -114,8 +114,7 @@ begin
 		port map (
 			i => int_out_s,
 			o => fifo_out_s,
-			clk => clk, we => we_s
-		);
+			clk => clk, we => we_s);
 
 	add_i : adder
 		-- generic map (
@@ -126,8 +125,7 @@ begin
 			o => o,
                         -- Unconneted
                         f_ov => open,
-                        f_z => open
-		);
+                        f_z => open);
 
         st_ctrl : process(clk)
         begin
