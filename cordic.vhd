@@ -215,7 +215,10 @@ begin
 			b => y_shift_out,
 			add_nsub => z_msb,
 			-- SALIDAS
-			o => x_add_sub_out
+			o => x_add_sub_out,
+                        -- Unconnected
+                        f_ov => open,
+                        f_z => open
 		);
 
 	y_add_sub : add_sub
@@ -224,8 +227,11 @@ begin
 			a => y_reg_out,
 			b => x_shift_out,
 			add_nsub => n_z_msb,
-			-- SALIDS
-			o => y_add_sub_out
+			-- SALIDAS
+			o => y_add_sub_out,
+                        -- Unconnected
+                        f_ov => open,
+                        f_z => open
 		);
 
 	z_add_sub : add_sub

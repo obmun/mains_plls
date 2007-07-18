@@ -126,6 +126,7 @@ begin
 			angle => k_mul_out,
 			-- SALIDAS
 			sin => sin_2_out,
+                        cos => open,
 			done => c_2_done
 		);
 
@@ -135,8 +136,7 @@ begin
 			a => norm_input,
 			b => cos_out,
 			-- SALIDAS
-			o => mul_out
-		);
+			o => mul_out);
 
 	subsor_i : subsor
 		port map (
@@ -144,8 +144,10 @@ begin
 			a => mul_out,
 			b => k_div_out,
 			-- SALIDAS
-			o => phase_error
-		);
+			o => phase_error,
+                        -- Unused
+                        f_ov => open,
+                        f_z => open);
 
 	k_2_div_i : k_2_div
 		port map (

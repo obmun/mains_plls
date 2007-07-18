@@ -177,7 +177,9 @@ begin
 		port map (
 			a => pi_int_out_s,
 			b => p_kcm_out_s,
-			o => pi_adder_out_s
+			o => pi_adder_out_s,
+                        f_ov => open,
+                        f_z => open
 		);
 
 	-- Semi "DCO"

@@ -43,8 +43,8 @@ use IEEE.NUMERIC_STD.all;
 
 entity fva is
         -- rev 0.02
-	generic (
-		width : natural := PIPELINE_WIDTH);
+        generic (
+                width : natural := PIPELINE_WIDTH);
 	port (
 		en, clk, rst : in std_logic;
 		i : in std_logic_vector (width - 1 downto 0);
@@ -57,7 +57,7 @@ architecture alg of fva is
 	signal kcm_out_s : std_logic_vector(width - 1 downto 0);
 	signal int_out_s : std_logic_vector(width - 1 downto 0);
 	signal fifo_out_s : std_logic_vector(width - 1 downto 0);
-
+        
 	component kcm_integrator is
                 -- rev 0.01
                 generic (
@@ -97,7 +97,7 @@ architecture alg of fva is
         signal st : state_t;
         signal we_s : std_logic;
 begin
-	int_i : kcm_integrator
+        int_i : kcm_integrator
 		generic map (
 			k => AC_FREQ_SAMPLE_SCALED_FX316)
 		port map (
@@ -105,7 +105,8 @@ begin
 			o => int_out_s,
 			clk => clk, en => we_s, rst => rst,
                         -- RUN/DONE iface in this component is "bridged" and unused.
-                        run => '1');
+                        run => '1',
+                        done => open);
 
 	fifo_i : fifo
 		-- generic map (
@@ -122,7 +123,10 @@ begin
 		port map (
 			a => int_out_s,
 			b => fifo_out_s,
-			o => o
+			o => o,
+                        -- Unconneted
+                        f_ov => open,
+                        f_z => open
 		);
 
         st_ctrl : process(clk)
