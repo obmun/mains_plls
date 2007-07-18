@@ -53,6 +53,7 @@ architecture alg of ampl_loop is
 	-- * Internal elements control *
 	signal sqrt_error_s : std_logic;
         signal sqrt_done_s, fa_done_s, pi_integrator_done_s, lpf_done_s, filter_stage_done_s : std_logic;
+        signal first_run_s : std_logic;
 
 	-- * DATA PATH *
 	-- Extended width (FX3.18)
@@ -74,6 +75,16 @@ begin
 		generic map (width => PIPELINE_WIDTH, prec_bits => PIPELINE_PREC)
 		port map (in_signal, in_signal, squared_in_s);
 
+        squared_in_s_conv : entity work.pipeline_conv(alg)
+                generic map (
+                        in_width  => PIPELINE_WIDTH,
+                        in_prec   => PIPELINE_PREC,
+                        out_width => EXT_PIPELINE_WIDTH,
+                        out_prec  => EXT_PIPELINE_PREC)
+                port map (
+                        i => squared_in_s,
+                        o => squared_in_EXT_s);
+                
 	in_mul : mul
 		generic map (width => EXT_PIPELINE_WIDTH, prec_bits => EXT_PIPELINE_PREC)
 		port map (squared_in_EXT_s, squared_alpha_EXT_s, squared_in_norm_EXT_s);
@@ -85,9 +96,9 @@ begin
 
 	squared_in_norm_s_conv : entity work.pipeline_conv(alg)
 		generic map (
-			EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC,
-			PIPELINE_WIDTH, PIPELINE_PREC)
-		port map ( squared_in_norm_EXT_s, squared_in_norm_s );
+			in_width => EXT_PIPELINE_WIDTH, in_prec => EXT_PIPELINE_PREC,
+			out_width => PIPELINE_WIDTH, out_prec => PIPELINE_PREC)
+		port map ( i => squared_in_norm_EXT_s, o => squared_in_norm_s );
 
 	error_s_conv : entity work.pipeline_conv(alg)
 		generic map (
@@ -102,9 +113,11 @@ begin
 		port map (
 			clk => clk, en => '1', rst => rst,
 			i => error_EXT_s, o => int_error_EXT_s,
-                        run => fa_done_s, done => pi_integrator_done_s
+                        run => first_run_s, done => pi_integrator_done_s
 		);
 
+        first_run_s <= fa_done_s and run;
+        
 	pi_kp_mul : entity work.kcm(alg)
 		generic map ( k => EXAMPLE_VAL_FX316 )
 		port map ( i => error_s, o => pi_kp_out_s );
@@ -113,7 +126,7 @@ begin
 		port map (
 			clk => clk, en => '1', rst => rst,
 			i => pi_kp_out_s, o => filtered_error_s,
-                        run => fa_done_s, done => lpf_done_s);
+                        run => first_run_s, done => lpf_done_s);
 
         filter_stage_done_s <= lpf_done_s and pi_integrator_done_s;
                                
@@ -156,6 +169,8 @@ begin
 		port map (
 			clk => clk, en => '1', rst => rst,
 			i => norm_in_signal_s, o => norm_in_signal,
-			run => sqrt_done_s, done => done);
+			run => sqrt_done_s, done => fa_done_s);
+
+        done <= fa_done_s;
 
 end alg;
