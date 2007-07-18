@@ -79,16 +79,15 @@ architecture alg of integrator is
             i : in std_logic_vector(width - 1 downto 0);
             o : out std_logic_vector(width - 1 downto 0));
     end component;
-
+    
     component adder is
-        generic(
-            width : natural := 16
-            );
-        port(
-            a, b: in std_logic_vector(15 downto 0);
-            o: out std_logic_vector(15 downto 0);
-            f_ov, f_z: out std_logic
-            );
+            -- rev 0.01
+            generic (
+                    width : natural := PIPELINE_WIDTH);
+            port (
+                    a, b: in std_logic_vector(width - 1 downto 0);
+                    o: out std_logic_vector(width - 1 downto 0);
+                    f_ov, f_z: out std_logic);
     end component;
 begin
 	d_i1 : reg

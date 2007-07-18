@@ -92,14 +92,13 @@ architecture alg of kcm_integrator is
     end component;
 
     component adder is
-        generic(
-            width : natural := 16
-            );
-        port(
-            a, b: in std_logic_vector(15 downto 0);
-            o: out std_logic_vector(15 downto 0);
-            f_ov, f_z: out std_logic
-            );
+            -- rev 0.01
+            generic (
+                    width : natural := PIPELINE_WIDTH);
+            port (
+                    a, b: in std_logic_vector(width - 1 downto 0);
+                    o: out std_logic_vector(width - 1 downto 0);
+                    f_ov, f_z: out std_logic);
     end component;
 begin
 	d_i1 : reg
@@ -127,13 +126,11 @@ begin
 
 	add_add_i : adder
 		generic map (
-			width => width
-		)
+			width => width)
 		port map (
 			a => b,
 			b => c,
-			o => o_s
-		);
+			o => o_s);
 
         o <= o_s;
 
