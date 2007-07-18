@@ -40,9 +40,6 @@ entity ampl_loop is
 end ampl_loop;
 
 architecture alg of ampl_loop is
-	-- Types
-	type state_t is (ST_DONE, ST_RUNNING, ST_LAST);
-
 	component mul is
                 -- rev 0.01
 		generic (
@@ -54,25 +51,24 @@ architecture alg of ampl_loop is
 	end component;
 
 	-- * Internal elements control *
-	signal st : state_t := ST_DONE;
-	signal sqrt_done_s, sqrt_error_s : std_logic;
-	signal seq_run, component_en : std_logic;
+	signal sqrt_error_s : std_logic;
+        signal sqrt_done_s, fa_done_s, pi_integrator_done_s, lpf_done_s, filter_stage_done_s : std_logic;
 
 	-- * DATA PATH *
 	-- Extended width (FX3.18)
-	signal squared_in_EXT_s, squared_alpha_EXT_s, comp_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
+	signal squared_in_EXT_s, squared_alpha_EXT_s, squared_in_norm_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
 	signal error_EXT_s, int_error_EXT_s, filtered_error_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
 	signal error_adder_1_out_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
 	signal alpha_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
 	-- Normal width (FX3.16)
-	signal norm_s, squared_norm_s, squared_in_s, error_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-	signal comp_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+	signal squared_norm_s, squared_in_s, error_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+	signal squared_in_norm_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 	signal pi_kp_out_s, filtered_error_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 	signal alpha_s, norm_in_signal_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 begin
-	ref_square : mul
-		generic map ( width => PIPELINE_WIDTH, prec_bits => PIPELINE_PREC)
-		port map (norm_s, norm_s, squared_norm_s);
+	our_square : mul
+		generic map (width => PIPELINE_WIDTH, prec_bits => PIPELINE_PREC)
+		port map (our_signal, our_signal, squared_norm_s);
         
 	in_square : mul
 		generic map (width => PIPELINE_WIDTH, prec_bits => PIPELINE_PREC)
@@ -80,18 +76,18 @@ begin
 
 	in_mul : mul
 		generic map (width => EXT_PIPELINE_WIDTH, prec_bits => EXT_PIPELINE_PREC)
-		port map (squared_in_EXT_s, squared_alpha_EXT_s, comp_EXT_s);
+		port map (squared_in_EXT_s, squared_alpha_EXT_s, squared_in_norm_EXT_s);
 
 	error_sub : entity work.subsor(alg)
 		port map (
-			a => squared_norm_s, b => squared_in_s, o => error_s,
+			a => squared_norm_s, b => squared_in_norm_s, o => error_s,
 			f_ov => open, f_z => open);
 
-	comp_s_conv : entity work.pipeline_conv(alg)
+	squared_in_norm_s_conv : entity work.pipeline_conv(alg)
 		generic map (
 			EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC,
 			PIPELINE_WIDTH, PIPELINE_PREC)
-		port map ( comp_EXT_s, comp_s );
+		port map ( squared_in_norm_EXT_s, squared_in_norm_s );
 
 	error_s_conv : entity work.pipeline_conv(alg)
 		generic map (
@@ -102,11 +98,11 @@ begin
 	pi_integrator : entity work.kcm_integrator(alg)
 		generic map (
 			width => EXT_PIPELINE_WIDTH, prec => EXT_PIPELINE_PREC,
-			k => EXAMPLE_VAL_FX316
-		)
+			k => EXAMPLE_VAL_FX316)
 		port map (
-			clk => clk, we => component_en, rst => rst,
-			i => error_EXT_s, o => int_error_EXT_s
+			clk => clk, en => '1', rst => rst,
+			i => error_EXT_s, o => int_error_EXT_s,
+                        run => fa_done_s, done => pi_integrator_done_s
 		);
 
 	pi_kp_mul : entity work.kcm(alg)
@@ -115,42 +111,40 @@ begin
 
 	pi_lpf : entity work.first_order_lpf(alg)
 		port map (
-			clk => clk, we => component_en, rst => rst,
-			i_port => pi_kp_out_s, o_port => filtered_error_s
-		);
+			clk => clk, en => '1', rst => rst,
+			i => pi_kp_out_s, o => filtered_error_s,
+                        run => fa_done_s, done => lpf_done_s);
 
+        filter_stage_done_s <= lpf_done_s and pi_integrator_done_s;
+                               
 	filtered_error_s_conv : entity work.pipeline_conv(alg)
 		generic map (
 			PIPELINE_WIDTH, PIPELINE_PREC,
-			EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC
-		)
+			EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC)
 		port map (filtered_error_s, filtered_error_EXT_s);
 
 	error_adder_1 : entity work.adder(alg)
 		generic map ( EXT_PIPELINE_WIDTH )
 		port map (
 			a => int_error_EXT_s, b => filtered_error_EXT_s,
-			o => error_adder_1_out_EXT_s
-		);
+			o => error_adder_1_out_EXT_s);
 
 	error_adder_2 : entity work.adder(alg)
-		generic map (EXT_PIPELINE_WIDTH)
+		generic map ( EXT_PIPELINE_WIDTH )
 		port map (
 			a => error_adder_1_out_EXT_s, b => std_logic_vector(to_signed(1*8192, EXT_PIPELINE_WIDTH)),
-			o => squared_alpha_EXT_s
-		);
+			o => squared_alpha_EXT_s);
 
 	sqrt_i : entity work.sqrt(alg)
 		port map (
-			clk => clk, rst => rst, run => seq_run,
+			clk => clk, rst => rst, run => filter_stage_done_s,
 			i => squared_alpha_EXT_s, o => alpha_EXT_s,
 			done => sqrt_done_s , error_p => sqrt_error_s);
 
 	alpha_s_conv : entity work.pipeline_conv(alg)
 		generic map (
 			EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC,
-			PIPELINE_WIDTH, PIPELINE_PREC
-		)
+			PIPELINE_WIDTH, PIPELINE_PREC)
 		port map ( alpha_EXT_s, alpha_s );
 
 	norm_mul : entity work.mul(alg)
@@ -160,73 +154,8 @@ begin
 	fa_i : entity work.fva(alg)
 		generic map ( PIPELINE_WIDTH )
 		port map (
-			clk => clk, en => component_en, rst => rst,
+			clk => clk, en => '1', rst => rst,
 			i => norm_in_signal_s, o => norm_in_signal,
-			run => '0'
-		);
-	
-	state_ctrl : process(clk, rst)
-	begin
-		if (rising_edge(clk)) then
-			if (rst = '1') then
-				st <= ST_DONE;
-			else
-				case st is
-					when ST_DONE =>
-						if (run = '1') then
-							-- Next conditions
-							st <= ST_RUNNING;
-						else
-							-- Keep conditions
-							st <= ST_DONE;
-						end if;
-					when ST_RUNNING =>
-						if (sqrt_done_s = '1') then
-							-- ST_RUNNING: next conditions
-							st <= ST_LAST;
-						else
-							-- ST_RUNNING: keep conditions
-							st <= ST_RUNNING;
-						end if;
-					when ST_LAST =>
-						if (run ='1') then
-							st <= ST_RUNNING;
-						else
-							st <= ST_DONE;
-						end if;
-					when others =>
-						st <= st;
-				end case;
-			end if;
-		end if;
-	end process state_ctrl;
+			run => sqrt_done_s, done => done);
 
-	signals_gen : process(st, run, sqrt_done_s)
-		-- Signals to control are:
-		-- Internal:
-		-- * component_en
-		-- * seq_run
-		-- Output:
-		-- * done
-	begin
-		case st is
-			when ST_DONE =>
-				-- Internal signals
-				component_en <= '0';
-				seq_run <= run;
-				-- Out signals
-				done_port <= '1';
-			when ST_RUNNING =>
-				-- Internal signals
-				component_en <= '0';
-				seq_run <= sqrt_done_s;
-				-- Out signals
-				done_port <= '0';
-			when ST_LAST =>
-				component_en <= '1';
-				seq_run <= '1'; -- Or '0', both would be valid. SQRT has been launched in previous cycle (it launched itself)
-				-- Out signals
-				done_port <= '1';
-		end case;
-	end process signals_gen;
 end alg;
