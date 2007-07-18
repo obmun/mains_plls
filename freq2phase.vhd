@@ -206,7 +206,8 @@ begin
                                                         end if;
                                                 when ST_STORE =>
                                                         st <= ST_LOAD;
-                                                when others => null;
+                                                when others =>
+                                                        null;
                                         end case;                     
                                 end if;
                         end if;
