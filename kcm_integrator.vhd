@@ -33,10 +33,16 @@
 -- Works in clock's rising edge. Has synchronous reset.
 --
 -- ** PORTS **
--- rst -> sync reset
+-- rst -> sync reset: set's internal register to 0.
 -- clk -> clk input
 -- en -> NO THIRD STATE OUTPUT; allows to stop the integrator even if clk
 -- signal keeps running
+--
+-- ** Estability **
+-- ONE must be VERY VERY carefull with THIS thing. For example, during
+-- simulation, if for some reason a XXX or UUU is stored in the final register,
+-- THERE IS NO WAY of making it GO OUT of the STUPID XXX state, due to the
+-- output to input feedback. IT'S esential to make a correct use of the RST signal!!!
 --
 -- Revision:
 -- Revision 0.01 - File Created, derived from rev 0.02 of integrator
