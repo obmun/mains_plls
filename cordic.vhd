@@ -337,11 +337,7 @@ begin
 							st <= ST_RUNNING;
 						end if;
 					when ST_LAST =>
-						if (run = '1') then
-							st <= ST_INIT;
-						else
-							st <= ST_DONE;
-						end if;
+                                                st <= ST_DONE;
 					when others =>
 						assert true
 							report "Unkown state!!! Should not happen!!!"
@@ -389,7 +385,7 @@ begin
 			when ST_LAST =>
 				save <= '1';
 				init <= '0';
-				done <= '1';
+				done <= '0';
 			when others =>
 				save <= '0';
 				init <= '0';

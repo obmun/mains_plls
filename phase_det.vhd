@@ -112,8 +112,8 @@ architecture alg of phase_det is
 	signal cos_out, sin_2_out : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 	signal mul_out, k_div_out, angle_doubler_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 	signal c_done, c_2_done : std_logic;
-        signal input_reg_we_s, old_input_reg_we_s : std_logic;
-        signal norm_input_reg_out_s, old_norm_input_reg_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+        signal input_reg_we_s : std_logic;
+        signal norm_input_reg_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 begin
 
 	-- INSTANTIATIONS
@@ -129,21 +129,6 @@ begin
                         o => norm_input_reg_out_s);
 
         input_reg_we_s <= run and c_done and c_2_done;
-
-        old_norm_input_reg_i : entity work.reg(alg)
-                generic map (
-                        width => PIPELINE_WIDTH)
-                port map (
-                        clk => clk,
-                        rst => rst,
-                        we  => old_input_reg_we_s,
-                        i   => norm_input_reg_out_s,
-                        o   => old_norm_input_reg_out_s);
-        
-        -- If run is not pulled up again, c_done and c_2_done will be kept a
-        -- true value. Does something happen? NO, because that means RUN is not
-        -- pulled up. ONCE run is pulled up, cordic will take done low.
-        old_input_reg_we_s <= c_done and c_2_done;
 
 	cordic_i : cordic
 		port map (
@@ -174,7 +159,7 @@ begin
 	mul_i : mul
 		port map (
 			-- ENTRADAS
-			a => old_norm_input_reg_out_s,
+			a => norm_input_reg_out_s,
 			b => cos_out,
 			-- SALIDAS
 			o => mul_out);
