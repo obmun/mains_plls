@@ -41,11 +41,15 @@ package common is
 	constant MINUS_INV_CORDIC_GAIN_V : std_logic_vector(PIPELINE_WIDTH -1 downto 0) := X"EC91";
 	constant HALF_PI_FX316 : pipeline_integer := 12868;
 	constant HALF_PI_FX316_V : std_logic_vector(PIPELINE_WIDTH - 1 downto 0) := X"3244";
+        constant HALF_PI_FX318_V : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0) := "000011001001000100";
 	constant MINUS_HALF_PI_FX316 : pipeline_integer := -12868;
 	constant MINUS_HALF_PI_FX316_V : std_logic_vector(PIPELINE_WIDTH - 1 downto 0) := X"CDBC";
+        constant MINUS_HALF_PI_FX318_V : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0) := "111100110110111100";
 	constant PI_FX316 : pipeline_integer := 25736;
 	constant PI_FX316_V : std_logic_vector(PIPELINE_WIDTH - 1 downto 0) := X"6488";
+        constant PI_FX318_V : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0) := "000110010010001000";
 	constant MINUS_PI_FX316 : pipeline_integer := -25736;
+        constant MINUS_PI_FX318_V : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0) := "111001101101111000";
 	constant MINUS_TWO_PI_FX417_V : std_logic_vector(PIPELINE_WIDTH downto 0) := B"1_001_10110_11110000";
 
 	-- Filter constants
