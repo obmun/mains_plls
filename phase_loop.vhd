@@ -7,25 +7,19 @@
 -- Module Name:    phase_loop - alg
 -- Project Name:   
 -- Target Device:  
--- Tool versions:  
+-- Tool versions:
+--
 -- *** Short desc ***
 -- A PLL phase loop. Follows Cordic signals interface (RUN/DONE iface)
 --
 -- *** Description ***
 -- Has: synchronous reset.
+--
 -- ** PORT DESCRIPTION **
 -- rst -> Synchronous reset port. A reset ONLY initializes some seq elements to a initial known state, but does not reset some big internal storage elements as buffers (see FA). It's stupid as the presence of a FA will always mean that a big initial # of samples are needed to obtain stable output.
--- ** ABOUT STATES AND CYCLES **
--- It takes Cordic cycles to get a new value.
--- Chronograph:
--- 0 : This = ST_RUNNING, Cordic = ST_LAST, Cordic_out = old, Tell_Cordic_to_run (AS WE ALREADY HAVE A NEW PHASE VALUE BASED ON LAST CORDIC WAITING ON IT'S INPUT!!)
--- 1 : This = ST_LAST, Cordic = ST_RUNNING, Cordic_out = new, Tell_rest_to_run (cannot be done before as we don't have Cord out till next clk)
--- 2 : This = ST_DONE | ST_RUNNING, Cordic = ST_RUNNING, Cordic_out = new, Rest_out = OK, we have new value!
+--
 -- Dependencies:
 -- 
--- TODO:
--- | > Check if reset can be made synchronous
---
 -- Revision:
 -- Revision 0.02 - Interface modification. Good phase_det cycle integration with rest of pipeline.
 -- Revision 0.01 - File Created
@@ -128,10 +122,10 @@ architecture alg of phase_loop is
 
 	-- Internal signals
 	signal phase_s, phase_det_out_s, fa_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-        signal phase_det_done_s, fva_done_s, pi_done_s, freq2phase_done_s : std_logic;
+        signal phase_det_done_s, phase_det_done_pulsed_s, fva_done_s, fva_done_pulsed_s, pi_done_s, pi_done_pulsed_s, freq2phase_done_s : std_logic;
         signal phase_det_run_s : std_logic;
 	-- > PI signals
-	signal i_kcm_out_s, p_kcm_out_s, pi_int_out_s, pi_adder_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+	signal p_kcm_out_s, pi_int_out_s, pi_adder_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 begin
 	-- ** Big blocks **
 	phase_det_i : phase_det
@@ -146,12 +140,20 @@ begin
 			-- Out control signals
 			done => phase_det_done_s);
 
+        phase_det_done_pulser : entity work.done_pulser(beh)
+                port map (
+                        clk => clk,
+                        en  => '1',
+                        rst => rst,
+                        i   => phase_det_done_s,
+                        o   => phase_det_done_pulsed_s);
+        
 	fva_i : fva
 		port map (
 			en => '1', clk => clk, rst => rst,
 			i => phase_det_out_s,
 			o => fa_out_s,
-                        run => phase_det_done_s,
+                        run => phase_det_done_pulsed_s,
                         done => fva_done_s);
 
 	-- PI filter components
@@ -163,12 +165,20 @@ begin
 			i => fa_out_s,
 			o => p_kcm_out_s);
 
+        fva_done_pulser : entity work.done_pulser(beh)
+                port map (
+                        clk => clk,
+                        en  => '1',
+                        rst => rst,
+                        i   => fva_done_s,
+                        o   => fva_done_pulsed_s);
+                
 	pi_int : kcm_integrator
 		generic map (
 			k => PHASE_LOOP_PI_I_CONST_SAMPLE_SCALED)
 		port map (
 			clk => clk, en => '1', rst => rst,
-                        run => fva_done_s,
+                        run => fva_done_pulsed_s,
 			i => fa_out_s,
 			o => pi_int_out_s,
                         done => pi_done_s);
@@ -181,6 +191,15 @@ begin
                         f_ov => open,
                         f_z => open
 		);
+
+        pi_done_pulser : entity work.done_pulser(beh)
+                port map (
+                        clk => clk,
+                        en  => '1',
+                        rst => rst,
+                        i   => pi_done_s,
+                        o   => pi_done_pulsed_s);
+                
 
 	-- Semi "DCO"
 	freq2phase_i : freq2phase
