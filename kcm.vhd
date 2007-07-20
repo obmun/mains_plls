@@ -32,7 +32,7 @@ entity kcm is
 	generic (
 		width : natural := PIPELINE_WIDTH;
 		prec : natural := PIPELINE_PREC;
-		k : pipeline_integer := EXAMPLE_VAL_FX_316 -- Cte de ejemplo. Una síntesis de esta cte infiere un multiplicador
+		k : pipeline_integer := EXAMPLE_VAL_FX316 -- Cte de ejemplo. Una síntesis de esta cte infiere un multiplicador
 	);
 	port (
 		i : in std_logic_vector(width - 1 downto 0);
