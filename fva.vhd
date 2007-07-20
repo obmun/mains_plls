@@ -22,7 +22,22 @@
 -- This way a user can reset internal elements to a known state. Big storage
 -- (FIFO) is never reseted.
 -- Has run / done ports, so it can be easily integrated with any other
--- iterative / sequential algorithms
+-- iterative / sequential algorithms.
+--
+-- ** DONE / RUN iface **
+-- OK... run/done ports are a "little" different from what real run/done ports
+-- are in cordic or other "big" sequential machines. The reason is that here,
+-- ONCE you tell it to run, DURING that first run cycle the new output value is
+-- ALREADY ready => once you tell it to run, done will go high. So if run is
+-- held continuously, done will be at 1 continuously. The worst part of this
+-- is that, theorically, done should go down at least at "a little moment" when
+-- we tell it to run. WHY? Because WE NEED IT to propagate the run signal.
+-- Otherwise, if we chain done signal thru the done_pulser, there is no way
+-- "done pulsed" = "next element run signal" goes high again!! => we couldn't
+-- propagate the done.
+--
+-- For this reason, the behaviour of the run / done ports here IS NOT REAL.
+-- When stopped, DONE = 0 (false behaviour, as it should mantain the real value). When running, DONE = 1 (real behaviour).
 -- 
 -- Dependencies:
 -- 
