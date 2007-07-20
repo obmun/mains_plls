@@ -31,6 +31,8 @@
 -- Dependencies:
 -- 
 -- Revision:
+-- Revision 0.02 - Added correct angle doubling procedure :). No-error tests
+-- are correctly passed.
 -- Revision 0.01 - File Created
 -- 
 --------------------------------------------------------------------------------
@@ -39,7 +41,7 @@ use WORK.COMMON.ALL;
 use IEEE.STD_LOGIC_1164.ALL;
 
 entity phase_det is
-    -- rev 0.01
+    -- rev 0.02
     port (
         -- Input value signals
         norm_input, curr_phase : in std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
@@ -108,7 +110,7 @@ architecture alg of phase_det is
 	end component;
 
 	signal cos_out, sin_2_out : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-	signal mul_out, k_div_out, k_mul_out : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+	signal mul_out, k_div_out, angle_doubler_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 	signal c_done, c_2_done : std_logic;
         signal input_reg_we_s, old_input_reg_we_s : std_logic;
         signal norm_input_reg_out_s, old_norm_input_reg_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
@@ -162,7 +164,7 @@ begin
 			clk => clk,
 			rst => rst,
 			run => run,
-			angle => k_mul_out,
+			angle => angle_doubler_out_s,
 			-- SALIDAS
 			sin => sin_2_out,
                         cos => open,
@@ -194,11 +196,10 @@ begin
 			o => k_div_out
 		);
 
-	k_2_mul_i : k_2_mul
-		port map (
-			i => curr_phase,
-			o => k_mul_out
-		);
+        angle_doubler_i : entity work.angle_doubler(beh)
+                port map (
+                        i => curr_phase,
+                        o => angle_doubler_out_s);
 
 	done <= c_done and c_2_done;
 end alg;
