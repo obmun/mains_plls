@@ -12,7 +12,9 @@
 --
 -- Dependencies:
 -- 
--- Revision:
+-- *** Changelog ***
+-- Revision 0.02 - Port renaming and file structure change to overcome ModelSim
+-- simulator problem!
 -- Revision 0.01 - File Created
 -- Additional Comments:
 -- TODO:
@@ -25,47 +27,71 @@ use IEEE.NUMERIC_STD.all;
 use WORK.COMMON.all;
 
 entity pipeline_conv is
+        -- rev 0.01
 	generic (
-		in_width : natural := PIPELINE_WIDTH;
-		in_prec : natural := PIPELINE_PREC;
-		out_width : natural := PIPELINE_WIDTH;
-		out_prec : natural := PIPELINE_PREC
-	);
+		in_width : natural;
+		in_prec : natural;
+		out_width : natural;
+		out_prec : natural);
 	port (
-		i_port : in std_logic_vector(in_width - 1 downto 0);
-		o_port : out std_logic_vector(out_width - 1 downto 0)
-	);
+		i : in std_logic_vector(in_width - 1 downto 0);
+		o : out std_logic_vector(out_width - 1 downto 0));
+
+        constant in_magn : natural := in_width - in_prec;
+        constant out_magn : natural := out_width - out_prec;
 end pipeline_conv;
 
 architecture alg of pipeline_conv is
 begin
-	conversor : process(i_port)
-		constant in_magn : natural := in_width - in_prec;
-		constant out_magn : natural := out_width - out_prec;
-	begin
-		-- Fractionary part
-		if (in_prec < out_prec) then
-			-- Expansión parte fraccionaria
-			o_port(out_prec - 1 downto out_prec - in_prec) <= i_port(in_prec - 1 downto 0);
-			o_port(out_prec - in_prec - 1 downto 0) <= (others => '0');
-		else
-			-- Compresión parte fraccionaria
-			o_port(out_prec - 1 downto 0) <= i_port(in_prec - 1 downto in_prec - out_prec);
-		end if;
 
-		-- Magnitude part
-		if (in_magn < out_magn) then
+        param_check : process
+        begin
+                assert in_width > in_prec report "in_width < in_prec" severity error;
+                assert out_width > out_prec report "out_width < out_prec" severity error;
+                assert in_magn > 0 report "input magnitude bits <= 0" severity error;
+                assert out_magn > 0 report "output magnitude bits <= 0" severity error;
+                wait;
+        end process param_check;
+
+        -- Fractionary part
+        frac_gen_0 : if (in_prec < out_prec) generate
+                frac_part_conv : process(i)
+                begin   
+                        -- Expansión parte fraccionaria
+                        o(out_prec - 1 downto out_prec - in_prec) <= i(in_prec - 1 downto 0);
+                        o(out_prec - in_prec - 1 downto 0) <= (others => '0');
+                end process frac_part_conv;
+        end generate;
+
+        frac_gen_1 : if (in_prec >= out_prec) generate
+                frac_part_conv : process(i)
+                begin
+                        -- Compresión parte fraccionaria
+			o(out_prec - 1 downto 0) <= i(in_prec - 1 downto in_prec - out_prec);
+                end process frac_part_conv;
+        end generate;
+                                
+        
+        -- Magnitude part
+        magn_gen_0 : if (in_magn < out_magn) generate
+                magn_part_conv : process(i)
+                begin
 			-- Expansión
 			-- Sign
-			o_port(out_width - 1 downto out_prec + in_magn - 1) <= (others => i_port(in_width - 1));
+			o(out_width - 1 downto out_prec + (in_width - in_prec) - 1) <= (others => i(in_width - 1));
 			-- Value
-			o_port(out_prec + in_magn - 2 downto out_prec) <= i_port(in_width - 2 downto in_prec);
-		else
+			o(out_prec + (in_width - in_prec) - 2 downto out_prec) <= i(in_width - 2 downto in_prec);
+                end process magn_part_conv;
+        end generate;
+
+        magn_gen_1 : if (in_magn >= out_magn) generate
+                magn_part_conv : process(i)
+                begin
 			-- Compresión
 			-- Signo
-			o_port(out_width - 1) <= i_port(in_width - 1);
+			o(out_width - 1) <= i(in_width - 1);
 			-- Valor
-			o_port(out_width - 2 downto out_prec) <= i_port(in_prec + out_magn - 1 downto in_prec);
-		end if;
-	end process;
+			o((out_width - 2) downto out_prec) <= i(in_prec + (out_width - out_prec) - 2 downto in_prec);
+                end process;
+        end generate;
 end alg;
