@@ -39,18 +39,10 @@
 -- giving the last calculated sin / cos values. If run is pulled up, next cicle the 
 -- engine starts calculating the sin & cos for the angle found in its input.
 --
--- It's guaranted that the output WILL STAY CORRECT for 1 cycle the next cycle the element has pulled DONE to
--- 1 (until the second rising edge since element has set DONE to 1) [remember
--- DONE is just telling you in advance the result is gonna be ready, not that
--- IT's READY in THAT cycle] . THIS WAY you can directly
--- set RUN = 1 and loose no clk cycles inmediatly, and you'll be assured that
--- at least the first clk cycle (starting with rising edge) while RUN = 1,
--- element has on its output the good output value. Otherwise no quick chaining of multiple
--- elements with run / done interface could be achieved.
---
 -- Run can the be pulled down again as engine will be calculating till it obtains the value
 -- (it takes it 8 cycles). In the CYCLE THE ELEMENT KNOWS WILL HAVE THE VALUE
--- READY, sets the DONE port high again. This way (1 "cycle advance" in announcing the result is ready) an
+-- READY, sets the DONE port high again. So, BEFORE the next rising edge, the
+-- value is ready and stable in its output. This way (1 "cycle advance" in announcing the result is ready) an
 -- | optimal chaining of repetitive calcs can be done without otherwise loosing at least one
 -- | clock cycle.
 --
