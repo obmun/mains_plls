@@ -152,7 +152,7 @@ begin
             end if;
         end process st_ctrl;
 
-        signal_gen : process(st_s)
+        signal_gen : process(st_s, en)
         begin
                 case st_s is
                         when ST_STOP =>
