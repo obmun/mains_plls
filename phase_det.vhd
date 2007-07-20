@@ -31,6 +31,11 @@
 -- Dependencies:
 -- 
 -- Revision:
+-- Revision 0.03 - An analisys of timing paths shows that the level of logic
+-- due to the introduction of the new combinational angle_doubler at the entry
+-- point of Cordic, creates a really LONG LONG combinational only path (delay
+-- of 20 ns => max work freq. 50 MHz). To solve this, a register is introduced
+-- in the middle of the street :)
 -- Revision 0.02 - Added correct angle doubling procedure :). No-error tests
 -- are correctly passed.
 -- Revision 0.01 - File Created
@@ -111,6 +116,7 @@ architecture alg of phase_det is
 
 	signal cos_out, sin_2_out : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 	signal mul_out, k_div_out, angle_doubler_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+        signal doubler_reg_out_s : std_logic_vector(PIPELINE_WIDTH downto 0);
 	signal c_done, c_2_done : std_logic;
         signal input_reg_we_s : std_logic;
         signal norm_input_reg_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
@@ -148,8 +154,8 @@ begin
 			-- ENTRADAS
 			clk => clk,
 			rst => rst,
-			run => run,
-			angle => angle_doubler_out_s,
+			run => doubler_reg_out_s(PIPELINE_WIDTH),
+			angle => doubler_reg_out_s(PIPELINE_WIDTH - 1 downto 0),
 			-- SALIDAS
 			sin => sin_2_out,
                         cos => open,
@@ -185,6 +191,17 @@ begin
                 port map (
                         i => curr_phase,
                         o => angle_doubler_out_s);
+
+        doubler_reg_i : entity work.reg(alg)
+                generic map (
+                        width => PIPELINE_WIDTH + 1)
+                port map (
+                        clk => clk,
+                        we => '1',
+                        rst => '0',
+                        i(PIPELINE_WIDTH) => run,
+                        i(PIPELINE_WIDTH - 1 downto 0) => angle_doubler_out_s,
+                        o => doubler_reg_out_s);
 
 	done <= c_done and c_2_done;
 end alg;

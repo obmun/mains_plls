@@ -108,6 +108,23 @@ begin
                 run_s <= '0';
                 wait on done_s until done_s = '1';
 
+                -- ------------------------
+                -- REAL error CHECKING
+                -- First round: pi/32 error in phase
+                
+                -- Input: theta_internal = 0; input_theta = pi/32 =>
+                -- curr_phase_s <= 0
+                -- norm_input_s <= sin(pi/32) = X"0323"
+                -- Output SHOULD be: approx pi/32 (798 en decimal)
+                curr_phase_s <= (others => '0');
+                norm_input_s <= X"0323";
+                run_s <= '1';
+                wait on done_s until done_s = '0';
+                run_s <= '0';
+                wait on done_s until done_s = '1';
+                -- Resultado REAL: 774.
+                -- Error relativo: (798 - 774) / 798 = 0.0301
+
                 wait;
         end process;
 
