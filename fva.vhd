@@ -154,16 +154,17 @@ begin
             end if;
         end process st_ctrl;
 
-        signals_gen : process(st)
+        signals_gen : process(st, en)
         begin
-            case st is
-                when ST_STOP =>
-                    done <= '0';
-                    we_s <= '0';
-                when ST_RUN =>
-                    done <= '1';
-                    we_s <= en;
-                when others => null;
-            end case;
+                case st is
+                        when ST_STOP =>
+                                done <= '0';
+                                we_s <= '0';
+                        when ST_RUN =>
+                                done <= '1';
+                                we_s <= en;
+                        when others =>
+                                null;
+                end case;
         end process signals_gen;
 end alg;
