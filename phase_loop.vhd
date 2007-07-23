@@ -22,6 +22,10 @@
 -- Dependencies:
 -- 
 -- *** Changelog ***
+-- Revision 0.04 - Added register in the middle of a big big big combinational
+-- path (pi_int -> pi_adder -> freq2phase input adder -> freq_2_phase reg).
+-- Added at 37 % of total delay path [not the best place], in a "correct"
+-- place. pi -> REG -> freq2phase
 -- Revision 0.03 - Super change. Now, makes use of new seq. block control iface
 -- Revision 0.02 - Interface modification. Good phase_det cycle integration with rest of pipeline.
 -- Revision 0.01 - File Created
@@ -98,11 +102,11 @@ architecture alg of phase_loop is
 
 	-- Internal signals
 	signal phase_s, phase_det_out_s, fa_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-        signal phase_det_done_s, phase_det_done_pulsed_s, fva_done_s, pi_done_s : std_logic;
+        signal phase_det_done_s, phase_det_done_pulsed_s, fva_done_s, pi_done_s, pi_done_REG_s : std_logic;
         signal phase_det_run_s : std_logic;
-        signal fva_delayed_done_s, pi_delayed_done_s, freq2phase_delayed_done_s : std_logic;
+        signal fva_delayed_done_s, pi_delayed_done_s, pi_delayed_done_REG_s, freq2phase_delayed_done_s : std_logic;
 	-- > PI signals
-	signal p_kcm_out_s, pi_int_out_s, pi_adder_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+	signal p_kcm_out_s, pi_int_out_s, pi_adder_out_s, pi_adder_out_REG_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 begin
 	-- ** Big blocks **
 	phase_det_i : phase_det
@@ -176,19 +180,34 @@ begin
                         f_z => open
 		);
 
-        -- Almost an integrator :)
+        -- Speed up register. Combinational path formed by pi_int -> pi_adder
+        -- -> freq2phase combinational logic at input is TOO long
+        pi_out_reg_i : entity work.reg(alg)
+                generic map (
+                        width => PIPELINE_WIDTH + 2)
+                port map (
+                        clk => clk,
+                        we  => '1',
+                        rst => rst,
+                        i(PIPELINE_WIDTH - 1 downto 0) => pi_adder_out_s,
+                        i(PIPELINE_WIDTH) => pi_done_s,
+                        i(PIPELINE_WIDTH + 1) => pi_delayed_done_s,
+                        o(PIPELINE_WIDTH - 1 downto 0) => pi_adder_out_REG_s,
+                        o(PIPELINE_WIDTH) => pi_done_REG_s,
+                        o(PIPELINE_WIDTH + 1) => pi_delayed_done_REG_s);
+        
 	freq2phase_i : entity work.freq2phase(beh)
                 generic map (
                         width => PIPELINE_WIDTH,
                         delayer_width => 2)
 		port map (
 			clk => clk, rst => rst,
-			f => pi_adder_out_s,
+			f => pi_adder_out_REG_s,
 			p => phase_s,
-                        run_en => pi_done_s,
+                        run_en => pi_done_REG_s,
                         run_passthru => open,
                         delayer_in(0) => '-',
-                        delayer_in(1) => pi_delayed_done_s,
+                        delayer_in(1) => pi_delayed_done_REG_s,
                         delayer_out(0) => open,
                         delayer_out(1) => freq2phase_delayed_done_s);
 
