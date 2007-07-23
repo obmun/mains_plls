@@ -36,12 +36,11 @@ entity pipeline_conv is
 	port (
 		i : in std_logic_vector(in_width - 1 downto 0);
 		o : out std_logic_vector(out_width - 1 downto 0));
-
-        constant in_magn : natural := in_width - in_prec;
-        constant out_magn : natural := out_width - out_prec;
 end pipeline_conv;
 
 architecture alg of pipeline_conv is
+        constant in_magn : natural := in_width - in_prec;
+        constant out_magn : natural := out_width - out_prec;
 begin
         -- XILINX is not able to synthesize this. Just comment this tests out.
         -- Arghh!!
