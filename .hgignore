@@ -51,6 +51,8 @@ mppr_result*
 *_synth
 work\*
 *.fdo
+*.tdo
+*.ndo
 *.udo
 _cg*
 __ISE*
