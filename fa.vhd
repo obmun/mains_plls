@@ -14,6 +14,7 @@
 -- Troughoutput: 1 sample / cycle
 -- 
 -- *** BRIEF DESCRIPTION ***
+-- Class: sequential
 -- VA, with configurable frequency (and integrator ktk) thru generic ports.
 -- Works on clock's rising edge and has synchronous reset.
 -- 

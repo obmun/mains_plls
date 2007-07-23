@@ -10,6 +10,7 @@
 -- Tool versions:  
 --
 -- *** BRIEF DESCRIPTION ***
+-- Class: Sequential iterative.
 -- Phase detector based on Cordic seq engine. Control interface is identical to
 -- the Cordic engine one. See Cordic doc.
 -- 
