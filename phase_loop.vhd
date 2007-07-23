@@ -10,6 +10,7 @@
 -- Tool versions:
 --
 -- *** Short desc ***
+-- Class: sequential iterative
 -- A PLL phase loop. Follows Cordic signals interface (RUN/DONE iface)
 --
 -- *** Description ***
@@ -20,7 +21,8 @@
 --
 -- Dependencies:
 -- 
--- Revision:
+-- *** Changelog ***
+-- Revision 0.03 - Super change. Now, makes use of new seq. block control iface
 -- Revision 0.02 - Interface modification. Good phase_det cycle integration with rest of pipeline.
 -- Revision 0.01 - File Created
 -- 
@@ -46,7 +48,7 @@ architecture alg of phase_loop is
 
 	-- Component declaration
 	component phase_det is
-                -- rev 0.01
+                -- rev 0.02
 		port (
 			-- Input value signals
 			norm_input, curr_phase : in std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
@@ -57,18 +59,6 @@ architecture alg of phase_loop is
 			norm_output : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 			-- Out control signals
 			done : out std_logic);
-	end component;
-
-	component freq2phase is
-                -- rev 0.04
-                generic (
-                        width : natural := PIPELINE_WIDTH);
-                port (
-                        clk, en, rst : in std_logic;
-                        f : in std_logic_vector(width - 1 downto 0);
-                        p : out std_logic_vector(width - 1 downto 0);
-                        run : in std_logic;
-                        done : out std_logic);                
 	end component;
 
 	component fva is
@@ -95,20 +85,6 @@ architecture alg of phase_loop is
 		);
 	end component;
 
-	component kcm_integrator is
-                -- rev 0.01
-                generic (
-                        width : natural := PIPELINE_WIDTH;
-                        prec : natural := PIPELINE_PREC;
-                        k : pipeline_integer := EXAMPLE_VAL_FX316);
-                port (
-                        clk, en, rst : in std_logic;
-                        i : in std_logic_vector (width - 1 downto 0);
-                        o : out std_logic_vector (width - 1 downto 0);
-                        run : in std_logic;
-                        done : out std_logic);                
-	end component;
-
 	component adder is
 		generic (
 			width : natural := PIPELINE_WIDTH
@@ -122,8 +98,9 @@ architecture alg of phase_loop is
 
 	-- Internal signals
 	signal phase_s, phase_det_out_s, fa_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-        signal phase_det_done_s, phase_det_done_pulsed_s, fva_done_s, fva_done_pulsed_s, pi_done_s, pi_done_pulsed_s, freq2phase_done_s : std_logic;
+        signal phase_det_done_s, phase_det_done_pulsed_s, fva_done_s, pi_done_s : std_logic;
         signal phase_det_run_s : std_logic;
+        signal fva_delayed_done_s, pi_delayed_done_s, freq2phase_delayed_done_s : std_logic;
 	-- > PI signals
 	signal p_kcm_out_s, pi_int_out_s, pi_adder_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 begin
@@ -148,13 +125,23 @@ begin
                         i   => phase_det_done_s,
                         o   => phase_det_done_pulsed_s);
         
-	fva_i : fva
+	fa_i : entity work.fa(beh)
+                generic map (
+                        width => PIPELINE_WIDTH,
+                        prec  => PIPELINE_PREC,
+                        int_k => AC_FREQ_SAMPLE_SCALED_FX316,
+                        delay => 200,     -- fs / 50 Hz = 10000 / 50 = 200
+                        delayer_width => 2)
 		port map (
-			en => '1', clk => clk, rst => rst,
+			clk => clk, rst => rst,
 			i => phase_det_out_s,
 			o => fa_out_s,
-                        run => phase_det_done_pulsed_s,
-                        done => fva_done_s);
+                        run_en => phase_det_done_pulsed_s,
+                        run_passthru => fva_done_s,
+                        delayer_in(0) => '-',
+                        delayer_in(1) => phase_det_done_s,
+                        delayer_out(0) => open,
+                        delayer_out(1) => fva_delayed_done_s);
 
 	-- PI filter components
 	pi_p_kcm : kcm
@@ -165,23 +152,20 @@ begin
 			i => fa_out_s,
 			o => p_kcm_out_s);
 
-        fva_done_pulser : entity work.done_pulser(beh)
-                port map (
-                        clk => clk,
-                        en  => '1',
-                        rst => rst,
-                        i   => fva_done_s,
-                        o   => fva_done_pulsed_s);
-                
-	pi_int : kcm_integrator
+	pi_int : entity work.kcm_integrator(beh)
 		generic map (
-			k => PHASE_LOOP_PI_I_CONST_SAMPLE_SCALED)
+			k => PHASE_LOOP_PI_I_CONST_SAMPLE_SCALED,
+                        delayer_width => 2)
 		port map (
-			clk => clk, en => '1', rst => rst,
-                        run => fva_done_pulsed_s,
+			clk => clk, rst => rst,
+                        run_en => fva_done_s,
 			i => fa_out_s,
 			o => pi_int_out_s,
-                        done => pi_done_s);
+                        run_passthru => pi_done_s,
+                        delayer_in(0) => '-',
+                        delayer_in(1) => fva_delayed_done_s,
+                        delayer_out(0) => open,
+                        delayer_out(1) => pi_delayed_done_s);
 
 	pi_adder : adder
 		port map (
@@ -192,27 +176,23 @@ begin
                         f_z => open
 		);
 
-        pi_done_pulser : entity work.done_pulser(beh)
-                port map (
-                        clk => clk,
-                        en  => '1',
-                        rst => rst,
-                        i   => pi_done_s,
-                        o   => pi_done_pulsed_s);
-                
-
-	-- Semi "DCO"
-	freq2phase_i : freq2phase
+        -- Almost an integrator :)
+	freq2phase_i : entity work.freq2phase(beh)
+                generic map (
+                        width => PIPELINE_WIDTH,
+                        delayer_width => 2)
 		port map (
-			clk => clk, en => '1', rst => rst,
+			clk => clk, rst => rst,
 			f => pi_adder_out_s,
 			p => phase_s,
-                        run => pi_done_s,
-                        done => freq2phase_done_s);
+                        run_en => pi_done_s,
+                        run_passthru => open,
+                        delayer_in(0) => '-',
+                        delayer_in(1) => pi_delayed_done_s,
+                        delayer_out(0) => open,
+                        delayer_out(1) => freq2phase_delayed_done_s);
 
 	phase <= phase_s;
-        done <= freq2phase_done_s;
-        phase_det_run_s <= run; -- and freq2phase_done_s;
-        -- PROBLEM!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        -- BIG ONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        done <= freq2phase_delayed_done_s;
+        phase_det_run_s <= run and freq2phase_delayed_done_s;
 end alg;
