@@ -59,7 +59,7 @@ use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
 
 entity freq2phase is
-        -- rev 0.04
+        -- rev 0.05
 	generic (
 		width : natural := PIPELINE_WIDTH;
                 -- Seq. block iface

@@ -35,7 +35,7 @@
 -- ** PORTS **
 -- rst -> sync reset: set's internal register to 0.
 -- clk -> clk input
--- en -> NO THIRD STATE OUTPUT; allows to stop the integrator even if clk
+-- run_en -> NO THIRD STATE OUTPUT; allows to stop the integrator even if clk
 -- signal keeps running
 --
 -- ** Estability **
@@ -45,6 +45,7 @@
 -- output to input feedback. IT'S esential to make a correct use of the RST signal!!!
 --
 -- Revision:
+-- Revision 0.02 - Addition of new seq. block control iface.
 -- Revision 0.01 - File Created, derived from rev 0.02 of integrator
 --
 -- TODO:
@@ -56,27 +57,30 @@ use IEEE.NUMERIC_STD.ALL;
 use WORK.COMMON.all;
 
 entity kcm_integrator is
-        -- rev 0.01
+        -- rev 0.02
         generic (
                 width : natural := PIPELINE_WIDTH;
                 prec : natural := PIPELINE_PREC;
-                k : pipeline_integer := EXAMPLE_VAL_FX316);
+                k : pipeline_integer := EXAMPLE_VAL_FX316;
+                -- Seq. block iface
+                delayer_width : natural := 1);
         port (
-                clk, en, rst : in std_logic;
+                clk, rst : in std_logic;
                 i : in std_logic_vector (width - 1 downto 0);
                 o : out std_logic_vector (width - 1 downto 0);
-                run : in std_logic;
-                done : out std_logic);
+                run_en : in std_logic;
+                run_passthru : out std_logic;
+                delayer_in : in std_logic_vector(delayer_width - 1 downto 0);
+                delayer_out : out std_logic_vector(delayer_width - 1 downto 0));
 end kcm_integrator;
 
-architecture alg of kcm_integrator is
-    type state is (ST_STOP, ST_RUN);
-    signal st_s : state;
-    
+architecture beh of kcm_integrator is
     signal o_s : std_logic_vector(width - 1 downto 0);
     signal a : std_logic_vector(width - 1 downto 0);
     signal b : std_logic_vector(width - 1 downto 0);
     signal c : std_logic_vector(width - 1 downto 0);
+
+    signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
 
     component reg is
         generic(
@@ -111,14 +115,14 @@ begin
 		generic map (
 			width => width)
 		port map (
-			clk => clk, we => en, rst => rst,
+			clk => clk, we => run_en, rst => rst,
 			i => i, o => a);
         
 	d_i2 : reg
 		generic map (
 			width => width)
 		port map (
-			clk => clk, we => en, rst => rst,
+			clk => clk, we => run_en, rst => rst,
 			i => o_s, o => c);
         
 	kcm_i : kcm
@@ -140,44 +144,25 @@ begin
 
         o <= o_s;
 
-        st_ctrl : process(clk)
-        begin
-            if (rising_edge(clk)) then
-                if (en = '1') then
-                    if (rst = '1') then
-                        st_s <= ST_STOP;
-                    else
-                        case st_s is
-                            when ST_STOP =>
-                                if (run = '1') then
-                                    st_s <= ST_RUN;
-                                else
-                                    st_s <= ST_STOP;
-                                end if;
-                            when ST_RUN =>
-                                if (run = '1') then
-                                    st_s <= ST_RUN;
-                                else
-                                    st_s <= ST_STOP;
-                                end if;
-                            when others =>
-                                null;
-                        end case;
-                    end if;
-                end if;
-            end if;
-        end process st_ctrl;
+        delayer : reg
+                generic map (
+                        width => delayer_width)
+		port map (
+			clk => clk, we => '1', rst => rst,
+			i => delayer_in_s,
+			o => delayer_out_s);
+
+        single_delayer_gen: if (delayer_width = 1) generate
+                delayer_in_s(0) <= run_en;
+                run_passthru <= std_logic(delayer_out_s(0));
+                delayer_out(0) <= delayer_out_s(0);
+        end generate single_delayer_gen;
         
-        signal_gen : process(st_s)
-        begin
-            case st_s is
-                when ST_STOP =>
-                    done <= '0';
-                when ST_RUN =>
-                    done <= '1';
-                when others =>
-                    null;
-            end case;
-        end process signal_gen;
-            
-end alg;
+        broad_delayer_gen: if (delayer_width > 1) generate
+                delayer_in_s(0) <= run_en;
+                delayer_in_s(delayer_width - 1 downto 1) <= delayer_in(delayer_width - 1 downto 1);
+                run_passthru <= std_logic(delayer_out_s(0));
+                delayer_out <= delayer_out_s;
+        end generate broad_delayer_gen;
+
+end beh;
