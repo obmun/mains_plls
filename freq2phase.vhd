@@ -126,7 +126,7 @@ architecture beh of freq2phase is       -- behavioural
 
         -- Signals
         signal gt_pi : std_logic;
-        signal reg_out, speed_reg_out, kcm_out, fb_adder_out, in_adder_out, pi_limit_out : std_logic_vector(width - 1 downto 0);
+        signal reg_out, kcm_out, fb_adder_out, in_adder_out, pi_limit_out : std_logic_vector(width - 1 downto 0);
         signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
 
 begin
@@ -150,7 +150,7 @@ begin
 
 	in_adder : adder
 		port map (
-			a => f,
+			a => kcm_out,
 			b => std_logic_vector(AC_FREQ_SAMPLE_SCALED_FX316_S),
 			o => in_adder_out
 		);
