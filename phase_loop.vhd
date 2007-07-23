@@ -212,5 +212,7 @@ begin
 
 	phase <= phase_s;
         done <= freq2phase_done_s;
-        phase_det_run_s <= run and freq2phase_done_s;
+        phase_det_run_s <= run; -- and freq2phase_done_s;
+        -- PROBLEM!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        -- BIG ONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 end alg;

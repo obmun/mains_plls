@@ -15,7 +15,7 @@ architecture beh of phase_loop_tb is
         signal norm_input_s, phase_s, norm_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 begin  -- beh
 
-        phase_loop_i : entity work.phase_loop(alg)
+        phase_loop_i : entity work.phase_loop(Alg)
                 port map (
                         clk => clk_s,
                         rst => rst_s,
@@ -34,6 +34,7 @@ begin  -- beh
         end process clock;
 
         signal_gen : process
+                variable i : natural := 0;
         begin
                 norm_input_s <= (others => '0');
                 run_s <= '0';
@@ -42,7 +43,15 @@ begin  -- beh
                 wait for 10 ns;
                 rst_s <= '0';
                 run_s <= '1';
-                wait;
+                wait for 30 us;
+
+                for i in 1000 downto 0 loop
+                        run_s <= '1';
+                        wait on clk_s until rising_edge(clk_s);
+                        wait on clk_s until clk_s = '0';
+                        run_s <= '0';
+                        wait for 1 us;
+                end loop;  -- i
         end process signal_gen;
 
 end beh;
