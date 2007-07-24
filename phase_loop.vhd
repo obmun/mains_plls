@@ -140,7 +140,7 @@ begin
                 generic map (
                         width => PIPELINE_WIDTH,
                         prec  => PIPELINE_PREC,
-                        int_k => AC_FREQ_SAMPLE_SCALED_FX316,
+                        int_k => to_pipeline_integer(AC_FREQ_SAMPLE_SCALED),
                         delay => 100,     -- fs / 100 Hz = 10000 / 100 = 1ç00
                         delayer_width => 2)
 		port map (
@@ -157,7 +157,7 @@ begin
 	-- PI filter components
 	pi_p_kcm : kcm
 		generic map (
-			k => PHASE_LOOP_PI_P_CONST
+			k => to_pipeline_integer(PHASE_LOOP_PI_P_CONST)
 		)
 		port map (
 			i => fa_out_s,
@@ -165,7 +165,7 @@ begin
 
 	pi_int : entity work.kcm_integrator(beh)
 		generic map (
-			k => PHASE_LOOP_PI_I_CONST_SAMPLE_SCALED_FX316,
+			k => to_pipeline_integer(PHASE_LOOP_PI_I_CONST),
                         delayer_width => 2)
 		port map (
 			clk => clk, rst => rst,

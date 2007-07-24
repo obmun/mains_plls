@@ -1,7 +1,7 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
-use IEEE.MATH_REAL.all;
+use IEEE.MATH_REAL.all;                 -- round function, and others?
 
 package common is
 	-- *
@@ -17,6 +17,7 @@ package common is
 	constant PIPELINE_WIDTH : natural := 16;
 	constant EXT_PIPELINE_WIDTH : natural := 18;
 	constant PIPELINE_PREC : natural := 12;
+        constant PIPELINE_PREC_WEIGHT : natural := 4096;
 	constant EXT_PIPELINE_PREC : natural := PIPELINE_PREC;
 	constant PIPELINE_MAGN : natural := PIPELINE_WIDTH - PIPELINE_PREC;
 	constant EXT_PIPELINE_MAGN : natural := EXT_PIPELINE_WIDTH - EXT_PIPELINE_PREC;
@@ -28,12 +29,7 @@ package common is
         constant SAMPLE_PERIOD_FX416 : pipeline_integer := 0; -- NOT ENOUGH PRECISION: 0.4096!! BE CAREFULL!!
 	constant SAMPLE_PERIOD_FX416_S : signed(PIPELINE_WIDTH - 1 downto 0) := B"0_00_00000_00000000";
 
-	constant AC_FREQ_SAMPLE_SCALED_FX316 : pipeline_integer := 257; -- 2*Pi*50*Ts*2^PIPELINE_PREC
-                                                                        -- = 257.35
-	constant AC_FREQ_SAMPLE_SCALED_FX316_S : signed(PIPELINE_WIDTH - 1 downto 0) := B"0_00_00001_00000001";
-        constant AC_FREQ_SAMPLE_SCALED_FX416 : pipeline_integer := 129; -- 2*Pi*50*Ts*2^PIPELINE_PREC
-                                                                        -- = 128.68
-	constant AC_FREQ_SAMPLE_SCALED_FX416_S : signed(PIPELINE_WIDTH - 1 downto 0) := B"0_00_00000_10000001";
+        constant AC_FREQ_SAMPLE_SCALED : real := 0.031416; -- 2*Pi*50*Ts
 
 	-- Math constants
 	constant EXAMPLE_VAL_FX316 : pipeline_integer := 26312;
@@ -68,12 +64,30 @@ package common is
 	constant MINUS_TWO_PI_FX417_V : std_logic_vector(PIPELINE_WIDTH downto 0) := B"1_001_10110_11110000";
 
 	-- Filter constants
-	constant PHASE_LOOP_PI_I_CONST_SAMPLE_SCALED_FX316 : pipeline_integer := 122;
-	-- constant PHASE_LOOP_PI_P_CONST : pipeline_integer := 32767; -- OVERFLOW!!!
-        constant PHASE_LOOP_PI_I_CONST_SAMPLE_SCALED_FX416 : pipeline_integer := 61;
-	
+        constant PHASE_LOOP_PI_I_CONST : real := 1000.0;
+        constant PHASE_LOOP_PI_P_CONST : real := 100.0;
+
+        function to_pipeline_integer ( val : real ) return integer;
+        function to_pipeline_vector ( val : real ) return std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 end common;
 
 
 package body common is
+        function to_pipeline_integer ( val : real ) return integer is
+                variable tmp_val : integer;
+        begin
+                tmp_val := integer(round(val * real(PIPELINE_PREC_WEIGHT)));
+                if (tmp_val > pipeline_integer'high) then
+                        return pipeline_integer'high;
+                elsif (tmp_val < pipeline_integer'low) then
+                        return pipeline_integer'low;
+                else
+                        return tmp_val;
+                end if;
+        end;
+
+        function to_pipeline_vector ( val : real ) return std_logic_vector(PIPELINE_WIDTH - 1 downto 0) is
+        begin
+                return std_logic_vector(to_signed(to_pipeline_integer(val, PIPELINE_WIDTH)));
+        end;
 end common;
