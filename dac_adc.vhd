@@ -7,50 +7,59 @@
 -- Module Name:    dac_adc - beh
 -- Project Name:   
 -- Target Device:  
--- Tool versions:  
--- Description:
--- | Interface to the Digilent LT SPI ADC and DAC ICs
--- | Digilent board includes a quad DAC and ADC, connected thru a shared SPI bus.
--- | DAC specs:
--- | -> -3 db freq: 180 KHz. At 100 KHz response is still at 0 dB. We
--- |    set the INPUT and OUPUT sampling freq. to 20 KHz, so we have enough 
--- |    room. Also, no more sampling freq is needed in our app.
--- | -> 12 bit resolution (32 bit instruction size)
--- | ADC specs:
--- | -> 14 bit resolution
--- |
--- | SPI driving:
--- | To simplify implementation and avoid carefull checking of LTC devices timings,
--- | we're gonna drive the SPI bus at half sys clk => 25 MHz. It's fast enough for
--- | our app and allows design simplification.
--- |
--- | How to set DAC fs:
--- | Sampling freq depends on the signals sent by the FPGA (esentially last SPI SCK 
--- | rising edge). We must be carefull and get a steady SCK signal clock
--- |
--- | Delay between DAC and ADC:
--- | One basic problem arises: both devices cannot be driven simultaneously, as
--- | both share the SPI bus. Ideally, on a sampling (discreete time) system:
----|   ^
--- |     |
--- | In -| old  - new
--- |     |      |
--- | Out-| old  - new
--- |     |      |
--- |     -------|------> t
--- | New input sample and new ouput sample should be captured at the same moment. Here our decision is
--- | to first set the new value with the DAC and after the minimum possible delay
--- | (1 / 25 MHz * 32 bits, plus a little more) get the new [old :)] input.
--- |
--- | HOW TO CONTROL IT:
--- | Tell it to run (run = 1). It has its own "internal reference" of timings, as this block 
--- | takes care of maintaining a CONSTANT fs (sampling period).
--- |
--- | PORT DESCRIPTION:
--- | * [out] have_sample: sube a 1 durante 1 ciclo: el siguiente a recibir el nuevo valor del adc
--- |                      Justo durante ese ciclo ya está el nuevo valor de entrada en in_sample.
--- | * [out] need_sample: sube a 1 durante 1 ciclo, el anterior a tener q usar el nuevo valor para el DAC.
--- |                      Justo en el siguiente rising edge, el valor en out_sample es leído
+-- Tool versions:
+--
+-- *** Description ***
+-- This is the Interface to the Digilent LT SPI ADC and DAC ICs
+-- Digilent board includes a quad DAC and ADC, connected thru a shared SPI bus.
+-- ** ICs specs **
+-- * DAC specs *
+--  -> -3 db freq: 180 KHz. At 100 KHz response is still at 0 dB.
+--  -> 12 bit resolution (32 bit instruction size)
+-- * ADC specs *
+--  -> 14 bit resolution
+--  -> Bipolar input range, representation of value in 2s complement (1 bit for
+--  magnitude)
+--  With the FPGA board input stage, dynamic range is +- 1.25 V, centered in
+--  1.65 V
+-- 
+-- ** SPI driving **
+-- To simplify implementation and avoid carefull checking of LTC devices timings,
+-- we're gonna drive the SPI bus at half sys clk => 25 MHz. It's fast enough for
+-- our app and allows design simplification.
+--
+-- * Delay between DAC and ADC *
+-- One basic problem arises: both devices cannot be driven simultaneously, as
+-- both share the SPI bus. Ideally, on a sampling (discreete time) system:
+--     ^
+--     |
+-- In -| old  - new
+--     |      |
+-- Out-| old  - new
+--     |      |
+--     -------|------> t
+-- New input sample and new ouput sample should be captured at the same moment. Here our decision is
+-- to first set the new value with the DAC and after the minimum possible delay
+-- (1 / 25 MHz * 32 bits, plus a little more) get the new [old :)] input.
+-- 
+-- ** Sample frequency **
+-- We set the INPUT and OUPUT sampling freq. to 10 KHz, so we have enough 
+-- room. Also, no more sampling freq is needed in our app.
+-- 
+-- * How to set DAC fs *
+-- Sampling freq depends on the signals sent by the FPGA (esentially last SPI SCK 
+-- rising edge). We must be carefull and get a steady SCK signal clock
+-- 
+-- 
+-- *** HOW TO CONTROL IT ***
+-- Tell it to run (run = 1). It has its own "internal reference" of timings, as this block 
+-- takes care of maintaining a CONSTANT fs (sampling period).
+-- 
+-- PORT DESCRIPTION:
+-- * [out] have_sample: sube a 1 durante 1 ciclo: el siguiente a recibir el nuevo valor del adc
+--                      Justo durante ese ciclo ya está el nuevo valor de entrada en in_sample.
+-- * [out] need_sample: sube a 1 durante 1 ciclo, el anterior a tener q usar el nuevo valor para el DAC.
+--                      Justo en el siguiente rising edge, el valor en out_sample es leído
 -- Dependencies:
 -- 
 -- Todo:
@@ -132,9 +141,14 @@ entity dac_adc is
 end dac_adc;
 
 architecture beh of dac_adc is
-     constant TOTAL_CYCLES : natural := 312;  -- Calced: 2500; measured with
-                                              -- ModelSim: 1 less than calced
-                                              -- needed (624 in clk / 4)
+        constant TOTAL_CYCLES : natural := 312;
+        -- Cycles needed for 20 KHz sampling rate:
+        -- f_clk = 50 MHz -> calculated: 2500; measured with ModelSim: 2499
+        -- f_clk / 4 = 12.5 MHz -> 624
+        -- f_clk / 8 = 6.25 MHz -> 312
+        -- Cycles needed for 10 KHz sampling rate:
+        -- f_clk = 50 MHz -> calculated: 5000; measured with ModelSim: 4998
+        -- f_clk / 8 = 6.25 MHz -> 624
 
      constant DAC_INS_SIZE : natural := 32;
      constant DAC_REAL_INS_SIZE : natural := 20;
