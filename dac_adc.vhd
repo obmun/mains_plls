@@ -141,7 +141,7 @@ entity dac_adc is
 end dac_adc;
 
 architecture beh of dac_adc is
-        constant TOTAL_CYCLES : natural := 312;
+        constant TOTAL_CYCLES : natural := 624;
         -- Cycles needed for 20 KHz sampling rate:
         -- f_clk = 50 MHz -> calculated: 2500; measured with ModelSim: 2499
         -- f_clk / 4 = 12.5 MHz -> 624
