@@ -32,6 +32,7 @@ use IEEE.NUMERIC_STD.all;
 use WORK.COMMON.all;
 
 entity ampl_loop is
+        -- rev 0.01
 	port (
 		clk, run, rst : in std_logic;
 		in_signal, our_signal : in std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
@@ -52,8 +53,10 @@ architecture alg of ampl_loop is
 
 	-- * Internal elements control *
 	signal sqrt_error_s : std_logic;
-        signal sqrt_done_s, fa_done_s, pi_integrator_done_s, lpf_done_s, filter_stage_done_s : std_logic;
-        signal first_run_s : std_logic;
+        signal sqrt_done_s, sqrt_done_pulsed_s, fa_delayed_done_s, pi_integrator_done_s, lpf_done_s, filter_stage_done_s : std_logic;
+        signal first_run_s, first_run_pulsed_s : std_logic;
+
+        signal garbage_1_s, garbage_2_s, garbage_3_s : std_logic;
 
 	-- * DATA PATH *
 	-- Extended width (FX3.18)
@@ -100,33 +103,45 @@ begin
 			out_width => PIPELINE_WIDTH, out_prec => PIPELINE_PREC)
 		port map ( i => squared_in_norm_EXT_s, o => squared_in_norm_s );
 
+        -- squared_in_norm_s <= squared_in_norm_EXT_s(15 downto 0);
+
 	error_s_conv : entity work.pipeline_conv(alg)
 		generic map (
 			PIPELINE_WIDTH, PIPELINE_PREC,
 			EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC)
 		port map ( error_s, error_EXT_s);
 
-	pi_integrator : entity work.kcm_integrator(alg)
+	pi_integrator : entity work.kcm_integrator(beh)
 		generic map (
 			width => EXT_PIPELINE_WIDTH, prec => EXT_PIPELINE_PREC,
-			k => EXAMPLE_VAL_FX316)
+			k => 4)       -- Ts * 10 = 5e-4 => 4.09 (ans * 8192)
 		port map (
-			clk => clk, en => '1', rst => rst,
+			clk => clk, rst => rst,
 			i => error_EXT_s, o => int_error_EXT_s,
-                        run => first_run_s, done => pi_integrator_done_s
-		);
+                        run_en => first_run_pulsed_s, run_passthru => pi_integrator_done_s,
+                        delayer_in(0) => '-',
+                        delayer_out(0) => garbage_3_s);
 
-        first_run_s <= fa_done_s and run;
+        first_run_s <= fa_delayed_done_s and run;
+        first_run_pulser : entity work.done_pulser(beh)
+                port map (
+                        clk => clk,
+                        en  => '1',
+                        rst => rst,
+                        i   => first_run_s,
+                        o   => first_run_pulsed_s);
         
 	pi_kp_mul : entity work.kcm(alg)
-		generic map ( k => EXAMPLE_VAL_FX316 )
+		generic map ( k =>  16384 ) -- 2 * 8192
 		port map ( i => error_s, o => pi_kp_out_s );
 
 	pi_lpf : entity work.first_order_lpf(alg)
 		port map (
-			clk => clk, en => '1', rst => rst,
+			clk => clk, rst => rst,
 			i => pi_kp_out_s, o => filtered_error_s,
-                        run => first_run_s, done => lpf_done_s);
+                        run_en => first_run_pulsed_s, run_passthru => lpf_done_s,
+                        delayer_in(0) => '-',
+                        delayer_out(0) => garbage_2_s);
 
         filter_stage_done_s <= lpf_done_s and pi_integrator_done_s;
                                
@@ -154,23 +169,42 @@ begin
 			i => squared_alpha_EXT_s, o => alpha_EXT_s,
 			done => sqrt_done_s , error_p => sqrt_error_s);
 
+        sqrt_done_pulser : entity work.done_pulser(beh)
+                port map (
+                        clk => clk,
+                        en  => '1',
+                        rst => rst,
+                        i   => sqrt_done_s,
+                        o   => sqrt_done_pulsed_s);
+
 	alpha_s_conv : entity work.pipeline_conv(alg)
 		generic map (
 			EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC,
 			PIPELINE_WIDTH, PIPELINE_PREC)
 		port map ( alpha_EXT_s, alpha_s );
+        
+        -- alpha_s <= alpha_EXT_s(15 downto 0);
 
 	norm_mul : entity work.mul(alg)
 		generic map (width => PIPELINE_WIDTH, prec_bits => PIPELINE_PREC)
 		port map (alpha_s, in_signal, norm_in_signal_s);
 
-	fa_i : entity work.fva(alg)
-		generic map ( PIPELINE_WIDTH )
+	fa_i : entity work.fa(beh)
+		generic map (
+                        width => PIPELINE_WIDTH,
+                        prec => PIPELINE_PREC,
+                        int_k => AC_FREQ_SAMPLE_SCALED_FX316,
+                        delay => 200,   -- fs / 50 Hz = 10000 / 50 = 200
+                        delayer_width => 2)
 		port map (
-			clk => clk, en => '1', rst => rst,
+			clk => clk, rst => rst,
 			i => norm_in_signal_s, o => norm_in_signal,
-			run => sqrt_done_s, done => fa_done_s);
+                        run_en => sqrt_done_pulsed_s, 
+			run_passthru => open,
+                        delayer_in(0) => '-',
+                        delayer_in(1) => sqrt_done_s,
+                        delayer_out(0) => garbage_1_s,
+                        delayer_out(1) => fa_delayed_done_s);
 
-        done <= fa_done_s;
-
+        done <= fa_delayed_done_s;
 end alg;
