@@ -7,17 +7,22 @@
 -- Module Name:    1st_order_lpf - alg
 -- Project Name:   
 -- Target Device:  
--- Tool versions:  
+-- Tool versions:
+--
+-- *** Brief description ***
+-- Class: sequential block
+--
 -- *** Description ***
 -- ** Ports **
 -- * Inputs *
--- -> en: (no 3rd state). If 0, ignores clks
+--
 -- Dependencies:
 -- 
 -- Todo:
--- | > Check if alfa^(-1) and -beta / alfa values can be automatically calculated from Kp. Right now user has to precalc them.
+-- > Check if alfa^(-1) and -beta / alfa values can be automatically calculated from Kp. Right now user has to precalc them.
 --
--- *** Revisions ***
+-- *** ChangeLog ***
+-- Revision 0.03 - Converted to new sequential block interface
 -- Revision 0.02 - Added RUN/DONE interface
 -- Revision 0.01 - File Created
 -- Additional Comments:
@@ -30,22 +35,22 @@ use IEEE.NUMERIC_STD.all;
 use WORK.COMMON.all;
 
 entity first_order_lpf is
-        -- rev 0.02
+        -- rev 0.03
 	generic (
-		width : natural := PIPELINE_WIDTH);
+		width : natural := PIPELINE_WIDTH;
+                delayer_width : natural := 1);
+        
 	port (
-		clk, en, rst : in std_logic;
+		clk, rst : in std_logic;
 		i : in std_logic_vector(width - 1 downto 0);
 		o : out std_logic_vector(width - 1 downto 0);
-                run : in std_logic;
-                done : out std_logic);
-        
+                run_en : in std_logic;
+                run_passthru : out std_logic;
+                delayer_in : in std_logic_vector(delayer_width - 1 downto 0);
+                delayer_out : out std_logic_vector(delayer_width - 1 downto 0));
 end first_order_lpf;
 
 architecture alg of first_order_lpf is
-        type state is (ST_STOP, ST_RUN);
-        signal st_s : state;
-        
 	component kcm
 		generic (
 			width : natural := PIPELINE_WIDTH;
@@ -69,19 +74,8 @@ architecture alg of first_order_lpf is
 		);
 	end component;
 
-	component reg is
-		generic (
-			width : natural := PIPELINE_WIDTH
-		);
-		port (
-			clk, we, rst : in std_logic;
-			i : in std_logic_vector(width - 1 downto 0);
-			o : out std_logic_vector(width - 1 downto 0)
-		);
-	end component;
-
 	signal i_kcm_out, fb_adder_out, reg_adder_out, delay_out, fb_kcm_out : std_logic_vector(width - 1 downto 0);
-        signal en_s : std_logic;
+        signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
 begin
 	i_kcm : kcm
 		generic map (
@@ -114,55 +108,34 @@ begin
 			f_ov => open, f_z => open
 		);
 
-	delay : reg
+	delay : entity work.reg(alg)
+                generic map (
+                        width => width)
 		port map (
-			clk => clk, we => en_s, rst => rst,
+			clk => clk, we => run_en, rst => rst,
 			i => reg_adder_out,
 			o => delay_out);
 
 	o <= fb_adder_out;
 
-        -- RUN/DONE protocol!
-        -- run signal must control en of "sequential" elements.
-        st_ctrl : process(clk)
-        begin
-            if (rising_edge(clk)) then
-                if (en = '1') then
-                    if (rst = '1') then
-                        st_s <= ST_STOP;
-                    else
-                        case st_s is
-                            when ST_STOP =>
-                                if (run = '1') then
-                                    st_s <= ST_RUN;
-                                else
-                                    st_s <= ST_STOP;
-                                end if;
-                            when ST_RUN =>
-                                if (run = '1') then
-                                    st_s <= ST_RUN;
-                                else
-                                    st_s <= ST_STOP;
-                                end if;
-                            when others =>
-                                null;
-                        end case;
-                    end if;
-                end if;
-            end if;
-        end process st_ctrl;
+        delayer : entity work.reg(alg)
+                generic map (
+                        width => delayer_width)
+		port map (
+			clk => clk, we => '1', rst => rst,
+			i => delayer_in_s,
+			o => delayer_out_s);
 
-        signal_gen : process(st_s, en)
-        begin
-                case st_s is
-                        when ST_STOP =>
-                                done <= '0';
-                                en_s <= '0';
-                        when ST_RUN =>
-                                done <= '1';
-                                en_s <= en;
-                        when others =>
-                                null;
-                end case;
-        end process signal_gen;
+        single_delayer_gen: if (delayer_width = 1) generate
+                delayer_in_s(0) <= run_en;
+                run_passthru <= std_logic(delayer_out_s(0));
+                delayer_out(0) <= delayer_out_s(0);
+        end generate single_delayer_gen;
+        
+        broad_delayer_gen: if (delayer_width > 1) generate
+                delayer_in_s(0) <= run_en;
+                delayer_in_s(delayer_width - 1 downto 1) <= delayer_in(delayer_width - 1 downto 1);
+                run_passthru <= std_logic(delayer_out_s(0));
+                delayer_out <= delayer_out_s;
+        end generate broad_delayer_gen;
 end alg;
