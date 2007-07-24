@@ -23,11 +23,6 @@ use WORK.COMMON.all;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
 
----- Uncomment the following library declaration if instantiating
----- any Xilinx primitives in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-
 entity subsor is
 	generic (
 		width : natural := PIPELINE_WIDTH
