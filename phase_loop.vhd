@@ -141,7 +141,7 @@ begin
                         width => PIPELINE_WIDTH,
                         prec  => PIPELINE_PREC,
                         int_k => AC_FREQ_SAMPLE_SCALED_FX316,
-                        delay => 100,     -- fs / 100 Hz = 10000 / 100 = 100
+                        delay => 100,     -- fs / 100 Hz = 10000 / 100 = 1ç00
                         delayer_width => 2)
 		port map (
 			clk => clk, rst => rst,
@@ -165,7 +165,7 @@ begin
 
 	pi_int : entity work.kcm_integrator(beh)
 		generic map (
-			k => PHASE_LOOP_PI_I_CONST_SAMPLE_SCALED,
+			k => PHASE_LOOP_PI_I_CONST_SAMPLE_SCALED_FX316,
                         delayer_width => 2)
 		port map (
 			clk => clk, rst => rst,
