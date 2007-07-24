@@ -153,7 +153,7 @@ architecture beh of phase_loop_fpga is
         signal clk_div_8_s, clk_50_s : std_logic;
         
         signal have_sample_s, need_sample_s : std_logic;
-        signal in_sample_s, out_sample_s : std_logic_vector(15 downto 0);
+        signal in_sample_s, in_sample_procesado_s, out_sample_s : std_logic_vector(15 downto 0);
         signal spi_owned_out_s, spi_owned_in_s : std_logic;
 
         signal out_signal_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
@@ -200,13 +200,15 @@ begin
                         run => '1',
                         spi_owned_out => spi_owned_out_s,
                         spi_owned_in => spi_owned_in_s);
-        
+
+        in_sample_procesado_s <= std_logic_vector(-shift_right(signed(in_sample_s), 1));
+                
         phase_loop_i : entity phase_loop(alg)
                 port map (
                         clk => clk_div_8_s,
-                        run => need_sample_s,
+                        run => have_sample_s,
                         rst => '0',
-                        norm_input => (others => '0'), -- in_sample_s, 
+                        norm_input => in_sample_procesado_s,
                         phase => open,
                         norm_sin => out_signal_s,
                         done => debug_signal_1);
@@ -222,26 +224,27 @@ begin
         debug_c7 <= '0';
         debug_f8 <= '0';
         debug_e8 <= '0';
-        
-        led <= out_signal_s(8); -- in_sample_s MUST BE connected to somewhere.
-        -- Otherwise, full adc input control logic is
-        -- completely deleted from design.
+        led <= out_signal_s(8);
 
+        -- El pkt IEEE.NUMERIC_STD tiene definido un tipo Signed, en el que el
+        -- valor se representa en CA2. Por lo tanto:
+        -- * Para cambiar de signo (CA2)
+        -- std_logic_vector(- signed(type of std_logic_vector))
+        -- * Para sumar:
+        -- std_logic_vector(signed(type of std_logic_vector) + INTEGER) -- :) Tirao
+        -- * Para hacer desplazamientos, teniendo en cuenta el signo
+        -- (interesante), en este mismo paquete disponemos de SHIFT_LEFT y SHIFT_RIGHT
         -- Ejemplo de cómo usar la función shift
         -- out_sample_s <= std_logic_vector(shift_left(-(signed(in_sample_s)), 1));
 
-        -- EL AMPLIFICADOR DE ENTRADA INVIERTE :)
---        out_sample_unfold : process(in_sample_s)
---        begin
---                if in_sample_s(15) = '1' then
---                        out_sample_s(15) <= '1'; -- std_logic_vector(not(shift_left(unsigned(in_sample_s), 1)));
---                        out_sample_s(14 downto 0) <= not(in_sample_s(14 downto 0));
---                else
---                        out_sample_s(14 downto 0) <= not(in_sample_s(14 downto 0));
---                        out_sample_s(15) <= '0';
---                end if;
---        end process out_sample_unfold;
-        out_sample_s <= out_signal_s;
+        -- Para sacar un valor NORMALIZADO en CA2 y que se vea bien a la salida:
+        -- * + d"1" = + b"001.000...."
+        out_sample_s <= std_logic_vector(signed(out_signal_s) + 8208);
+        -- Con 8192 (1.0) no llega, ya que aparentemente el ruido del Cordic
+        -- nos hace superar "parcialmente" el -1.0 => no nos llega con sumarle
+        -- 8192. Le estoy sumando oun poquito más (16)        
+        -- Se debería también escalar, multiplicándolo por 2:
+        -- shift_left(unsigned(bla bla bla), 1)
         
         spi_gen : process(spi_owned_out_s, spi_mosi_s, spi_sck_s)
         begin
