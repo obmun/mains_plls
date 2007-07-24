@@ -107,6 +107,13 @@ architecture alg of phase_loop is
         signal fva_delayed_done_s, pi_delayed_done_s, pi_delayed_done_REG_s, freq2phase_delayed_done_s : std_logic;
 	-- > PI signals
 	signal p_kcm_out_s, pi_int_out_s, pi_adder_out_s, pi_adder_out_REG_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+        -- GARBAGE SIGNALS
+        -- These are here because ModelSim complains about keeping a formal
+        -- partially open (some of its bits are asigned, other are opened), and
+        -- ModelSim requires, at the same time, all of the formal bits to be
+        -- mapped to a signal. The only way is to use garbage signals, that
+        -- later during synthesis get deleted by the synthesizer.
+        signal garbage_1_s, garbage_2_s, garbage_3_s : std_logic;
 begin
 	-- ** Big blocks **
 	phase_det_i : phase_det
@@ -134,7 +141,7 @@ begin
                         width => PIPELINE_WIDTH,
                         prec  => PIPELINE_PREC,
                         int_k => AC_FREQ_SAMPLE_SCALED_FX316,
-                        delay => 200,     -- fs / 50 Hz = 10000 / 50 = 200
+                        delay => 100,     -- fs / 100 Hz = 10000 / 100 = 100
                         delayer_width => 2)
 		port map (
 			clk => clk, rst => rst,
@@ -144,7 +151,7 @@ begin
                         run_passthru => fva_done_s,
                         delayer_in(0) => '-',
                         delayer_in(1) => phase_det_done_s,
-                        delayer_out(0) => open,
+                        delayer_out(0) => garbage_1_s,
                         delayer_out(1) => fva_delayed_done_s);
 
 	-- PI filter components
@@ -168,7 +175,8 @@ begin
                         run_passthru => pi_done_s,
                         delayer_in(0) => '-',
                         delayer_in(1) => fva_delayed_done_s,
-                        delayer_out(0) => open,
+                        delayer_out(0) => garbage_2_s,  -- open <- modelsim
+                                                        -- doesn't like this
                         delayer_out(1) => pi_delayed_done_s);
 
 	pi_adder : adder
@@ -208,10 +216,10 @@ begin
                         run_passthru => open,
                         delayer_in(0) => '-',
                         delayer_in(1) => pi_delayed_done_REG_s,
-                        delayer_out(0) => open,
+                        delayer_out(0) => garbage_3_s,
                         delayer_out(1) => freq2phase_delayed_done_s);
 
 	phase <= phase_s;
-        done <= freq2phase_delayed_done_s;
-        phase_det_run_s <= run and freq2phase_delayed_done_s;
+        done <= freq2phase_delayed_done_s and phase_det_done_s;
+        phase_det_run_s <= run and freq2phase_delayed_done_s and phase_det_done_s;
 end alg;
