@@ -8,39 +8,71 @@
 -- Project Name:   
 -- Target Device:  
 -- Tool versions:  
--- Description:
--- | *** SPECS ***
--- | Latency: 8 cycles
--- | Throughoutput: 1 sample / 8 cycles
--- |
--- | *** BRIEF DESCRIPTION ***
--- | Cordic based sequential engine for generating sin and cosine values from radian 
--- | angles.
--- |
--- | *** DESCRIPTION ***
--- | Sequential iterative cordic based sin / cos calculator. Works on clock
--- | rising edge and includes a synchronous reset signal so it can be put on a known
--- | state (done state).
--- |
--- | ** Ports **
--- | * Inputs *
--- | -> CLK
--- | -> RST: synchronous reset
--- | -> RUN: run/done iface run signal. See below for description
--- | -> ANGLE: input angle, in radians
--- | * Outputs *
--- | -> SIN: sin value for given input angle
--- | -> COS: cos value for given input angle
--- | -> DONE: run/done iface done signal. See below for description
--- |
 --
--- Todo:
--- * Everything should be parametrized, even the number of output precision
--- bits (which in turn changes latency)
+-- === SPECS ===
+-- Latency: VARIABLE (depends on pipeline precision)
+-- Throughoutput: VARIABLE (depends on pipeline precision)
+-- 
+-- === Brief DESCRIPTION ===
+-- Cordic based sequential engine for generating sin and cosine values from radian 
+-- angles.
+-- 
+-- === Description ===
+-- Sequential iterative cordic based sin / cos calculator. Works on clock
+-- rising edge and includes a synchronous reset signal so it can be put on a known
+-- state (done state).
+--
+-- == # of iterations ==
+-- Iterations are runned till max prec on remainder angle or cos / sin value is achieved.
+-- What is this limit?
+-- We know on each iteration we have to possible limiting prec operations:
+-- * Multiplicacion of x / y register by the correct angle (SHIFT operation),
+-- for its later addition / substraction.
+-- * Addition / substraction of the correspondent angle to the z register
+-- (remainder angle).
+-- When ANY of the previous operations reaches a precision limit, Cordic
+-- algorithm must be stopped.
+--
+-- = Precision on shift operation =
+-- On step n, precision for shift operation is n.
+-- First angle (45º) starts with a tan value of 1. Consecutive angles need 1
+-- more bit precsion (2^-n).
+-- The problem IS ... multiplication operation!!!! COMPLETE ME!!
+-- Precision on the add operation is the same: prec. on the pipeline.
+-- Therefore, on the cos / sin calc, **for n prec bits, n max steps are possible**.
+-- 
+-- = Precision on remainder angle calc =
+-- The prec on this operation is impossed by the angle values for the given
+-- step / atan value, stored in the LUT. From an study of the angle values, it
+-- can be clearly seen that:
+-- * Every used angle is < 1 (45 º in rads is < 1) => we need a least 1 bit prec
+-- even for the 1st step
+-- * In the complete table, each angle requires at least 1 more prec bit than
+-- previous value. THERE is one exception to this rule: rounding makes that 7th
+-- and 8th angles msb is the same. Ignoring this anomality, we can MAKE THE FOLLOWING RULE: for each
+-- step, angle needs 1 more bit of prec.
+--
+-- Therefore, **if we have n bits prec, at most n different angles can be added / subs
+-- from z**.
+--
+-- Both restrictions are EQUIVALENT [but remember, we have the exception to the
+-- precision on remainder angle] => *for n prec bits, max n steps can be run*.
+-- 
+-- == Ports ==
+-- * Inputs *
+-- -> CLK
+-- -> RST: synchronous reset
+-- -> RUN: run/done iface run signal. See below for description
+-- -> ANGLE: input angle, in radians
+-- * Outputs *
+-- -> SIN: sin value for given input angle
+-- -> COS: cos value for given input angle
+-- -> DONE: run/done iface done signal. See below for description
 --
 -- Dependencies:
 -- 
--- Revision:
+-- === Changelog ===
+-- Revision 0.04 - Made parametrizable.
 -- MARK -> revision 0.03 has been tested. Works OK. Small problems with
 -- precision appear near 0 radians
 -- Revision 0.03 - Counter reset is now synchronous (UNTESTED)
@@ -53,23 +85,18 @@ library IEEE;
 use WORK.COMMON.ALL;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
-
----- Uncomment the following library declaration if instantiating
----- any Xilinx primitives in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
+use IEEE.MATH_REAL.all;
 
 entity cordic is
-        -- rev 0.03
+        -- rev 0.04
 	generic (
-		width : natural := PIPELINE_WIDTH
-	);
+		width : natural := PIPELINE_WIDTH;
+                prec : natural := PIPELINE_PREC);
 	port (
 		clk, rst, run : in std_logic;
 		angle : in std_logic_vector(width - 1 downto 0); -- In RADIANS!
 		sin, cos : out std_logic_vector(width - 1 downto 0);
-		done : out std_logic
-	);
+		done : out std_logic);
 end cordic;
 
 architecture beh of cordic is
@@ -78,7 +105,8 @@ architecture beh of cordic is
 	);
 
 	signal st : state_t; -- Se podría hacer con una variable compartida, aunque debido al posible comportamiento no determinista se prefiere simular (como en la realidad) mediante una señal
-	signal step : std_logic_vector(2 downto 0);
+        
+	signal step : natural;
 
 	-- Control signas (generated by FSM)
 	signal init, save : std_logic;
@@ -120,18 +148,6 @@ architecture beh of cordic is
 		);
 	end component;
 
-	component signed_r_shifter is
-		generic (
-			width : natural := PIPELINE_WIDTH;
-			width_dir_bits : natural := PIPELINE_WIDTH_DIR_BITS
-		);
-		port (
-			i : in std_logic_vector(width - 1 downto 0);
-			n : in std_logic_vector(width_dir_bits - 1 downto 0);
-			o : out std_logic_vector(width - 1 downto 0)
-		);
-	end component;
-
 	component k_lt_comp is
 		generic (
 			width : natural := PIPELINE_WIDTH;
@@ -154,51 +170,28 @@ architecture beh of cordic is
 		);
 	end component;
 
-	component cordic_elem_init is
-		generic (
-			width : natural := PIPELINE_WIDTH
-		);
-		port (
-			gt_hPI, lt_mhPI : in std_logic;
-			x_init_val, y_init_val : out std_logic_vector(width - 1 downto 0)
-		);	
-	end component;
-
-	component cord_atan_lut is
-		port (
-			addr : in std_logic_vector(2 downto 0);
-			angle : out std_logic_vector(15 downto 0)
-		);
-	end component;
 begin
-	-- Instanciaciones de los componentes
+        -- Is input angle < - PI / 2.0?
 	lt_comp : k_lt_comp
 		generic map (
-			k => MINUS_HALF_PI_FX316
-		)
+                        width => width,
+			k => to_integer(MINUS_HALF_PI, width, prec))
 		port map (
 			a => angle,
-			a_lt_k => lt_mhPI_s
-		);
+			a_lt_k => lt_mhPI_s);
 
+        -- Is input angle > PI / 2.0?
 	gt_comp : k_gt_comp
 		generic map (
-			k => HALF_PI_FX316
-		)
+                        width => width, 
+			k => to_integer(HALF_PI, width, prec))
 		port map (
 			a => angle,
-			a_gt_k => gt_hPI_s
-		);
-
-	elem_init : cordic_elem_init
-		port map (
-			gt_hPI => gt_hPI_s,
-			lt_mhPI => lt_mhPI_s,
-			x_init_val => x0,
-			y_init_val => y0
-		);
+			a_gt_k => gt_hPI_s);
 
 	x_add_sub : add_sub
+                generic map (
+                        width => width)
 		port map (
 			-- ENTRADAS
 			a => x_reg_out,
@@ -208,10 +201,11 @@ begin
 			o => x_add_sub_out,
                         -- Unconnected
                         f_ov => open,
-                        f_z => open
-		);
+                        f_z => open);
 
 	y_add_sub : add_sub
+                generic map (
+                        width => width)
 		port map (
 			-- ENTRADAS
 			a => y_reg_out,
@@ -221,89 +215,205 @@ begin
 			o => y_add_sub_out,
                         -- Unconnected
                         f_ov => open,
-                        f_z => open
-		);
+                        f_z => open);
 
 	z_add_sub : add_sub
+                generic map (
+                        width => width)
 		port map (
 			-- ENTRADAS
 			a => z_mux_out,
 			b => z_delta_mux_out,
 			add_nsub => z_add_sub_op,
 			-- SALIDS
-			o => z_add_sub_out
-		);
+			o => z_add_sub_out);
 
 	x_reg : reg
+                generic map (
+                        width => width)
 		port map (
 			-- ENTRADAS
 			clk => clk, we => '1', rst => '0',
 			i => x_mux_out,
 			-- SALIDAS
-			o => x_reg_out
-		);
+			o => x_reg_out);
 
 	y_reg : reg
+                generic map (
+                        width => width)
 		port map (
 			-- ENTRADAS
 			clk => clk, we => '1', rst => '0',
 			i => y_mux_out,
 			-- SALIDAS
-			o => y_reg_out
-		);
+			o => y_reg_out);
 
 	z_reg : reg
+                generic map (
+                        width => width)
 		port map (
 			-- ENTRADAS
 			clk => clk, we => '1', rst => '0',
 			i => z_add_sub_out,
 			-- SALIDAS
-			o => z_reg_out
-		);
+			o => z_reg_out);
 
+        -- Final cos value storage. Does not take an active part in algorithm
 	cos_reg : reg
+                generic map (
+                        width => width)
 		port map (
 			-- ENTRADAS
 			clk => clk, we => save, rst => rst,
 			i => x_add_sub_out,
 			-- SALIDAS
-			o => cos
-		);
+			o => cos);
 
+        -- Final sin value storage. Does not take an active part in algorithm
 	sin_reg : reg
+                generic map (
+                        width => width)
 		port map (
 			-- ENTRADAS
 			clk => clk, we => save, rst => rst,
 			i => y_add_sub_out,
 			-- SALIDAS
-			o => sin
-		);
+			o => sin);
 
-	x_shifter : signed_r_shifter
+	x_shifter : entity work.signed_r_shifter(beh)
+                generic map (
+                        width => width)
 		port map (
 			-- ENTRADAS
 			i => x_reg_out,
-			n(3) => '0', n(2 downto 0) => step,
+			n => step,
 			-- SALIDAS
-			o => x_shift_out
-		);
+			o => x_shift_out);
 
-	y_shifter : signed_r_shifter
+	y_shifter : entity work.signed_r_shifter(beh)
+                generic map (
+                        width => width)
 		port map (
 			-- ENTRADAS
 			i => y_reg_out,
-			n(3) => '0', n(2 downto 0) => step,
+			n => step,
 			-- SALIDAS
-			o => y_shift_out
-		);
+			o => y_shift_out);
 
-	atan_lut : cord_atan_lut
+	atan_lut : entity work.cordic_atan_lut(beh)
+                generic map (
+                        width      => width,
+                        prec       => prec,
+                        last_angle => prec - 1)
 		port map (
-			addr => step,
-			angle => atan_lut_out
-		);
+			addr  => step,
+			angle => atan_lut_out);
 
-	state_ctrl : process(clk, run, rst)
+	n_z_msb <= not z_msb;
+
+        -- ********************************************
+        -- * Componentes for ALGORITHM initialization *
+        -- ********************************************
+        -- Mux for x reg input. Allows correct initialization of x during init.
+	x_mux : process(x0, x_add_sub_out, init)
+	begin
+		if (init = '0') then
+			x_mux_out <= x_add_sub_out;
+		else
+			x_mux_out <= x0;
+		end if;
+	end process x_mux;
+
+                -- Mux for y reg input. Same function as x reg but for y reg.
+	y_mux : process(y0, y_add_sub_out, init)
+	begin
+		if (init = '0') then
+			y_mux_out <= y_add_sub_out;
+		else
+			y_mux_out <= y0;
+		end if;
+	end process y_mux;
+
+        -- Initialization of the z (angle) register
+	z_mux : process(angle, z_reg_out, init)
+	begin
+		if (init = '0') then
+			z_mux_out <= z_reg_out;
+		else
+			z_mux_out <= angle;
+		end if;
+	end process z_mux;
+
+        -- Sets a special initial value for the 2nd operand of the z reg adder
+	z_delta_mux : process(gt_hPI_s, lt_mhPI_s, init, atan_lut_out)
+	begin
+		if (init = '1') then
+			if (gt_hPI_s = '1' or lt_mhPI_s = '1') then
+				z_delta_mux_out <= to_vector(HALF_PI, width, prec);
+			else
+				z_delta_mux_out <= (others => '0');
+			end if;
+		else
+			z_delta_mux_out <= atan_lut_out;
+		end if;
+	end process z_delta_mux;
+        
+        -- Process which takes care of selecting the correct init values for x and
+        -- y registers depending on the quadrant of the input angle
+	cordic_elem_init : process(gt_hPI_s, lt_mhPI_s)
+	begin
+		if (gt_hPI_s = '1') then
+			x0 <= (others => '0');
+			y0 <= to_vector(INV_CORDIC_GAIN, width, prec);
+		elsif (lt_mhPI_s = '1') then
+			x0 <= (others => '0');
+			y0 <= to_vector(MINUS_INV_CORDIC_GAIN, width, prec);
+		else
+			x0 <= to_vector(INV_CORDIC_GAIN, width, prec);
+			y0 <= (others => '0');
+		end if;
+	end process;
+
+        z_add_sub_op_proc : process(init, z_msb, lt_mhPI_s)
+	begin
+		if (init = '0') then
+			z_add_sub_op <= z_msb;
+		else
+			z_add_sub_op <= lt_mhPI_s; -- Si estoy inicializando, en función de > PI/2 o < -PI/2 debo insertar como valor inicial el ángulo original decrementado / incrementado
+		end if;
+	end process z_add_sub_op_proc;
+
+        
+        -- *******************
+        -- * State processes *
+        -- *******************
+        
+        -- Counter process. For the internal process counter.
+        -- # of steps = PREC BITS! See description for more info
+	step_counter : process(clk)
+		variable step_counter : std_logic_vector((integer(round(ceil(log2(real(prec - 1))))) - 1) downto 0);
+	begin
+                assert false report "Cordic step counter width: " & integer'image(integer(round(ceil(log2(real(prec)))))) severity note;
+                
+		if (rising_edge(clk)) then
+			if (init = '1') then
+				step_counter := (others => '0');
+			else
+                                -- To achieve an OPTIMAL counter size, make it
+                                -- fold the CORRECT WAY (on saturation of
+                                -- optimun width)
+                                if (unsigned(step_counter) = (integer(round(2.0 ** ceil(log2(real(prec - 1))))) - 1)) then
+                                        step_counter := (others => '0');
+                                else
+                                        step_counter := std_logic_vector(unsigned(step_counter) + 1);
+                                end if;
+			end if;
+		end if;
+		step <= to_integer(unsigned(step_counter));
+	end process;
+
+
+        state_ctrl : process(clk, run, rst)
 	begin
 		if (rising_edge(clk)) then
 			if (rst = '1') then
@@ -319,7 +429,7 @@ begin
 					when ST_INIT =>
 						st <= ST_RUNNING;
 					when ST_RUNNING =>
-						if (step = "110") then
+						if (step = prec - 1) then
 							st <= ST_LAST;
 						else
 							st <= ST_RUNNING;
@@ -327,33 +437,14 @@ begin
 					when ST_LAST =>
                                                 st <= ST_DONE;
 					when others =>
-						assert true
-							report "Unkown state!!! Should not happen!!!"
+						assert false
+							report "Unkown Cordic state! Should not happen!"
 							severity error;
 						st <= st;
 				end case;
 			end if;
 		end if;
 	end process state_ctrl;
-
-	step_counter : process(clk)
-		subtype step_counter_t is natural range 0 to 7;
-		variable step_counter : step_counter_t;
-	begin
-		if (rising_edge(clk)) then
-			if (init = '1') then
-				step_counter := 0;
-			else
-				-- Just fold if I'm out of range
-				if (step_counter = step_counter_t'high) then
-					step_counter := 0;
-				else
-					step_counter := step_counter + 1;
-				end if;
-			end if;
-		end if;
-		step <= std_logic_vector(to_unsigned(step_counter,3));
-	end process;
 
 	signals_gen : process(st)
 	begin
@@ -380,55 +471,4 @@ begin
 				done <= '0';
 		end case;
 	end process signals_gen;
-
-	x_mux : process(x0, x_add_sub_out, init)
-	begin
-		if (init = '0') then
-			x_mux_out <= x_add_sub_out;
-		else
-			x_mux_out <= x0;
-		end if;
-	end process x_mux;
-
-	y_mux : process(y0, y_add_sub_out, init)
-	begin
-		if (init = '0') then
-			y_mux_out <= y_add_sub_out;
-		else
-			y_mux_out <= y0;
-		end if;
-	end process y_mux;
-
-	z_mux : process(angle, z_reg_out, init)
-	begin
-		if (init = '0') then
-			z_mux_out <= z_reg_out;
-		else
-			z_mux_out <= angle;
-		end if;
-	end process z_mux;
-
-	z_delta_mux : process(gt_hPI_s, lt_mhPI_s, init, atan_lut_out)
-	begin
-		if (init = '1') then
-			if (gt_hPI_s = '1' or lt_mhPI_s = '1') then
-				z_delta_mux_out <= HALF_PI_FX316_V;
-			else
-				z_delta_mux_out <= ZERO_FX316_V;
-			end if;
-		else
-			z_delta_mux_out <= atan_lut_out;
-		end if;
-	end process z_delta_mux;
-
-	z_add_sub_op_proc : process(init, z_msb, lt_mhPI_s)
-	begin
-		if (init = '0') then
-			z_add_sub_op <= z_msb;
-		else
-			z_add_sub_op <= lt_mhPI_s; -- Si estoy inicializando, en función de > PI/2 o < -PI/2 debo insertar como valor inicial el ángulo original decrementado / incrementado
-		end if;
-	end process z_add_sub_op_proc;
-
-	n_z_msb <= not z_msb;
 end beh;
