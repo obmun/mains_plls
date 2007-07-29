@@ -33,7 +33,7 @@ entity kcm is
 		width : natural := PIPELINE_WIDTH;
 		prec : natural := PIPELINE_PREC;
                 -- Cte de ejemplo. Una síntesis de esta cte infiere un multiplicador
-		k : pipeline_integer := EXAMPLE_VAL_FX316);
+		k : real);
 	port (
 		i : in std_logic_vector(width - 1 downto 0);
 		o : out std_logic_vector(width - 1 downto 0));
@@ -42,7 +42,7 @@ end kcm;
 architecture alg of kcm is
 begin
 	process(i)
-		constant k_signed : signed(width - 1 downto 0) := to_signed(k, width);
+		constant k_signed : signed(width - 1 downto 0) := signed(to_vector(k, width, prec));
 		variable res : signed(2 * width - 1 downto 0);
 		variable j_out : natural;
 	begin
@@ -56,6 +56,6 @@ begin
 			j_out := j_out + 1;
 		end loop;
 		o(j_out) <= res(res'length - 1);
-		--o <= std_logic_vector(resize(shift_right(signed(i) * k, PIPELINE_PREC), width));
+		-- o <= std_logic_vector(resize(shift_right(signed(i) * k, PIPELINE_PREC), width));
 	end process;
 end alg;

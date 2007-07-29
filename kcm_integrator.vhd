@@ -20,17 +20,19 @@
 -- 
 -- *** DESCRIPTION ***
 -- Implements the expression:
--- y[n] = y[n - 1] + K * x[n - 1]
+-- y[n] = y[n - 1] + K * Ts * x[n - 1]
 --
 -- Integrator which exposes the integrated kcm so it's constant can be set to
 -- a specific value. Includes a synchronous reset in case of saturation condition
 -- achieved and a manual reset is wanted.
 --
+-- Works in clock's rising edge. Has synchronous reset.
+--
 -- ** RATIONALE **
 -- If kcm is not touched and system Ts is used, PRECISION problems arise.
 -- I always recommend using an integrator with a previous hi gain (at least 30) constant multiplier.
--- Set constant multiplier to Ts*<your_value>
--- Works in clock's rising edge. Has synchronous reset.
+-- Set constant multiplier to <your_value>. Interally we take care of scaling this constant
+-- by Ts.
 --
 -- ** PORTS **
 -- rst -> sync reset: set's internal register to 0.
@@ -45,6 +47,8 @@
 -- output to input feedback. IT'S esential to make a correct use of the RST signal!!!
 --
 -- Revision:
+-- Revision 0.03 - Input real constant, making use of new COMMON transformation
+-- routines
 -- Revision 0.02 - Addition of new seq. block control iface.
 -- Revision 0.01 - File Created, derived from rev 0.02 of integrator
 --
@@ -61,7 +65,7 @@ entity kcm_integrator is
         generic (
                 width : natural := PIPELINE_WIDTH;
                 prec : natural := PIPELINE_PREC;
-                k : pipeline_integer := EXAMPLE_VAL_FX316;
+                k : real;
                 -- Seq. block iface
                 delayer_width : natural := 1);
         port (
@@ -91,16 +95,6 @@ architecture beh of kcm_integrator is
             o : out std_logic_vector (width - 1 downto 0));
     end component;
     
-    component kcm is
-        generic(
-            width : natural := PIPELINE_WIDTH;
-            prec : natural := PIPELINE_PREC;
-            k : pipeline_integer := -23410); -- Cte de ejemplo. Una síntesis de esta cte infiere un multiplicador
-        port(
-            i : in std_logic_vector(width - 1 downto 0);
-            o : out std_logic_vector(width - 1 downto 0));
-    end component;
-
     component adder is
             -- rev 0.01
             generic (
@@ -125,11 +119,10 @@ begin
 			clk => clk, we => run_en, rst => rst,
 			i => o_s, o => c);
         
-	kcm_i : kcm
+	kcm_i : entity work.kcm(alg)
 		generic map (
-			width => width,
-			prec => prec,
-			k => k)
+			width => width, prec => prec,
+			k => k * SAMPLING_PERIOD)
 		port map (
 			i => a,
 			o => b);
