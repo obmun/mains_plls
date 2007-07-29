@@ -34,10 +34,8 @@ package common is
         --
 	-- CURRENT CONFIG:
 	-- >> SAMPLE RATE: 10 KHz
-	constant SAMPLE_PERIOD_FX316 : pipeline_integer := 1; -- NOT ENOUGH PRECISION: 0.8192!! BE CAREFULL!!
-	constant SAMPLE_PERIOD_FX316_S : signed(PIPELINE_WIDTH - 1 downto 0) := B"0_00_00000_00000001";
-        constant SAMPLE_PERIOD_FX416 : pipeline_integer := 0; -- NOT ENOUGH PRECISION: 0.4096!! BE CAREFULL!!
-	constant SAMPLE_PERIOD_FX416_S : signed(PIPELINE_WIDTH - 1 downto 0) := B"0_00_00000_00000000";
+        constant SAMPLING_FREQ : real := 10000.0;
+        constant SAMPLING_PERIOD : real := 0.0001;
 
         constant AC_FREQ_SAMPLE_SCALED : real := 0.031416; -- 2*Pi*50*Ts
 
@@ -51,8 +49,10 @@ package common is
 	constant MINUS_INV_CORDIC_GAIN : real := -0.60729980468750;  -- RECALC
         constant PI : real := 3.14159265358979;
         constant MINUS_PI : real := -3.14159265358979;
-        constant HALF_PI : real := 1.5708;
-        constant MINUS_HALF_PI : real := -1.5708;
+        constant HALF_PI : real := 1.57079632679490;
+        constant MINUS_HALF_PI : real := -1.57079632679490;
+        constant TWO_PI : real := 6.28318530717959;
+        constant MINUS_TWO_PI : real := -6.28318530717959;
 
 	-- Filter constants
         constant PHASE_LOOP_PI_I_CONST : real := 1000.0;
@@ -65,6 +65,8 @@ package common is
         function to_pipeline_vector ( val : real ) return pipeline_vector;
         function to_ext_pipeline_integer ( val : real ) return integer;
         function to_ext_pipeline_vector ( val : real ) return ext_pipeline_vector;
+
+        function min_magn_size ( val : real ) return natural;
 end common;
 
 
@@ -83,6 +85,9 @@ package body common is
                         assert false report "neg. saturating pipeline(w: " & integer'image(width) & ", p: " & integer'image(prec) & ") with value " & real'image(val) severity warning;
                         return min_integer;
                 else
+                        if (tmp_val = 0) then
+                                assert false report "not enough precision, returning 0!" severity warning;
+                        end if;
                         return tmp_val;
                 end if;
         end;
@@ -111,4 +116,10 @@ package body common is
         begin
                 return to_vector(val, EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC);
         end;
+
+        function min_magn_size ( val : real ) return natural is
+        begin
+                return natural(round(ceil(log2(abs(val)))));
+        end;
+
 end common;
