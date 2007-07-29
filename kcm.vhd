@@ -39,7 +39,7 @@ entity kcm is
 		o : out std_logic_vector(width - 1 downto 0));
 end kcm;
 
-architecture alg of kcm is
+architecture beh of kcm is
 begin
 	process(i)
 		constant k_signed : signed(width - 1 downto 0) := signed(to_vector(k, width, prec));
@@ -58,4 +58,4 @@ begin
 		o(j_out) <= res(res'length - 1);
 		-- o <= std_logic_vector(resize(shift_right(signed(i) * k, PIPELINE_PREC), width));
 	end process;
-end alg;
+end beh;
