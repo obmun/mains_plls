@@ -1,0 +1,70 @@
+==== Block interfaces ====
+
+=== A little bit of history ===
+Todo comenzó con el diseño de la interfaz para un algoritmo iterativo lento como el Cordic. Sin tener en mente la necesidad posterior de interconectar (encadenar) múltiples bloques entre si, se diseño una interfaz genérica para controlar la ejecución del algoritmo (lanzarlo) y recoger los resultados cuando estuviesen listos. Surgió entonces el interfaz RUN / DONE [se puede consultar versiones antiguas cordic.vhd para su definición].
+
+A medida que se fueron desarrollando más bloques, y especialmente en cuanto se comenzaron a interconectar, se vió la necesidad de diseñar un interfaz digital de forma que la secuenciación de los distintos bloques de cálculo en serie / paralelo fuese tan sencillo como encadenar una serie de líneas y utilizar alguna AND cuando fuese necesario. Los elementos de cálculo combinacional (hay varios) no necesitan por supupuesto de estas sofisticaciones. Son única y exclusivamente los elementos secuenciales los difíciles de llevar. Así se llegó a la conclusión (sin pensarlo demasiado) de que la interfaz RUN / DONE parecía valer bien para todos los elementos y se comenzó a implementar en todos los bloques secuenciales (integradores, filtros paso bajo, FVA, ...).
+
+La realidad es que la interfaz run / done no era válida para todos ellos. En realidad, el problema surgió al enlazar un bloque de Cordic (de alta latencia) con bloques de menor latencia después de él. El Cordic tardaba varios ciclos, después de haber calculado su valor, en ser relanzado (bucle cerrado en la cadena run / done). El hecho de que la señal DONE del Cordic permaneciese a 1 durante varios ciclos (de acuerdo con nuestra interfaz run / done) hacía que los elementos secuenciales rápidos que le seguían hiciesen varios cálculos. Ésto suponía un problema grave, bien porque algunos de ellos volvían a hacer el cálculo habiendo cambiado la señal de entrada por ser esta parte del estado interno, o por el mero hecho de ser elementos con memoria (como un integrador) cuyos ciclos de ejecución deben estar perfectamente controlados.
+
+Se intentó solventar el problema de forma rápida introduciendo un "pulseador" de la señal DONE, un elemento que, cuando detecta un "flanco ascendente" en dicha señal, genera un pulso durante un ciclo de reloj. La introducción del "pulseador" en la salida de la señal DONE del Cordic en esta larga cadena, casi resolvía el problema. 
+
+Lo cierto es que la introducción de un elemento extra en la cadena de secuenciación de los elementos, obligando al usuario a instanciar una nueva entidad para cada algoritmo secuencial introducido, ya de por si es poco elegante (demostrando en realidad un problema en la interfaz de interconexión). Aún por encima, no se podía colocar sistemáticamente a la salida de los puertos DONE de los bloques secuenciales: en los elementos secuenciales rápidos la señal DONE no bajaba nunca a 0, provocando que el pulseador no pudiera realizar su trabajo. ¿Por qué?
+
+Porque la implementación de la interfaz run / done en estos elementos más sencillos NO CUMPLÍA nuestro propio estándar. Éramos inconsistentes. Nosotros, en el run/done, obligamos a mantener DONE a HI mientras el resultado de la salida sea válido. En realidad, sólo cuando se le da un RUN y se le pide que comience a calcular de nuevo, DONE baja a 0. Haciendo que estos elementos cumpliesen estrictamente la interfaz run / done, se homogeneizaba la interconexión, obligándonos a utilizar un pulseador de DONE en cada elemento. Sin embargo esta solución al problema planteaba dos inconvenientes:
+a) Tener que introducir muchos pulseadores de DONE. Es resolver un problema introduciendo un elemento extra en lugar de resolviendo el problema en sí. Poco elegante.
+b) EN REALIDAD NO FUNCIONABA! Los elementos secuenciales más rápidos son DEMASIADO RÁPIDOS. Como en cuanto se les pide que ejecuten, al ciclo siguiente ya tienen un resultado, si se tomaba al pie de la letra la interfaz run / done en realidad la señal done permanecía siempre a 1, impidiendo que los pulseadores de done funcionasen y provocando el funcionamiento continuo de los elementos pegados inmediatamente después a ellos.
+
+La demostración más clara de este problema esta presente en el changeset 7dbc3618c36c del árbol de Mercurial del proyecto.
+
+Se necesitaba cambiar la interfaz, adaptándola
+
+=== Interfaces de control y secuenciación ===
+
+== Los distintos tipos de bloques de cálculo ==
+
+Se pueden distinguir tres tipos distintos de bloques de cálculo:
+* Secuenciales iterativos [cordic, sqrt]. Son elementos en los que el cálculo del nuevo valor de salida lleva más de 1 ciclo (throughput < 1 sample / clk).
+* Secuenciales [kcm_integrator, fva]. Son bloques de cálculo secuenciales más simples, en los que thourghoutput = 1 sample / clk (lo más rápido que se puede ir en el caso de elementos secuenciales).
+* Combinacionales [adder, subsor, multiplier]. Son elementos de cálculo no secuenciales [=> sin estado interno].
+
+
+== Elementos secuenciales iterativos: la interfaz run / done y el elemento done_pulser ==
+
+= RUN / DONE =
+
+Runs on rising edge of clocks. If run signal is low, block stays in a "done" state
+with the last calculated value at its output. If run is pulled up, next cicle the 
+engine starts calculating the new outputs for the given input in that cycle rising edge. Done signal goes inmediatly down.
+
+Run can the be pulled down again as engine will be calculating till it obtains the value
+(it takes it 8 cycles). In the CYCLE THE ELEMENT KNOWS WILL HAVE THE VALUE
+READY, sets the DONE port high again. So, BEFORE the next rising edge, the
+value is ready and stable in its output. This way (1 "cycle advance" in announcing the result is ready) an
+optimal chaining of repetitive calcs can be done without otherwise loosing at least one
+clock cycle. Realize that done stays high for at least 1 cycle, even if run signal is hold high forever.
+
+= The DONE pulser =
+
+TODO: FILL ME
+
+== Elementos secuenciales: la interfaz run_en / run_passthru. El retardo genérico de señales ==
+
+Señales:
+* run_en: señal de run / en. Mientras está a 0, el dispositivo no calcula. Cuando se pone a 1, el dispositivo calcula.
+* run_passthru: retarda 1 ciclo la señal de run_en a su entrada.
+* delayer_in: generic delayer input. Signal is just delayed 1 cycle. First bit is always ignored, as it's taken from run_en signal.
+* delayer_out: generic delayer output. Signal is just delayed 1 cycle.
+
+Generics:
+* delayer_width >= 1
+Must be at least 1, because the delayer element is direcly used for the run_passthru. Run passthru port is just a replica of the first bit in the delayer. First delayer input bit is ignored (as it's taken from the run_en signal).
+Why this stupid thing? To allow a correct parametrization (by using a generic) of all this. Otherwise, we'll be almost exclusively relying on the final synthesizer doing good its job by trimming unneeded logic. Let's just keep this "compiler work" to a minimum, by helping them. This way, the only thing that must be "trimmed" is the first bit of delayer port.
+
+TODO: needed in sequential iterative elements?
+
+== Elementos combinacionales ==
+
+== Ejemplo de conexionado ==
+
+Ver phase_loop
