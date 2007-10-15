@@ -119,7 +119,7 @@ begin
 			clk => clk, we => run_en, rst => rst,
 			i => o_s, o => c);
         
-	kcm_i : entity work.kcm(alg)
+	kcm_i : entity work.kcm(beh)
 		generic map (
 			width => width, prec => prec,
 			k => k * SAMPLING_PERIOD)

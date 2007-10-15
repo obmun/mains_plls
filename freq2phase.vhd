@@ -29,7 +29,7 @@
 -- Why return between (-PI, PI] and not [0, 2PI)? It must be done this way and
 -- not with a normal integrator for two reasons:
 -- -> Output angle abs value must be limited to 0 < abs < PI. Other-
---    wise pipeline path can get saturated (PI = 3.14!!, 2*PI = 6, we're
+--    wise, some magn short pipeline paths can get saturated (PI = 3.14!!, 2*PI > 6, we're
 --    magnitude limited)
 -- -> We require central freq. offset to be sumed and later integrated.
 --    But central freq = 50 * 2 * PI >> max available magnitude!!!!
@@ -43,6 +43,7 @@
 -- Dependencies:
 -- 
 -- *** Revision ***
+-- Revision 0.06 - Generic controllable pipeline width
 -- Revision 0.05 - Added new seq. block control iface. Removed the speed up register.
 -- Revision 0.04 - Added run / done style ports
 -- Revision 0.03 - Integrated extra register to achieve better peformance (this had a hot path with
@@ -54,14 +55,16 @@
 --
 --------------------------------------------------------------------------------
 library IEEE;
+library WORK;
 use WORK.COMMON.all;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
 
 entity freq2phase is
-        -- rev 0.05
+        -- rev 0.06
 	generic (
 		width : natural := PIPELINE_WIDTH;
+                prec : natural := PIPELINE_PREC;
                 -- Seq. block iface
                 delayer_width : natural := 1);
         
@@ -75,19 +78,8 @@ entity freq2phase is
                 delayer_out : out std_logic_vector(delayer_width - 1 downto 0));
 end freq2phase;
 
-architecture beh of freq2phase is       -- behavioural
+architecture beh of freq2phase is
         -- Component declarations
-        component kcm is
-                generic (
-                        width : natural := PIPELINE_WIDTH;
-                        prec : natural := PIPELINE_PREC;
-                        -- Cte de ejemplo. Una síntesis de esta cte infiere un multiplicador
-                        k : pipeline_integer := EXAMPLE_VAL_FX316);
-                port (
-                        i : in std_logic_vector(width - 1 downto 0);
-                        o : out std_logic_vector(width - 1 downto 0));
-        end component;
-    
         component adder is
                 generic (
                         width : natural := PIPELINE_WIDTH);
@@ -115,52 +107,39 @@ architecture beh of freq2phase is       -- behavioural
 			o : out std_logic_vector (width - 1 downto 0));
 	end component;
         
-	component k_2pi_sub is
-		generic (
-			width : natural := PIPELINE_WIDTH);
-		port (
-			i : in std_logic_vector(width - 1 downto 0);
-			en : in std_logic;
-			o : out std_logic_vector(width - 1 downto 0));
-	end component;
-
         -- Signals
         signal gt_pi : std_logic;
         signal reg_out, kcm_out, fb_adder_out, in_adder_out, pi_limit_out : std_logic_vector(width - 1 downto 0);
         signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
 
 begin
-	k_gt_comp_i : k_gt_comp
+	k_gt_comp_i : entity work.k_gt_comp(beh)
 		generic map (
-			k => PI_FX316
-		)
+                        width => width, prec => prec,
+			k => PI)
 		port map (
 			a => fb_adder_out,
-			a_gt_k => gt_pi
-		);
+			a_gt_k => gt_pi);
 
-	kcm_i : kcm
+	kcm_i : entity work.kcm(beh)
 		generic map (
-			k => SAMPLE_PERIOD_FX316
-		)
+                        width => width, prec => prec,
+			k => SAMPLING_PERIOD)
 		port map (
 			i => f,
-			o => kcm_out
-		);
+			o => kcm_out);
 
 	in_adder : adder
 		port map (
 			a => kcm_out,
-			b => std_logic_vector(AC_FREQ_SAMPLE_SCALED_FX316_S),
-			o => in_adder_out
-		);
+			b => to_vector(AC_FREQ_SAMPLE_SCALED, width, prec),
+			o => in_adder_out);
 
 	fb_adder : adder
 		port map (
 			a => in_adder_out,
 			b => reg_out,
-			o => fb_adder_out
-		);
+			o => fb_adder_out);
 
 	reg_i : reg
 		port map (
@@ -168,12 +147,14 @@ begin
 			i => pi_limit_out, o => reg_out
 		);
 
-	k_2pi_sub_i : k_2pi_sub
+	k_2pi_sub_i : entity work.k_2pi_sub(beh)
+                generic map (
+                        width => width,
+                        prec  => prec)
 		port map (
 			en => gt_pi,
 			i => fb_adder_out,
-			o => pi_limit_out
-		);
+			o => pi_limit_out);
 
         delayer : reg
                 generic map (
