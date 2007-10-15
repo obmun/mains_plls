@@ -62,18 +62,6 @@ end phase_det;
 
 architecture alg of phase_det is
 	-- Component declarations
-	component cordic is
-		generic (
-			width : natural := PIPELINE_WIDTH
-		);
-		port (
-			clk, rst, run : in std_logic;
-			angle : in std_logic_vector(width - 1 downto 0); -- In RADIANS!
-			sin, cos : out std_logic_vector(width - 1 downto 0);
-			done : out std_logic
-		);
-	end component;
-
 	component mul is
                 -- rev 0.01
 		generic (
@@ -137,12 +125,11 @@ begin
 
         input_reg_we_s <= run and c_done and c_2_done;
 
-	cordic_i : cordic
+	cordic_i : entity work.cordic(beh)
 		port map (
 			-- ENTRADAS
-			clk => clk,
-			rst => rst,
-			run => run,
+			clk => clk, rst => rst,
+                        run => run,
 			angle => curr_phase,
 			-- SALIDAS
 			sin => norm_output,
@@ -150,12 +137,11 @@ begin
 			done => c_done
 		);
 
-	cordic_2_i : cordic
+	cordic_2_i : entity work.cordic(beh)
 		port map (
 			-- ENTRADAS
-			clk => clk,
-			rst => rst,
-			run => doubler_reg_out_s(PIPELINE_WIDTH),
+			clk => clk, rst => rst,
+                        run => doubler_reg_out_s(PIPELINE_WIDTH),
 			angle => doubler_reg_out_s(PIPELINE_WIDTH - 1 downto 0),
 			-- SALIDAS
 			sin => sin_2_out,
