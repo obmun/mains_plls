@@ -37,7 +37,8 @@ package common is
         constant SAMPLING_FREQ : real := 10000.0;
         constant SAMPLING_PERIOD : real := 0.0001;
 
-        constant AC_FREQ_SAMPLE_SCALED : real := 0.031416; -- 2*Pi*50*Ts
+        constant AC_FREQ : real := 314.1592653589793;  -- rad / s
+        constant AC_FREQ_SAMPLE_SCALED : real := 0.03141593; -- 2*Pi*50*Ts
 
 	-- Math constants
 	constant EXAMPLE_VAL_FX316 : pipeline_integer := 26312;
@@ -58,20 +59,20 @@ package common is
         constant PHASE_LOOP_PI_I_CONST : real := 1000.0;
         constant PHASE_LOOP_PI_P_CONST : real := 100.0;
 
-        function to_integer ( val : real; width : natural; prec : natural ) return integer;
-        function to_vector ( val : real; width : natural; prec : natural ) return std_logic_vector;
+        pure function to_integer ( val : real; width : natural; prec : natural ) return integer;
+        pure function to_vector ( val : real; width : natural; prec : natural ) return std_logic_vector;
         
-        function to_pipeline_integer ( val : real ) return integer;
-        function to_pipeline_vector ( val : real ) return pipeline_vector;
-        function to_ext_pipeline_integer ( val : real ) return integer;
-        function to_ext_pipeline_vector ( val : real ) return ext_pipeline_vector;
+        pure function to_pipeline_integer ( val : real ) return integer;
+        pure function to_pipeline_vector ( val : real ) return pipeline_vector;
+        pure function to_ext_pipeline_integer ( val : real ) return integer;
+        pure function to_ext_pipeline_vector ( val : real ) return ext_pipeline_vector;
 
-        function min_magn_size ( val : real ) return natural;
+        pure function min_magn_size ( val : real ) return natural;
 end common;
 
 
 package body common is
-        function to_integer ( val : real; width : natural; prec : natural ) return integer is
+        pure function to_integer ( val : real; width : natural; prec : natural ) return integer is
                 variable tmp_val : integer;
                 variable max_integer, min_integer : integer;
         begin
@@ -92,32 +93,32 @@ package body common is
                 end if;
         end;
 
-        function to_vector ( val : real; width : natural; prec : natural ) return std_logic_vector is
+        pure function to_vector ( val : real; width : natural; prec : natural ) return std_logic_vector is
         begin
                 return std_logic_vector(to_signed(to_integer(val, width, prec), width));
         end;
                 
-        function to_pipeline_integer ( val : real ) return integer is
+        pure function to_pipeline_integer ( val : real ) return integer is
         begin
                 return to_integer(val, PIPELINE_WIDTH, PIPELINE_PREC);
         end;
 
-        function to_pipeline_vector ( val : real ) return pipeline_vector is
+        pure function to_pipeline_vector ( val : real ) return pipeline_vector is
         begin
                 return to_vector(val, PIPELINE_WIDTH, PIPELINE_PREC);
         end;
 
-        function to_ext_pipeline_integer ( val : real ) return integer is
+        pure function to_ext_pipeline_integer ( val : real ) return integer is
         begin
                 return to_integer(val, EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC);
         end;
 
-        function to_ext_pipeline_vector ( val : real ) return ext_pipeline_vector is
+        pure function to_ext_pipeline_vector ( val : real ) return ext_pipeline_vector is
         begin
                 return to_vector(val, EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC);
         end;
 
-        function min_magn_size ( val : real ) return natural is
+        pure function min_magn_size ( val : real ) return natural is
         begin
                 return natural(round(ceil(log2(abs(val)))));
         end;
