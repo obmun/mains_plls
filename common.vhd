@@ -14,9 +14,7 @@ package common is
 	constant PIPELINE_WIDTH : natural := 16;
 	constant EXT_PIPELINE_WIDTH : natural := 18;
 	constant PIPELINE_PREC : natural := 12;
-        constant PIPELINE_PREC_WEIGHT : natural := 4096;
 	constant EXT_PIPELINE_PREC : natural := PIPELINE_PREC;
-        constant EXT_PIPELINE_PREC_WEIGHT : natural := PIPELINE_PREC_WEIGHT;
 	constant PIPELINE_MAGN : natural := PIPELINE_WIDTH - PIPELINE_PREC;
 	constant EXT_PIPELINE_MAGN : natural := EXT_PIPELINE_WIDTH - EXT_PIPELINE_PREC;
 	constant PIPELINE_WIDTH_DIR_BITS : natural := 4; -- natural(ceil(log2(real(PIPELINE_WIDTH))));
@@ -29,9 +27,15 @@ package common is
         subtype pipeline_vector is std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         subtype ext_pipeline_vector is std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
 
-        --
-        -- MORE constants
-        --
+        -- *
+        -- * Constantes básicas del DAC / ADC necesarias por otros módulos.
+        -- *
+        constant DAC_VAL_SIZE : natural := 12;
+        constant ADC_VAL_SIZE : natural := 14;
+
+        -- *
+        -- * MORE constants
+        -- *
 	-- CURRENT CONFIG:
 	-- >> SAMPLE RATE: 10 KHz
         constant SAMPLING_FREQ : real := 10000.0;

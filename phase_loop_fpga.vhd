@@ -8,19 +8,19 @@
 -- * Allows the definition of debug lines, that duplicate the ouput of
 -- internal or input signals
 --
--- *** CHANGELOG ***
+-- === CHANGELOG ===
 -- Revision 0.01: first version, created from the original dac_adc implementation
 
 library IEEE;
+library WORK;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
--- use WORK.COMMON.ALL;
+use WORK.COMMON.ALL;
 
 entity phase_loop_fpga is	
         generic (
-                width : natural := 16; -- PIPELINE_WIDTH; -- prec < width
-                prec : natural := 13 -- PIPELINE_PREC
-                );
+                width : natural := PIPELINE_WIDTH;
+                prec : natural := PIPELINE_PREC);
 
         port (
 -- SPI related
@@ -48,57 +48,6 @@ entity phase_loop_fpga is
 end phase_loop_fpga;
 
 architecture beh of phase_loop_fpga is
-        -- **************
-        -- * COMMON!!!! *
-        -- **************
-        
-        -- *
-	-- * My types
-	-- *
-	subtype pipeline_integer is integer range -32768 to 32767;
-	type shift_dir_t is (SD_LEFT, SD_RIGHT);
-
-	-- *
-	-- * Constants
-	-- *
-	-- Non math constants
-	constant PIPELINE_WIDTH : natural := 16;
-	constant EXT_PIPELINE_WIDTH : natural := 18;
-	constant PIPELINE_PREC : natural := 13;
-	constant EXT_PIPELINE_PREC : natural := PIPELINE_PREC;
-	constant PIPELINE_MAGN : natural := PIPELINE_WIDTH - PIPELINE_PREC;
-	constant EXT_PIPELINE_MAGN : natural := EXT_PIPELINE_WIDTH - EXT_PIPELINE_PREC;
-	constant PIPELINE_WIDTH_DIR_BITS : natural := 4; -- natural(ceil(log2(real(PIPELINE_WIDTH))));
-	-- CURRENT CONFIG:
-	-- >> SAMPLE RATE: 10 KHz
-	constant SAMPLE_PERIOD_FX316 : pipeline_integer := 1; -- NOT ENOUGH PRECISION: 0.8192!! BE CAREFULL!!
-	constant SAMPLE_PERIOD_FX316_S : signed(PIPELINE_WIDTH - 1 downto 0) := B"0_00_00000_00000001";
-
-	constant AC_FREQ_SAMPLE_SCALED_FX316 : pipeline_integer := 41; -- 50*Ts*2^PIPELINE_PREC
-	constant AC_FREQ_SAMPLE_SCALED_FX316_S : signed(PIPELINE_WIDTH - 1 downto 0) := B"0_00_00000_00101001";
-
-	-- Math constants
-	constant EXAMPLE_VAL_FX316 : pipeline_integer := 26312;
-	constant ZERO_FX316_V : std_logic_vector(PIPELINE_WIDTH - 1 downto 0) := (others => '0');
-	constant CORDIC_GAIN : pipeline_integer := 13490;
-	constant CORDIC_GAIN_V : std_logic_vector(PIPELINE_WIDTH - 1 downto 0) := X"34B2";
-	constant INV_CORDIC_GAIN : pipeline_integer := 4975;
-	constant INV_CORDIC_GAIN_V : std_logic_vector(PIPELINE_WIDTH - 1 downto 0) := X"136F";
-	constant MINUS_INV_CORDIC_GAIN : pipeline_integer := -4975;
-	constant MINUS_INV_CORDIC_GAIN_V : std_logic_vector(PIPELINE_WIDTH -1 downto 0) := X"EC91";
-	constant HALF_PI_FX316 : pipeline_integer := 12868;
-	constant HALF_PI_FX316_V : std_logic_vector(PIPELINE_WIDTH - 1 downto 0) := X"3244";
-	constant MINUS_HALF_PI_FX316 : pipeline_integer := -12868;
-	constant MINUS_HALF_PI_FX316_V : std_logic_vector(PIPELINE_WIDTH - 1 downto 0) := X"CDBC";
-	constant PI_FX316 : pipeline_integer := 25736;
-	constant PI_FX316_V : std_logic_vector(PIPELINE_WIDTH - 1 downto 0) := X"6488";
-	constant MINUS_PI_FX316 : pipeline_integer := -25736;
-	constant MINUS_TWO_PI_FX417_V : std_logic_vector(PIPELINE_WIDTH downto 0) := B"0_110_01001_00010000"; -- TODO: REVIEW LAST BIT
-
-	-- Filter constants
-	-- constant PHASE_LOOP_PI_I_CONST_FX316 : pipeline_integer := xxx; OVERFLOW!!!
-	constant PHASE_LOOP_PI_I_CONST_SAMPLE_SCALED : pipeline_integer := 122;
-	constant PHASE_LOOP_PI_P_CONST : pipeline_integer := 32767; -- OVERFLOW!!!
         component platform is
                 port (
                         CLKIN_IN : in std_logic; -- Input clock
@@ -109,43 +58,6 @@ architecture beh of phase_loop_fpga is
                         LOCKED_OUT : out std_logic);
         end component platform;
 
-        component dac_adc is
-                generic (
-                        width : natural := PIPELINE_WIDTH;
--- prec < width
-                        prec : natural := PIPELINE_PREC);
-                
-                port (
--- SPI related
--- This lines should be Hi-Z (SPI bus is shared). To avoid problems
--- during synthesis, JUST THE FINAL real ports should have hi-Z
--- state. Internaly all should be done thru logic. See spi_owned
--- ports below.
-                        spi_mosi, spi_sck : out std_logic;
-                        spi_miso : in std_logic;
-
--- SPI slaves CS
-                        dac_ncs, amp_ncs : out std_logic;
-                        adc_conv : out std_logic; -- Quite a special CS. See ADC datasheet for details. Active on high.
-                        isf_ce0 : out std_logic; -- Intel StrataFlash Flash: disabled with 1
-                        xpf_init_b : out std_logic; -- Xilinx Platform Flash PROM: disabled with 1
-                        stsf_b : out std_logic; -- ST Serial Flash: disabled with 1
--- Other DAC signals
-                        dac_clr : out std_logic;
-
--- Interface with internal logic
-                        in_sample : out std_logic_vector(width - 1 downto 0);
-                        have_sample : out std_logic;
-                        out_sample : in std_logic_vector(width - 1 downto 0);
-                        need_sample : out std_logic;
-                        clk : in std_logic;
-                        rst : in std_logic; -- Async reset
-                        run : in std_logic; -- Tell this to run
-                        spi_owned_out : out std_logic;
-                        spi_owned_in : in std_logic -- Daisy chaining
-                        );
-        end component dac_adc;
-
         signal spi_mosi_s, spi_sck_s : std_logic;
 -- spi_miso_s -> unneeded,
 -- input signal is directly used
@@ -153,7 +65,9 @@ architecture beh of phase_loop_fpga is
         signal clk_div_8_s, clk_50_s : std_logic;
         
         signal have_sample_s, need_sample_s : std_logic;
-        signal in_sample_s, in_sample_procesado_s, out_sample_s : std_logic_vector(15 downto 0);
+        signal in_sample_s : std_logic_vector(ADC_VAL_SIZE - 1 downto 0);
+        signal out_sample_s : std_logic_vector(DAC_VAL_SIZE - 1 downto 0);
+        signal in_sample_procesado_s : std_logic_vector(width -1 downto 0);
         signal spi_owned_out_s, spi_owned_in_s : std_logic;
 
         signal out_signal_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
@@ -176,8 +90,8 @@ begin
                         CLK0_OUT => clk_50_s,
                         LOCKED_OUT => open);
 
-        dac_adc_i : dac_adc
-                port map(
+        dac_adc_i : entity work.dac_adc(beh)
+                port map (
                         spi_mosi => spi_mosi_s,
                         spi_sck => spi_sck_s,
                         spi_miso => spi_miso,
@@ -191,7 +105,7 @@ begin
                         dac_clr => dac_clr,
 
 -- Interface with internal logic
-                        in_sample => in_sample_s,         -- Sample received from ADC
+                        in_sample => in_sample_s, -- Sample received from ADC
                         have_sample => have_sample_s,
                         out_sample => out_sample_s,
                         need_sample => need_sample_s,
@@ -201,8 +115,21 @@ begin
                         spi_owned_out => spi_owned_out_s,
                         spi_owned_in => spi_owned_in_s);
 
-        in_sample_procesado_s <= std_logic_vector(-shift_right(signed(in_sample_s), 1));
-                
+        -- Transformation of input sample.
+        -- We know:
+        -- * It's 14 bits wide
+        -- * It's in twos complement.
+        -- * We want input value, right now, normalized
+        adc_raw_to_pipe_i : entity work.pipeline_conv(alg)
+             generic map (
+                     in_width  => ADC_VAL_SIZE,
+                     in_prec   => ADC_VAL_SIZE - 1,
+                     out_width => width,
+                     out_prec  => prec)
+             port map (
+                     i => in_sample_s,
+                     o => in_sample_procesado_s);
+        
         phase_loop_i : entity phase_loop(alg)
                 port map (
                         clk => clk_div_8_s,
@@ -239,8 +166,8 @@ begin
 
         -- Para sacar un valor NORMALIZADO en CA2 y que se vea bien a la salida:
         -- * + d"1" = + b"001.000...."
-        out_sample_s <= std_logic_vector(signed(out_signal_s) + 8208);
-        -- Con 8192 (1.0) no llega, ya que aparentemente el ruido del Cordic
+        out_sample_s <= std_logic_vector(signed(out_signal_s) + signed(to_vector(1.0, width, prec)));
+        -- En su momento, con 8192 (1.0 para 13 bits de precisión) no llega, ya que aparentemente el ruido del Cordic
         -- nos hace superar "parcialmente" el -1.0 => no nos llega con sumarle
         -- 8192. Le estoy sumando oun poquito más (16)        
         -- Se debería también escalar, multiplicándolo por 2:

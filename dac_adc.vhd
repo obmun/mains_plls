@@ -103,12 +103,6 @@ use IEEE.NUMERIC_STD.ALL;
 use WORK.COMMON.ALL;
 
 entity dac_adc is
-     generic (
-	  width : natural := PIPELINE_WIDTH;
-          -- prec < width
-	  prec : natural := PIPELINE_PREC
-          );
-     
      port (
 	  -- SPI related
 	  -- This lines should be Hi-Z (SPI bus is shared). To avoid problems
@@ -128,9 +122,9 @@ entity dac_adc is
 	  dac_clr : out std_logic;
           
 	  -- Interface with internal logic
-	  in_sample : out std_logic_vector(width - 1 downto 0);
+	  in_sample : out std_logic_vector(ADC_VAL_SIZE - 1 downto 0);
 	  have_sample : out std_logic;
-	  out_sample : in std_logic_vector(width - 1 downto 0);
+	  out_sample : in std_logic_vector(DAC_VAL_SIZE - 1 downto 0);
 	  need_sample : out std_logic;
 	  clk : in std_logic;
 	  rst : in std_logic; -- Async reset
@@ -154,7 +148,8 @@ architecture beh of dac_adc is
      constant DAC_REAL_INS_SIZE : natural := 20;
      constant DAC_CMD_SIZE : natural := 4;
      constant DAC_ADDR_SIZE : natural := 4;
-     constant DAC_VAL_SIZE : natural := 12;
+        -- constant DAC_VAL_SIZE : natural := 12; -- Already defined in common,
+        -- as it's needed for some of the input port widths
      constant DAC_PREAMBLE_SIZE : natural := 8;
      constant DAC_POSTDATA_SIZE : natural := 4;
 
@@ -179,7 +174,8 @@ architecture beh of dac_adc is
      alias dac_ins_bitstream_s : std_logic is dac_shift_reg_o(DAC_REAL_INS_SIZE - 1);
      signal dac_shift_reg_load, dac_shift_reg_we : std_logic;
 
-     constant ADC_VAL_SIZE : natural := 14;
+        -- constant ADC_VAL_SIZE : natural := 14; -- Already in common, as
+        -- it's needed by some ports to define its width
      constant ADC_PREAMBLE_SIZE : natural := 2; -- # of SCK cycles to wait before reading ADC data
      constant ADC_POSTDATA_SIZE : natural := 4; -- # of cycles to wait sending SCK cycles yet after ADC data reception
 
@@ -250,22 +246,19 @@ begin
      dac_addr_s <= "0000"; -- Output thru DAC a
 
      -- Sample logic => DAC (out to the real world)
-     -- As the pipeline has an idea about prec and magnitude, some care has to
+     -- As the pipeline has an idea about prec and magnitude, some care could
      -- be taken when converting the DAC and ADC word widths to the pipeline
-     -- (16 bis).
+     -- (16 bis). But we don't do that here.
+     -- We DON'T HAVE width as a generic of this block.
      -- We're not gonna do here suppositions about DAC input voltage range or how it
-     -- converts it (2s complement, sign + magnitude ...) . We only have to know
-     -- that this is a 12 bits DAC, and that we align it to the higher value on
-     -- the pipeline => lower precision in the pipeline is TRIMMED. Any other
-     -- transformation is left to the user.
-     dac_val_s <= out_sample(width - 1 downto width - DAC_VAL_SIZE);
-     -- pipeline conv is an overkill here.
+     -- converts it (2s complement, sign + magnitude ...). We only have to know
+     -- that this is a 12 bits DAC, and the RAW value is passed to the block
+     -- using us. That's all.
+     dac_val_s <= out_sample;
 
      -- Sample ADC => logic (in from the real world)
-     -- See comment in DAC transformation above. Same idea applies here. If I'm
-     -- widening the word, I should be gaining precision, not magnitude.
-     in_sample(width - 1 downto width - ADC_VAL_SIZE) <= adc_val_s;
-     in_sample(width - ADC_VAL_SIZE - 1 downto 0) <= (others => '0');
+     -- See comment in DAC transformation above. 
+     in_sample <= adc_val_s;
      
      dac_shift_reg : shift_reg
 	  generic map (
@@ -292,8 +285,7 @@ begin
 	       we => adc_shift_reg_we,
 	       s_in(0) => spi_miso,
 	       p_in => std_logic_vector(to_unsigned(0, ADC_VAL_SIZE)),
-	       o => adc_val_s
-	       );
+	       o => adc_val_s);
 
      global_state_ctrl : process(clk, rst)
      begin
@@ -336,9 +328,8 @@ begin
 			      end if;
 			 when others =>
 			      global_st <= global_st;
-			      assert false
-				   report "Unknown global state!!! Should not happen!!!"
-				   severity error;
+			      assert false report "Unknown global state!!! Should not happen!!!" severity error; --
+                              -- false is a "non constant condition" for ISE. WTF??
 		    end case;
 	       end if;
 	  end if;
@@ -539,7 +530,13 @@ begin
      -- * dac_cntr_en, dac_cntr_load, dac_cntr_d
      -- * dac_shift_reg_load, dac_shift_reg_we
      -- * dac_ended
-     dac_signal : process(dac_st, dac_cnt)
+     -- In reality, ideal process should just need dac-st and dac_cnt signals
+     -- in its sensitivity list. As I don't want strange synthesis behaviour
+     -- with this peace of combinational logic, let's just add all the "input"
+     -- signals to this process (dac_ins_bitstream_s - ISE complaints about
+     -- signal missing in proc. sens. list, as this is an alias; we just add
+     -- the whole signal)
+     dac_signal : process(dac_st, dac_cnt, dac_shift_reg_o)
      begin
 	  case dac_st is
 	       when DAC_ST_IDLE =>
