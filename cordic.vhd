@@ -172,19 +172,19 @@ architecture beh of cordic is
 
 begin
         -- Is input angle < - PI / 2.0?
-	lt_comp : k_lt_comp
+	lt_comp : entity work.k_lt_comp(beh)
 		generic map (
-                        width => width,
-			k => to_integer(MINUS_HALF_PI, width, prec))
+                        width => width, prec => prec,
+			k => MINUS_HALF_PI)
 		port map (
 			a => angle,
 			a_lt_k => lt_mhPI_s);
 
         -- Is input angle > PI / 2.0?
-	gt_comp : k_gt_comp
+	gt_comp : entity work.k_gt_comp(beh)
 		generic map (
-                        width => width, 
-			k => to_integer(HALF_PI, width, prec))
+                        width => width, prec => prec,
+			k => HALF_PI)
 		port map (
 			a => angle,
 			a_gt_k => gt_hPI_s);
@@ -413,7 +413,7 @@ begin
 	end process;
 
 
-        state_ctrl : process(clk, run, rst)
+        state_ctrl : process(clk)
 	begin
 		if (rising_edge(clk)) then
 			if (rst = '1') then

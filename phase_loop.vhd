@@ -77,18 +77,6 @@ architecture alg of phase_loop is
                         done : out std_logic);                
 	end component;
 
-	component kcm is
-		generic (
-			width : natural := PIPELINE_WIDTH;
-			prec : natural := PIPELINE_PREC;
-			k : pipeline_integer := -23410 -- Cte de ejemplo. Una síntesis de esta cte infiere un multiplicador
-		);
-		port (
-			i : in std_logic_vector(width - 1 downto 0);
-			o : out std_logic_vector(width - 1 downto 0)
-		);
-	end component;
-
 	component adder is
 		generic (
 			width : natural := PIPELINE_WIDTH
@@ -130,9 +118,7 @@ begin
 
         phase_det_done_pulser : entity work.done_pulser(beh)
                 port map (
-                        clk => clk,
-                        en  => '1',
-                        rst => rst,
+                        clk => clk, en  => '1', rst => rst,
                         i   => phase_det_done_s,
                         o   => phase_det_done_pulsed_s);
         
@@ -140,7 +126,7 @@ begin
                 generic map (
                         width => PIPELINE_WIDTH,
                         prec  => PIPELINE_PREC,
-                        int_k => to_pipeline_integer(AC_FREQ_SAMPLE_SCALED),
+                        k => AC_FREQ,
                         delay => 100,     -- fs / 100 Hz = 10000 / 100 = 1ç00
                         delayer_width => 2)
 		port map (
@@ -155,17 +141,16 @@ begin
                         delayer_out(1) => fva_delayed_done_s);
 
 	-- PI filter components
-	pi_p_kcm : kcm
+	pi_p_kcm : entity work.kcm(beh)
 		generic map (
-			k => to_pipeline_integer(PHASE_LOOP_PI_P_CONST)
-		)
+			k => PHASE_LOOP_PI_P_CONST)
 		port map (
 			i => fa_out_s,
 			o => p_kcm_out_s);
 
 	pi_int : entity work.kcm_integrator(beh)
 		generic map (
-			k => to_pipeline_integer(PHASE_LOOP_PI_I_CONST),
+			k => PHASE_LOOP_PI_I_CONST,
                         delayer_width => 2)
 		port map (
 			clk => clk, rst => rst,
