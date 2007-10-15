@@ -11,7 +11,8 @@
 --
 -- *** BRIEF DESCRIPTION ***
 -- Doubles a give angle (2*theta), taking into account the MAGNITUDE LIMITS of
--- our usual pipeline width :)
+-- our usual pipeline width :) [also known as the 'good old' principal
+-- determination of the arg function]
 --
 -- *** DESCRIPTION ***
 -- During debugging of phase_det, it was realized that we were getting
@@ -67,7 +68,7 @@ begin
         gt_half_pi : entity work.k_gt_comp(beh)
                 generic map (
                         width => PIPELINE_WIDTH,
-                        k => HALF_PI_FX316)
+                        k => HALF_PI)
                 port map (
                         a => i,
                         a_gt_k => gt_half_pi_s);
@@ -75,7 +76,7 @@ begin
         lt_minus_half_pi : entity work.k_lt_comp(beh)
                 generic map (
                         width => PIPELINE_WIDTH,
-                        k => MINUS_HALF_PI_FX316)
+                        k => MINUS_HALF_PI)
                 port map (
                         a => i,
                         a_lt_k => lt_minus_half_pi_s);
@@ -85,12 +86,12 @@ begin
         correction_const_val : process(gt_half_pi_s, lt_minus_half_pi_s)
         begin
                 if (gt_half_pi_s = '1') then
-                        correction_const_EXT_s <= MINUS_PI_FX318_V;
+                        correction_const_EXT_s <= to_ext_pipeline_vector(MINUS_PI);
                 elsif (lt_minus_half_pi_s = '1') then
-                        correction_const_EXT_s <= PI_FX318_V;
+                        correction_const_EXT_s <= to_ext_pipeline_vector(PI);
                 else
-                        correction_const_EXT_s <= PI_FX318_V;  -- En realidad, me
-                                                           -- da igual!
+                        correction_const_EXT_s <= to_ext_pipeline_vector(PI);  -- En realidad, me
+                                                                               -- da igual!
                 end if;
         end process correction_const_val;           
         
