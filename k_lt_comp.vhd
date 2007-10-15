@@ -27,18 +27,17 @@ use IEEE.NUMERIC_STD.all;
 entity k_lt_comp is
 	generic (
 		width : natural := PIPELINE_WIDTH;
-		k : pipeline_integer := 0
-	);
+                prec : natural := PIPELINE_PREC;
+		k : real);
 	port (
 		a : in std_logic_vector(width - 1 downto 0);
-		a_lt_k : out std_logic
-	);
+		a_lt_k : out std_logic);
 end k_lt_comp;
 
 architecture beh of k_lt_comp is
 begin
 	process(a)
-		constant k_signed : signed(width - 1 downto 0) := to_signed(k, width);
+		constant k_signed : signed(width - 1 downto 0) := signed(to_vector(k, width, prec));
 	begin
 		if (signed(a) < k_signed) then
 			a_lt_k <= '1';
