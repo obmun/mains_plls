@@ -12,7 +12,9 @@
 --
 -- Dependencies:
 -- 
--- Revision:
+-- *** ChangeLog ***
+-- Revision 0.02 - Let the synthesizer do more work :) Shift displacement is
+-- now a natural :) (forget the pipeline_width_dir_bits)
 -- Revision 0.01 - File Created
 -- Additional Comments:
 -- 
@@ -23,24 +25,16 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use IEEE.MATH_REAL.ALL;
 
----- Uncomment the following library declaration if instantiating
----- any Xilinx primitives in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-
 entity signed_r_shifter is
 	generic (
-		width : natural := PIPELINE_WIDTH;
-		width_dir_bits : natural := PIPELINE_WIDTH_DIR_BITS
-	);
+		width : natural := PIPELINE_WIDTH);
 	port (
 		i : in std_logic_vector(width - 1 downto 0);
-		n : in std_logic_vector(width_dir_bits - 1 downto 0);
-		o : out std_logic_vector(width - 1 downto 0)
-	);
+		n : in natural;
+		o : out std_logic_vector(width - 1 downto 0));
 end signed_r_shifter;
 
 architecture beh of signed_r_shifter is
 begin
-	o <= std_logic_vector(shift_right(signed(i), to_integer(unsigned(n))));
+	o <= std_logic_vector(shift_right(signed(i), n));
 end beh;
