@@ -85,10 +85,10 @@ package body common is
                 min_integer := -max_integer - 1;
                 if (tmp_val > max_integer) then
                         assert false report "saturating pipeline(w: " & integer'image(width) & ", p: " & integer'image(prec) & ") with value " & real'image(val) severity warning;
-                        return max_integer;
+                        return max_integer - 1;
                 elsif (tmp_val < min_integer) then
                         assert false report "neg. saturating pipeline(w: " & integer'image(width) & ", p: " & integer'image(prec) & ") with value " & real'image(val) severity warning;
-                        return min_integer;
+                        return min_integer + 1;
                 else
                         if (tmp_val = 0) then
                                 assert false report "not enough precision, returning 0!" severity warning;
