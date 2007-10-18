@@ -54,29 +54,14 @@ architecture beh of p2_phase_loop is
         type coef_2nd_ord is array (0 to 2) of real;
 
         -- Some constants
-        constant coef_2nd_ord_filt_num : coef_2nd_ord := (0.9755, -1.947, 0.9755);
-        constant coef_2nd_ord_filt_den : coef_2nd_ord := (1.0, -1.947, 0.951);
+        constant coef_2nd_ord_filt_num : coef_2nd_ord := (0.972, -1.94, 0.972);
+        constant coef_2nd_ord_filt_den : coef_2nd_ord := (1.0, -1.94, 0.944);
         -- ORIGINAL COEFs for 1st ord IIR num: 300.0 and -282.3 coefs. Gain
         -- (200) is moved to freq2phase (before the integrator).
         constant coef_1st_ord_filt_num : coef_1st_ord := (1.500, -1.4115);
         constant coef_1st_ord_filt_den : coef_1st_ord := (1.0, -0.9704);
 
         constant IIR_FILTERS_PREC : natural := 14;
-        
-	-- Component declaration
-	component phase_det is
-                -- rev 0.02
-		port (
-			-- Input value signals
-			norm_input, curr_phase : in std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-			-- Input control signals
-			run, rst, clk : in std_logic;
-			-- Out value signals
-			phase_error : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-			norm_output : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-			-- Out control signals
-			done : out std_logic);
-	end component;
 
 	-- Internal signals
 	signal phase_s, phase_det_out_s, fa_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
@@ -96,7 +81,7 @@ architecture beh of p2_phase_loop is
         signal garbage_1_s, garbage_2_s, garbage_3_s : std_logic;
 begin
 	-- ** Big blocks **
-	phase_det_i : phase_det
+	phase_det_i : entity work.p2_phase_det(beh)
 		port map (
 			run => phase_det_run_s,
                         rst => rst, clk => clk,
