@@ -18,8 +18,11 @@
 -- Revision 0.01 - File Created
 -- Additional Comments:
 -- TODO:
+-- * ADD A SECOND ARCHITECTURE WITH A CORRECT ROUNDING MODE. But I don't really
+-- know if I'm gonna need it
 -- * REVIEW ME!! Check if TB covers all cases
 --------------------------------------------------------------------------------
+
 library IEEE;
 library WORK;
 use IEEE.STD_LOGIC_1164.ALL;
