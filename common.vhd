@@ -11,9 +11,9 @@ package common is
 	-- *
 	-- * Very first constants
 	-- *
-	constant PIPELINE_WIDTH : natural := 16;
-	constant EXT_PIPELINE_WIDTH : natural := 18;
-	constant PIPELINE_PREC : natural := 12;
+	constant PIPELINE_WIDTH : natural := 16;  -- SHOULD REMAIN CONSTANT
+	constant EXT_PIPELINE_WIDTH : natural := 18;  -- SHOULD REMAIN CONSTANT
+	constant PIPELINE_PREC : natural := 10;
 	constant EXT_PIPELINE_PREC : natural := PIPELINE_PREC;
 	constant PIPELINE_MAGN : natural := PIPELINE_WIDTH - PIPELINE_PREC;
 	constant EXT_PIPELINE_MAGN : natural := EXT_PIPELINE_WIDTH - EXT_PIPELINE_PREC;
@@ -81,16 +81,16 @@ package body common is
                 variable max_integer, min_integer : integer;
         begin
                 tmp_val := integer(round(val * (2.0 ** real(prec))));
-                max_integer := integer(round(2.0 ** real(width - 1)));
+                max_integer := integer(round(2.0 ** real(width - 1))) - 1;
                 min_integer := -max_integer - 1;
                 if (tmp_val > max_integer) then
                         assert false report "saturating pipeline(w: " & integer'image(width) & ", p: " & integer'image(prec) & ") with value " & real'image(val) severity warning;
-                        return max_integer - 1;
+                        return max_integer;
                 elsif (tmp_val < min_integer) then
                         assert false report "neg. saturating pipeline(w: " & integer'image(width) & ", p: " & integer'image(prec) & ") with value " & real'image(val) severity warning;
-                        return min_integer + 1;
+                        return min_integer;
                 else
-                        if (tmp_val = 0) then
+                        if ((tmp_val = 0) and (val /= 0.0)) then
                                 assert false report "not enough precision, returning 0!" severity warning;
                         end if;
                         return tmp_val;

@@ -7,7 +7,7 @@
 -- Module Name:    kcm - alg
 -- Project Name:   
 -- Target Device:  
--- Tool versions:  
+-- tool versions:  
 -- Description:
 --
 -- Dependencies:
@@ -42,20 +42,32 @@ end kcm;
 architecture beh of kcm is
 begin
 	process(i)
+                constant all_ones : signed((width - prec) - 1 downto 0) := (others => '1');
+                constant all_zeros : signed((width - prec) - 1 downto 0) := (others => '0');
 		constant k_signed : signed(width - 1 downto 0) := signed(to_vector(k, width, prec));
 		variable res : signed(2 * width - 1 downto 0);
 		variable j_out : natural;
 	begin
-		res := signed(i) * k_signed; -- Mmm... numeric_std signed * signed RETURNS (in own standard words) a'length * b'length - 1 (double sign bit!) result.
-                                             -- I'm really wasting a bit. Why?
-                                             -- Its just stupid ...
-		-- Manual shift for correct truncation
-		j_out := 0;
-		for i in prec to prec + width - 2 loop
-			o(j_out) <= res(i);
-			j_out := j_out + 1;
-		end loop;
-		o(j_out) <= res(res'length - 1);
-		-- o <= std_logic_vector(resize(shift_right(signed(i) * k, PIPELINE_PREC), width));
+		res := signed(i) * k_signed;
+                -- Correctly saturate OUTPUT (otherwise we're doing some kind
+                -- of modulus operation)
+                if ((res(res'length - 1) = '1') and (res(res'length - 2 downto (prec + width - 1)) /= all_ones)) then
+                        -- Saturation towards negative
+                        o(width - 2 downto 0) <= (others => '0');
+                        o(width - 1) <= '1';
+                elsif ((res(res'length - 1) = '0') and (res(res'length - 2 downto (prec + width - 1)) /= all_zeros)) then
+                        -- Saturation towards positive
+                        o(width - 2 downto 0) <= (others => '1');
+                        o(width - 1) <= '0';
+                else
+                        		-- Manual shift for correct truncation
+                        j_out := 0;
+                        for i in prec to prec + width - 2 loop
+                                o(j_out) <= res(i);
+                                j_out := j_out + 1;
+                        end loop;
+                        o(j_out) <= res(res'length - 1);
+                        -- o <= std_logic_vector(resize(shift_right(signed(i) * k, PIPELINE_PREC), width));
+                end if;
 	end process;
 end beh;
