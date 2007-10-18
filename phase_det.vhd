@@ -61,17 +61,6 @@ entity phase_det is
 end phase_det;
 
 architecture alg of phase_det is
-	-- Component declarations
-	component mul is
-                -- rev 0.01
-		generic (
-			width : natural := PIPELINE_WIDTH;
-			prec_bits : natural := PIPELINE_PREC);
-		port (
-			a, b : in std_logic_vector (width - 1 downto 0);
-			o : out std_logic_vector (width - 1 downto 0));
-	end component;
-
 	component subsor is
 		generic (
 			width : natural := PIPELINE_WIDTH
@@ -149,7 +138,7 @@ begin
 			done => c_2_done
 		);
 
-	mul_i : mul
+	mul_i : entity work.mul(beh)
 		port map (
 			-- ENTRADAS
 			a => norm_input_reg_out_s,
