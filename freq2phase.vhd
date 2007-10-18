@@ -23,6 +23,7 @@
 -- known state.
 -- 
 -- ** PORT DESCRIPTION **
+-- gain -> input port gain. Input values are pre-multiplied by this value
 -- rst -> synchronous reset signal
 -- 
 -- ** IMPLEMENTATION **
@@ -43,6 +44,8 @@
 -- Dependencies:
 -- 
 -- *** Revision ***
+-- Revision 0.07 - Added optional input gain (we can afford it, as we scale
+-- down the input for its integration)
 -- Revision 0.06 - Generic controllable pipeline width
 -- Revision 0.05 - Added new seq. block control iface. Removed the speed up register.
 -- Revision 0.04 - Added run / done style ports
@@ -61,10 +64,11 @@ use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
 
 entity freq2phase is
-        -- rev 0.06
+        -- rev 0.07
 	generic (
 		width : natural := PIPELINE_WIDTH;
                 prec : natural := PIPELINE_PREC;
+                gain: real := 1.0;
                 -- Seq. block iface
                 delayer_width : natural := 1);
         
@@ -79,6 +83,9 @@ entity freq2phase is
 end freq2phase;
 
 architecture beh of freq2phase is
+        -- Intermediate constants
+        constant ac_freq_val : std_logic_vector(width - 1 downto 0) := to_vector(AC_FREQ_SAMPLE_SCALED, width, prec);
+        
         -- Component declarations
         component adder is
                 generic (
@@ -124,15 +131,17 @@ begin
 	kcm_i : entity work.kcm(beh)
 		generic map (
                         width => width, prec => prec,
-			k => SAMPLING_PERIOD)
+			k => SAMPLING_PERIOD * gain)
 		port map (
 			i => f,
 			o => kcm_out);
 
 	in_adder : adder
+                generic map (
+                        width => width)
 		port map (
 			a => kcm_out,
-			b => to_vector(AC_FREQ_SAMPLE_SCALED, width, prec),
+			b => ac_freq_val,
 			o => in_adder_out);
 
 	fb_adder : adder

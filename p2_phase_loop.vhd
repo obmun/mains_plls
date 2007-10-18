@@ -23,15 +23,15 @@
 -- Dependencies:
 -- 
 -- *** Changelog ***
--- Revision 0.04 - Added register in the middle of a big big big combinational
--- path (pi_int -> pi_adder -> freq2phase input adder -> freq_2_phase reg).
--- Added at 37 % of total delay path [not the best place], in a "correct"
--- place. pi -> REG -> freq2phase
--- Revision 0.03 - Super change. Now, makes use of new seq. block control iface
--- Revision 0.02 - Interface modification. Good phase_det cycle integration with rest of pipeline.
--- Revision 0.01 - File Created
+-- Revision 0.02 - Gain on the first IIR LPF filter is moved to the freq2phase
+-- block. This way, precision can be keep high on the filters path, as error
+-- output should not be really "that" high (4 bits enough? => max 8 as
+-- magnitude). We need the prec. due to the IIR filter nature (see PFC doc).
+-- IIR filters are wrapped with an ext_pipeline_width, and 14 bits prec!
+-- Revision 0.01 - File Created, following Fran Simulink model
 -- 
 --------------------------------------------------------------------------------
+
 library IEEE;
 library WORK;
 use WORK.COMMON.all;
@@ -56,8 +56,12 @@ architecture beh of p2_phase_loop is
         -- Some constants
         constant coef_2nd_ord_filt_num : coef_2nd_ord := (0.9755, -1.947, 0.9755);
         constant coef_2nd_ord_filt_den : coef_2nd_ord := (1.0, -1.947, 0.951);
-        constant coef_1st_ord_filt_num : coef_1st_ord := (300.0, -282.3);
+        -- ORIGINAL COEFs for 1st ord IIR num: 300.0 and -282.3 coefs. Gain
+        -- (200) is moved to freq2phase (before the integrator).
+        constant coef_1st_ord_filt_num : coef_1st_ord := (1.500, -1.4115);
         constant coef_1st_ord_filt_den : coef_1st_ord := (1.0, -0.9704);
+
+        constant IIR_FILTERS_PREC : natural := 14;
         
 	-- Component declaration
 	component phase_det is
@@ -74,24 +78,15 @@ architecture beh of p2_phase_loop is
 			done : out std_logic);
 	end component;
 
-	component adder is
-		generic (
-			width : natural := PIPELINE_WIDTH
-		);
-		port (
-			a, b: in std_logic_vector(width - 1 downto 0);
-			o: out std_logic_vector(width - 1 downto 0);
-			f_ov, f_z: out std_logic
-		);
-	end component;
-
 	-- Internal signals
 	signal phase_s, phase_det_out_s, fa_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         signal phase_det_done_s, phase_det_done_pulsed_s, iir_1st_ord_done_s, iir_2nd_ord_done_s : std_logic;
         signal phase_det_run_s : std_logic;
         signal iir_1st_ord_delayed_done_s, iir_2nd_ord_delayed_done_s, freq2phase_delayed_done_s : std_logic;
 	-- > Filter signals
-	signal iir_1st_ord_out_s, iir_2nd_ord_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+        signal phase_det_out_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
+	signal iir_1st_ord_out_E_s, iir_2nd_ord_out_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
+        signal iir_2nd_ord_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         -- GARBAGE SIGNALS
         -- These are here because ModelSim complains about keeping a formal
         -- partially open (some of its bits are asigned, other are opened), and
@@ -119,18 +114,29 @@ begin
                         i   => phase_det_done_s,
                         o   => phase_det_done_pulsed_s);
         
-	-- Error filters
+	-- Error filters, wrapped around conv
+
+        iir_input_conv : entity work.pipeline_conv(alg)
+                generic map (
+                        in_width  => PIPELINE_WIDTH,
+                        in_prec   => PIPELINE_PREC,
+                        out_width => EXT_PIPELINE_WIDTH,
+                        out_prec  => IIR_FILTERS_PREC)
+                port map (
+                        i => phase_det_out_s,
+                        o => phase_det_out_E_s);
+        
         iir_1st_ord : entity work.filter_1st_order_iir(beh)
                 generic map (
-                        width => PIPELINE_WIDTH, prec => PIPELINE_PREC,
+                        width => EXT_PIPELINE_WIDTH, prec => IIR_FILTERS_PREC,
                         b0 => coef_1st_ord_filt_num(0),
                         b1 => coef_1st_ord_filt_num(1),
                         a1 => coef_1st_ord_filt_den(1),
                         delayer_width => 2)
                 port map (
                         clk => clk, rst => rst,
-                        i => phase_det_out_s,
-                        o => iir_1st_ord_out_s,
+                        i => phase_det_out_E_s,
+                        o => iir_1st_ord_out_E_s,
                         run_en => phase_det_done_pulsed_s,
                         run_passthru => iir_1st_ord_done_s,
                         delayer_in(0) => '-',
@@ -140,7 +146,7 @@ begin
         
         iir_2nd_ord : entity work.filter_2nd_order_iir(beh)
                 generic map (
-                        width => PIPELINE_WIDTH, prec => PIPELINE_PREC,
+                        width => EXT_PIPELINE_WIDTH, prec => IIR_FILTERS_PREC,
                         b0 => coef_2nd_ord_filt_num(0),
                         b1 => coef_2nd_ord_filt_num(1),
                         b2 => coef_2nd_ord_filt_num(2),
@@ -149,14 +155,24 @@ begin
                         delayer_width => 2)
                 port map (
                         clk => clk, rst => rst,
-                        i => iir_1st_ord_out_s,
-                        o => iir_2nd_ord_out_s,
+                        i => iir_1st_ord_out_E_s,
+                        o => iir_2nd_ord_out_E_s,
                         run_en => iir_1st_ord_done_s,
                         run_passthru => iir_2nd_ord_done_s,
                         delayer_in(0) => '-',
                         delayer_in(1) => iir_1st_ord_delayed_done_s,
                         delayer_out(0) => garbage_2_s,
                         delayer_out(1) => iir_2nd_ord_delayed_done_s);
+
+        iir_output_conv : entity work.pipeline_conv(alg)
+                generic map (
+                        in_width  => EXT_PIPELINE_WIDTH,
+                        in_prec   => IIR_FILTERS_PREC,
+                        out_width => PIPELINE_WIDTH,
+                        out_prec  => PIPELINE_PREC)
+                port map (
+                        i => iir_2nd_ord_out_E_s,
+                        o => iir_2nd_ord_out_s);
 
         -- Speed up register. Combinational path formed by pi_int -> pi_adder
         -- -> freq2phase combinational logic at input is TOO long
@@ -177,6 +193,8 @@ begin
 	freq2phase_i : entity work.freq2phase(beh)
                 generic map (
                         width => PIPELINE_WIDTH,
+                        prec => PIPELINE_PREC,
+                        gain => 200.0,
                         delayer_width => 2)
 		port map (
 			clk => clk, rst => rst,
