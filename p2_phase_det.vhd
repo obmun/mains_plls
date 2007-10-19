@@ -86,10 +86,8 @@ architecture beh of p2_phase_det is
 		);
 	end component;
 
-	signal cos_out, sin_2_out : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-	signal mul_out, k_div_out, angle_doubler_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-        signal doubler_reg_out_s : std_logic_vector(PIPELINE_WIDTH downto 0);
-	signal c_done, c_2_done : std_logic;
+	signal cos_out : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+	signal c_done : std_logic;
         signal input_reg_we_s : std_logic;
         signal norm_input_reg_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 begin
