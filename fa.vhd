@@ -15,27 +15,23 @@
 -- 
 -- *** BRIEF DESCRIPTION ***
 -- Class: sequential
--- VA, with configurable frequency (and integrator ktk) thru generic ports.
+-- Moving Averega Filter, recursive implementation, with configurable delay (rejected harmonic frequencies thru generic ports.
 -- Works on clock's rising edge and has synchronous reset.
 -- 
 -- *** DESCRIPTION ***
--- Includes a synchronous reset because makes use of a saturable integrator.
--- This way a user can reset internal elements to a known state. Big storage
--- (FIFO) is never reseted.
---
--- The onboard integrator adds a delay of 1 run (sample) to the element.
--- Therefore, FIFO implemented delay must be the user desired delay minus 1.
--- Therefore: delay(samples) >= 2
---
+-- Includes a synchronous reset.
+-- It's an IIR, so you should be using a LOT OF PRECISION!!! when implementing
+-- this thing. You have been warned.
+-- 
 -- == PORT DESCRIPTION ==
 -- = Generics =
 -- * width: ports and internal pipeline width
 -- * prec: ports and internal pipeline precision
--- * k: pre-gain constant [see FA design in Fran papers]. DOESN'T need to be
--- sampling period scaled
 -- * delay: # of clocks of delay (at least 1)
 -- 
 -- *** Changelog ***
+-- Revision 0.05 - Stop fucking, please. CHANGED the implementation. This is
+-- the REAL ONE. Check PFC notes.
 -- Revision 0.04 - With change of kcm, no input multiplying constant is real
 -- and user must not scale it by SAMPLING_PERIOD as its done inside the kcm_integrator.
 -- Revision 0.03 - Implement new seq. control iface. REALLY create the generic
@@ -59,8 +55,7 @@ entity fa is
         generic (
                 width : natural := PIPELINE_WIDTH;
                 prec : natural := PIPELINE_PREC;
-                k : real := AC_FREQ;
-                delay : natural := 200; 
+                delay : natural; 
                 -- Seq. block iface
                 delayer_width : natural := 1);
 	port (
@@ -74,56 +69,79 @@ entity fa is
 end fa;
 
 architecture beh of fa is
-	signal int_out_s : std_logic_vector(width - 1 downto 0);
-	signal fifo_out_s : std_logic_vector(width - 1 downto 0);
-        
-	component fifo is
-		generic (
-			width : natural := PIPELINE_WIDTH;
-			size : natural := 400
-		);
-		port (
-			clk, we : in std_logic;
-			i : in std_logic_vector(width - 1 downto 0);
-			o : out std_logic_vector(width - 1 downto 0)
-		);
-	end component;
-
+        constant d_inv : real := 1.0 / real(delay);
+	signal kcm_out_s, fifo_out_s, reg_out_s, sub_out_s, o_s : std_logic_vector(width - 1 downto 0);
+        signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);        
 begin
-        -- This block is used as the implementation of "seq. block control iface"
-        int_i : entity work.kcm_integrator(beh)
-		generic map (
+        kcm_i : entity work.kcm(beh)
+                generic map (
                         width => width,
-                        prec => prec,
-			k => k,
-                        delayer_width => delayer_width)
-		port map (
-			i => i,
-			o => int_out_s,
-			clk => clk, rst => rst,
-                        run_en => run_en,
-                        run_passthru => run_passthru,
-                        delayer_in => delayer_in,
-                        delayer_out => delayer_out);
+                        prec  => prec,
+                        k     => d_inv)
+                port map (
+                        i => i,
+                        o => kcm_out_s);
 
-	fifo_i : fifo
+	fifo_i : entity work.fifo(alg)
 		generic map (
                         width => width,
-                        size => delay - 1)
+                        size => delay)
 		port map (
-			i => int_out_s,
+			i => kcm_out_s,
 			o => fifo_out_s,
 			clk => clk, we => run_en);
 
-	add_i : entity work.subsor(alg)
+	sub_i : entity work.subsor(alg)
 		generic map (
                         width => width)
 		port map (
-			a => int_out_s,
+			a => kcm_out_s,
 			b => fifo_out_s,
-			o => o,
-                        -- Unconneted
+			o => sub_out_s,
+                        -- Unconnected
                         f_ov => open,
                         f_z => open);
 
+        reg_i : entity work.reg(alg)
+                generic map (
+                        width => width)
+                port map (
+                        clk => clk,
+                        we  => run_en,
+                        rst => rst,
+                        i   => o_s,
+                        o   => reg_out_s);
+
+        add_i : entity work.adder(alg)
+                generic map (
+                        width => width)
+                port map (
+                        a    => sub_out_s,
+                        b    => reg_out_s,
+                        o    => o_s,
+                        f_ov => open,
+                        f_z  => open);
+
+        o <= o_s;
+
+        delayer : entity work.reg(alg)
+                generic map (
+                        width => delayer_width)
+		port map (
+			clk => clk, we => '1', rst => rst,
+			i => delayer_in_s,
+			o => delayer_out_s);
+
+        single_delayer_gen: if (delayer_width = 1) generate
+                delayer_in_s(0) <= run_en;
+                run_passthru <= std_logic(delayer_out_s(0));
+                delayer_out(0) <= delayer_out_s(0);
+        end generate single_delayer_gen;
+        
+        broad_delayer_gen: if (delayer_width > 1) generate
+                delayer_in_s(0) <= run_en;
+                delayer_in_s(delayer_width - 1 downto 1) <= delayer_in(delayer_width - 1 downto 1);
+                run_passthru <= std_logic(delayer_out_s(0));
+                delayer_out <= delayer_out_s;
+        end generate broad_delayer_gen;
 end beh;
