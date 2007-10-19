@@ -35,7 +35,7 @@ entity p2_spll is
 end p2_spll;
 
 architecture structural of p2_spll is
-        constant FA_PREC : natural := 14;
+        constant FA_PREC : natural := 15;
 	signal first_run_s, first_run_pulsed_s : std_logic;
         signal phase_done_s, phase_done_pulsed_s, fa_delayed_done_s : std_logic;
 	signal in_signal_reg_out_s, our_signal_s, ampl_mul_out_s, ampl_fa_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
