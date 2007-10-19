@@ -35,9 +35,11 @@ entity p2_spll is
 end p2_spll;
 
 architecture structural of p2_spll is
+        constant FA_PREC : natural := 14;
 	signal first_run_s, first_run_pulsed_s : std_logic;
         signal phase_done_s, phase_done_pulsed_s, fa_delayed_done_s : std_logic;
 	signal in_signal_reg_out_s, our_signal_s, ampl_mul_out_s, ampl_fa_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+        signal ampl_mul_out_E_s, ampl_fa_out_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
         signal garbage_1_s : std_logic;
 begin
 
@@ -85,16 +87,27 @@ begin
                         b => in_signal_reg_out_s,
                         o => ampl_mul_out_s);
 
+        fa_input_conv : entity work.pipeline_conv(alg)
+                generic map (
+                        in_width  => PIPELINE_WIDTH,
+                        in_prec   => PIPELINE_PREC,
+                        out_width => EXT_PIPELINE_WIDTH,
+                        out_prec  => FA_PREC)
+                port map (
+                        i => ampl_mul_out_s,
+                        o => ampl_mul_out_E_s);
+        
         ampl_fa : entity work.fa(beh)
                 generic map (
-                        k             => 100.0,
+                        width         => EXT_PIPELINE_WIDTH,
+                        prec          => FA_PREC,
                         delay         => 100,
                         delayer_width => 2)
                 port map (
                         clk            => clk,
                         rst            => rst,
-                        i              => ampl_mul_out_s,
-                        o              => ampl_fa_out_s,
+                        i              => ampl_mul_out_E_s,
+                        o              => ampl_fa_out_E_s,
                         run_en         => phase_done_pulsed_s,
                         run_passthru   => open,
                         delayer_in(0)  => '-',
@@ -102,6 +115,16 @@ begin
                         delayer_out(0) => garbage_1_s,
                         delayer_out(1) => fa_delayed_done_s);
 
+        fa_output_conv : entity work.pipeline_conv(alg)
+                generic map (
+                        out_width => PIPELINE_WIDTH,
+                        out_prec  => PIPELINE_PREC,
+                        in_width  => EXT_PIPELINE_WIDTH,
+                        in_prec   => FA_PREC)
+                port map (
+                        i => ampl_fa_out_E_s,
+                        o => ampl_fa_out_s);
+        
         ampl_kcm : entity work.k_2_mul(alg)
                 port map (
                         i => ampl_fa_out_s,
