@@ -26,10 +26,18 @@
 -- The onboard integrator adds a delay of 1 run (sample) to the element.
 -- Therefore, FIFO implemented delay must be the user desired delay minus 1.
 -- Therefore: delay(samples) >= 2
--- 
--- Dependencies:
+--
+-- == PORT DESCRIPTION ==
+-- = Generics =
+-- * width: ports and internal pipeline width
+-- * prec: ports and internal pipeline precision
+-- * k: pre-gain constant [see FA design in Fran papers]. DOESN'T need to be
+-- sampling period scaled
+-- * delay: # of clocks of delay (at least 1)
 -- 
 -- *** Changelog ***
+-- Revision 0.04 - With change of kcm, no input multiplying constant is real
+-- and user must not scale it by SAMPLING_PERIOD as its done inside the kcm_integrator.
 -- Revision 0.03 - Implement new seq. control iface. REALLY create the generic
 -- for freq. and k control, instead of just advertising it in the brief description
 -- Revision 0.02 - Added run / done style PORTS for syncronization with other sequential algorithms.
@@ -47,11 +55,11 @@ use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
 
 entity fa is
-        -- rev 0.02
+        -- rev 0.04
         generic (
                 width : natural := PIPELINE_WIDTH;
                 prec : natural := PIPELINE_PREC;
-                int_k : pipeline_integer := AC_FREQ_SAMPLE_SCALED_FX316;
+                k : real := AC_FREQ;
                 delay : natural := 200; 
                 -- Seq. block iface
                 delayer_width : natural := 1);
@@ -87,7 +95,7 @@ begin
 		generic map (
                         width => width,
                         prec => prec,
-			k => int_k,
+			k => k,
                         delayer_width => delayer_width)
 		port map (
 			i => i,
