@@ -41,7 +41,7 @@ use IEEE.NUMERIC_STD.all;
 entity p2_phase_loop is
 	port (
 		clk, rst, run : in std_logic;
-		norm_input : in std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+		input : in std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 		phase, norm_sin : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 		-- freq : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0); I CANNOT SHOW FREQ!!!! 50 => 6 bits magnitude!!!!!!
 		done : out std_logic);
@@ -85,7 +85,7 @@ begin
 		port map (
 			run => phase_det_run_s,
                         rst => rst, clk => clk,
-			norm_input => norm_input,
+			norm_input => input,
 			curr_phase => phase_s,
 			-- Out value signals
 			phase_error => phase_det_out_s,
