@@ -46,7 +46,6 @@ begin
                 constant all_zeros : signed((width - prec) - 1 downto 0) := (others => '0');
 		constant k_signed : signed(width - 1 downto 0) := signed(to_vector(k, width, prec));
 		variable res : signed(2 * width - 1 downto 0);
-		variable j_out : natural;
 	begin
 		res := signed(i) * k_signed;
                 -- Correctly saturate OUTPUT (otherwise we're doing some kind
@@ -60,13 +59,11 @@ begin
                         o(width - 2 downto 0) <= (others => '1');
                         o(width - 1) <= '0';
                 else
-                        		-- Manual shift for correct truncation
-                        j_out := 0;
+                        -- Manual shift for correct truncation
                         for i in prec to prec + width - 2 loop
-                                o(j_out) <= res(i);
-                                j_out := j_out + 1;
+                                o(i - prec) <= res(i);
                         end loop;
-                        o(j_out) <= res(res'length - 1);
+                        o(o'length - 1) <= res(res'length - 1);
                         -- o <= std_logic_vector(resize(shift_right(signed(i) * k, PIPELINE_PREC), width));
                 end if;
 	end process;
