@@ -16,9 +16,14 @@
 -- (input signal normalization) shows that 7 precision bits are more
 -- than enough.
 --
+-- ** Ports **
+-- RST -> synchronous reset
+--
 -- Dependencies:
 -- 
 -- *** Changelog ***
+-- Revision 0.03 - RST is now synchronous, as with the rest of the components
+-- of the design
 -- MARK -> revision 0.02 has been tested. Works OK. Noise and precision not
 -- clearly obtained. Co-simulation should be run
 -- Revision 0.02 - Some corrections (one bit negated) were making tests results fail. Test is passed now
@@ -173,12 +178,12 @@ begin
 			o => res_reg_out
 		);
 
-	state_ctrl : process(clk, rst)
+	state_ctrl : process(clk)
 	begin
-		if (rst = '1') then
-			st <= ST_DONE;
-		else
-			if (rising_edge(clk)) then
+                if (rising_edge(clk)) then
+                        if (rst = '1') then
+                                st <= ST_DONE;
+                        else
 				case st is
 					when ST_DONE =>
 						if (run = '1') then
@@ -215,8 +220,6 @@ begin
 						severity error;
 						st <= st;
 				end case;
-			else
-				null;
 			end if;
 		end if;
 	end process state_ctrl;
