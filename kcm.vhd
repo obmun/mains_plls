@@ -18,6 +18,10 @@
 -- Revision 0.01 - File Created
 --
 -- *** TODO ***
+-- | > TODO: review results of this test bench for struct_mm. Compare them with
+-- the results of other architectures. I've seen that for the 0.1366 constant,
+-- values returned by the multiplier are "TOO HIGH" in some cases, and just
+-- "HIGH" in general
 -- | > TODO: see if this is optimized using precomputed sub products (using small ROMs as LUTs; o sea, usando LUTs :)). Comprobado: aparentemente NO => Tengo que implementarlo YO de forma manual.
 -- | > TODO: por qué está infiriendo un sumador?? Revisar el código <- DONE, a 
 -- | > TODO: test bench this design
@@ -153,23 +157,76 @@ end beh3;
 architecture structural_mm of kcm is
         -- I need as many intermediate results (tmp_res) as bits has the
         -- constant multiplicand, and "one more" to maintain generate for uniform
-        type tmp_res_t is array (width downto 0) of std_logic_vector(width downto 0);
+        type tmp_res_t is array (width downto 0) of signed(width downto 0);
         signal tmp_res_s : tmp_res_t;
         
-        signal res_s : std_logic_vector(2 * width - 1 downto 0);
+        signal res_s : signed(2 * width - 1 downto 0);
 
-        constant csd_multiplicand : csd_logic_vector(width downto 0) := vector_to_csd(to_vector(k, width, prec));
+        constant csd_multiplicand : csd_logic_vector(width downto 0) := vector_to_csd(to_vector(abs(k), width, prec));
 begin
         tmp_res_s(0) <= (others => '0');
         
-        additions_i: for j in 0 to width - 1 generate
-                with csd_multiplicand(j) select tmp_res_s(j + 1) <=
-                        std_logic_vector(shift_right(signed(tmp_res_s(j - 1 + 1)), 1)) when '0',
-                        std_logic_vector(signed(tmp_res_s(j - 1 + 1)(width downto 1)) + signed(i)) when 'p',
-                        std_logic_vector(signed(tmp_res_s(j - 1 + 1)(width downto 1)) - signed(i)) when 'm';
+        additions_i: for j in 0 to (width - 1) generate
+                tmp_res_j_propagate : if (csd_multiplicand(j) = '0') generate
+                        tmp_res_s(j + 1) <= shift_right(tmp_res_s(j - 1 + 1), 1);
+                end generate tmp_res_j_propagate;
+
+                tmp_res_j_add : if (csd_multiplicand(j) = 'p') generate
+                        pos_multiplicand: if k >= 0.0 generate
+                                tmp_res_s(j + 1) <= resize(tmp_res_s(j - 1 + 1)(width downto 1), width + 1) + resize(signed(i), width + 1);
+                        end generate pos_multiplicand;
+                        neg_multiplicand: if k < 0.0 generate
+                                tmp_res_s(j + 1) <= resize(tmp_res_s(j - 1 + 1)(width downto 1), width + 1) - resize(signed(i), width + 1);
+                        end generate neg_multiplicand;
+                end generate tmp_res_j_add;
+
+                tmp_res_j_sub : if (csd_multiplicand(j) = 'm') generate
+                        pos_multiplicand: if k >= 0.0 generate
+                                tmp_res_s(j + 1) <= resize(tmp_res_s(j - 1 + 1)(width downto 1), width + 1) - resize(signed(i), width + 1);
+                        end generate pos_multiplicand;
+                        neg_multiplicand: if k < 0.0 generate
+                                tmp_res_s(j + 1) <= resize(tmp_res_s(j - 1 + 1)(width downto 1), width + 1) + resize(signed(i), width + 1);
+                        end generate neg_multiplicand;
+                end generate tmp_res_j_sub;
+                        
                 res_s(j) <= tmp_res_s(j + 1)(0);                
         end generate additions_i;
 
-        res_s(2 * width - 1 downto width) <= tmp_res_s(width - 1 + 1)(width downto 1);
+        extra_add: if csd_multiplicand(width) = 'p' generate
+                pos_extra_multiplicand: if k >= 0.0 generate
+                        tmp_res_s(width + 1) <= resize(tmp_res_s(width)(width downto 1), width + 1) + resize(signed(i), width + 1);
+                end generate pos_extra_multiplicand;
+                neg_extra_multiplicand: if k < 0.0 generate
+                        tmp_res_s(width + 1) <= resize(tmp_res_s(width)(width downto 1), width + 1) - resize(signed(i), width + 1);
+                end generate neg_extra_multiplicand;
+                res_s(2 * width - 1 downto 0) <= tmp_res_s(width + 1)(width - 1 downto 0);
+        end generate extra_add;
+
+        non_extra_add: if (csd_multiplicand(width) /= 'p') generate
+                res_s(2 * width - 1 downto width) <= tmp_res_s(width - 1 + 1)(width downto 1);                
+        end generate non_extra_add;
+
+
+        saturate: process (res_s)
+                constant all_ones : signed((width - prec) - 1 downto 0) := (others => '1');
+                constant all_zeros : signed((width - prec) - 1 downto 0) := (others => '0');
+        begin
+                if ((res_s(res_s'length - 1) = '1') and (res_s(res_s'length - 2 downto (prec + width - 1)) /= all_ones)) then
+                        -- Saturation towards negative
+                        o(width - 2 downto 0) <= (others => '0');
+                        o(width - 1) <= '1';
+                elsif ((res_s(res_s'length - 1) = '0') and (res_s(res_s'length - 2 downto (prec + width - 1)) /= all_zeros)) then
+                        -- Saturation towards positive
+                        o(width - 2 downto 0) <= (others => '1');
+                        o(width - 1) <= '0';
+                else
+                        -- Manual shift for correct truncation
+                        for i in prec to prec + width - 2 loop
+                                o(i - prec) <= res_s(i);
+                        end loop;
+                        o(o'length - 1) <= res_s(res_s'length - 1);
+                        -- o <= std_logic_vector(resize(shift_right(signed(i) * k, PIPELINE_PREC), width));
+                end if;                
+        end process saturate;
 
 end structural_mm;

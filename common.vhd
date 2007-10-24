@@ -35,7 +35,7 @@ package common is
                             'p', -- plus -> Input must be added
                             'm' -- minus -> Input must be substracted
                             );
-        type csd_logic_vector is array (natural range <>) of csd_logic;
+        type csd_logic_vector is array (integer range <>) of csd_logic;
         
         -- *
         -- * Constantes básicas del DAC / ADC necesarias por otros módulos.
@@ -97,7 +97,7 @@ package body common is
                 max_integer := integer(round(2.0 ** real(width - 1))) - 1;
                 min_integer := -max_integer - 1;
                 if (tmp_val > max_integer) then
-                        assert false report "saturating pipeline(w: " & integer'image(width) & ", p: " & integer'image(prec) & ") with value " & real'image(val) severity warning;
+                        assert false report real'image(val) & "is saturating pipeline(w: " & integer'image(width) & ", p: " & integer'image(prec) & ") with value " & integer'image(max_integer) severity warning;
                         return max_integer;
                 elsif (tmp_val < min_integer) then
                         assert false report "neg. saturating pipeline(w: " & integer'image(width) & ", p: " & integer'image(prec) & ") with value " & real'image(val) severity warning;
@@ -147,23 +147,29 @@ package body common is
                         end if;
                 end if;
         end;           
-                
+
+        -- Simplified 2s complement to CSD algorithm
+        -- Sólo funciona con VALORES DE ENTRADA POSITIVOS. Así que, no intentes
+        -- meterle valores negativos.
         pure function vector_to_csd ( v : std_logic_vector ) return csd_logic_vector is
                 -- v: la constante a convertir a csd
                 variable i : natural := 0;
                 variable j : natural;
+                variable q_val : integer;
                 variable carry : boolean := false;
-                variable res : csd_logic_vector( v'length - 1 downto 0);
+                variable res : csd_logic_vector(v'length downto 0);
         begin
-                while (i <= v'length - 1) loop
+                while (i < v'length) loop
                         if (((v(i) = '1') and carry) or (v(i) = '0' and not carry)) then
                                 res(i) := '0';
                         else
-                                j := i;
-                                while (j <= (v'length - 1) and q_func(v, i, j) >= 0 and q_func(v, i, j) < 2) loop
+                                j := i + 1;
+                                q_val := 1;
+                                while (j < v'length and q_val = 1) loop
+                                        q_val := q_func(v, i, j);
                                         j := j + 1;
                                 end loop;
-                                if (q_func(v, i, j) < 2 and not (v(v'length - 1) = '1' and j = v'length)) then
+                                if (q_val < 2) then
                                         res(i) := 'p';
                                         carry := false;
                                 else
@@ -173,8 +179,10 @@ package body common is
                         end if;
                         i := i + 1;
                 end loop;
-                if (carry and v(v'length - 1) = '0') then
+                if (carry) then
                         res(i) := 'p';
+                else
+                        res(i) := '0';
                 end if;
                 return res;
         end;           
