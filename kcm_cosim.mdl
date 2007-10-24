@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.26"
+    ComputedModelVersion    "1.27"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -43,8 +43,8 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "Administrador"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Thu Oct 18 11:52:21 2007"
-  ModelVersionFormat	  "1.%<AutoIncrement:26>"
+  LastModifiedDate	  "Wed Oct 24 18:17:43 2007"
+  ModelVersionFormat	  "1.%<AutoIncrement:27>"
   ConfigurationManager	  "None"
   LinearizationMsg	  "none"
   Profile		  off
@@ -716,7 +716,7 @@ Model {
       Ports		      [2]
       Position		      [1020, 216, 1050, 249]
       Floating		      off
-      Location		      [-3, 49, 1277, 803]
+      Location		      [5, 49, 1285, 803]
       Open		      off
       NumInputPorts	      "2"
       List {
@@ -724,9 +724,9 @@ Model {
 	axes1			"%<SignalLabel>"
 	axes2			"%<SignalLabel>"
       }
-      TimeRange		      "0.01"
-      YMin		      "-1~-5"
-      YMax		      "1~5"
+      TimeRange		      "0.003858569876969357"
+      YMin		      "-0.003846455865942407~-5"
+      YMax		      "-0.003630890666446729~5"
       DataFormat	      "StructureWithTime"
       MaxDataPoints	      "500000"
       SampleTime	      "0"
@@ -987,7 +987,7 @@ Model {
     Line {
       SrcBlock		      "Pulse\nGenerator"
       SrcPort		      1
-      Points		      [0, 0]
+      Points		      [20, 0]
       DstBlock		      "Sum"
       DstPort		      1
     }
@@ -1045,6 +1045,12 @@ Model {
       Points		      [160, 0]
       DstBlock		      "Mux1"
       DstPort		      1
+    }
+    Annotation {
+      Name		      "Es necesario definir una variable de nombre pip"
+"eline_prec\ncon la precision del pipeline del modelo"
+      Position		      [180, 73]
+      UseDisplayTextAsClickCallback off
     }
   }
 }
