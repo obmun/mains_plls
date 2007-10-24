@@ -13,7 +13,7 @@ package common is
 	-- *
 	constant PIPELINE_WIDTH : natural := 16;  -- SHOULD REMAIN CONSTANT
 	constant EXT_PIPELINE_WIDTH : natural := 18;  -- SHOULD REMAIN CONSTANT
-	constant PIPELINE_PREC : natural := 11;
+	constant PIPELINE_PREC : natural := 12;
 	constant EXT_PIPELINE_PREC : natural := PIPELINE_PREC;
 	constant PIPELINE_MAGN : natural := PIPELINE_WIDTH - PIPELINE_PREC;
 	constant EXT_PIPELINE_MAGN : natural := EXT_PIPELINE_WIDTH - EXT_PIPELINE_PREC;

@@ -61,7 +61,7 @@ architecture beh of p2_phase_loop is
         constant coef_1st_ord_filt_num : coef_1st_ord := (1.500, -1.4115);
         constant coef_1st_ord_filt_den : coef_1st_ord := (1.0, -0.9704);
 
-        constant IIR_FILTERS_PREC : natural := 14;
+        constant IIR_FILTERS_PREC : natural := 15;
 
 	-- Internal signals
 	signal phase_s, phase_det_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
@@ -179,7 +179,9 @@ begin
                 generic map (
                         width => PIPELINE_WIDTH,
                         prec => PIPELINE_PREC,
-                        gain => 200.0,
+                        gain => 200.0 * 0.69,  -- Reduced gain to achieve
+                                               -- better stability (phase
+                                               -- margin) JESUS
                         delayer_width => 2)
 		port map (
 			clk => clk, rst => rst,
