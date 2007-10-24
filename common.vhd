@@ -26,7 +26,17 @@ package common is
         subtype ext_pipeline_integer is integer range -131073 to 131072;
         subtype pipeline_vector is std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         subtype ext_pipeline_vector is std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
-
+        
+        -- *
+        -- * Special types for some algorithms
+        -- *
+        -- Canonic Signed Digit representation
+        type csd_logic is ( '0', -- No op needed
+                            'p', -- plus -> Input must be added
+                            'm' -- minus -> Input must be substracted
+                            );
+        type csd_logic_vector is array (natural range <>) of csd_logic;
+        
         -- *
         -- * Constantes básicas del DAC / ADC necesarias por otros módulos.
         -- *
@@ -72,6 +82,9 @@ package common is
         pure function to_ext_pipeline_vector ( val : real ) return ext_pipeline_vector;
 
         pure function min_magn_size ( val : real ) return natural;
+
+        pure function q_func ( v : std_logic_vector; i : natural; j : natural ) return integer;
+        pure function vector_to_csd ( v : std_logic_vector ) return csd_logic_vector;
 end common;
 
 
@@ -122,6 +135,50 @@ package body common is
                 return to_vector(val, EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC);
         end;
 
+        pure function q_func ( v : std_logic_vector; i : natural; j : natural ) return integer is
+        begin
+                if (i = j) then
+                        return 0;
+                else
+                        if (v(j) = '0') then
+                                return q_func(v, i, j - 1) - 1;
+                        else
+                                return q_func(v, i, j - 1) + 1;
+                        end if;
+                end if;
+        end;           
+                
+        pure function vector_to_csd ( v : std_logic_vector ) return csd_logic_vector is
+                -- v: la constante a convertir a csd
+                variable i : natural := 0;
+                variable j : natural;
+                variable carry : boolean := false;
+                variable res : csd_logic_vector( v'length - 1 downto 0);
+        begin
+                while (i <= v'length - 1) loop
+                        if (((v(i) = '1') and carry) or (v(i) = '0' and not carry)) then
+                                res(i) := '0';
+                        else
+                                j := i;
+                                while (j <= (v'length - 1) and q_func(v, i, j) >= 0 and q_func(v, i, j) < 2) loop
+                                        j := j + 1;
+                                end loop;
+                                if (q_func(v, i, j) < 2 and not (v(v'length - 1) = '1' and j = v'length)) then
+                                        res(i) := 'p';
+                                        carry := false;
+                                else
+                                        res(i) := 'm';
+                                        carry := true;
+                                end if;
+                        end if;
+                        i := i + 1;
+                end loop;
+                if (carry and v(v'length - 1) = '0') then
+                        res(i) := 'p';
+                end if;
+                return res;
+        end;           
+        
         pure function min_magn_size ( val : real ) return natural is
         begin
                 return natural(round(ceil(log2(abs(val)))));
