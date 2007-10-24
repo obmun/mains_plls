@@ -34,6 +34,7 @@ entity platform is
 		CLKDV_OUT : out std_logic; -- Main clock / 16
 		CLKIN_IBUFG_OUT : out std_logic; -- Input raw clock, buffered
 		CLK0_OUT : out std_logic; -- Main output clock
+                CLKFX_OUT : out std_logic;
 		LOCKED_OUT : out std_logic);
 end platform;
 
@@ -42,6 +43,7 @@ architecture beh of platform is
 	signal CLKFB_IN : std_logic;
 	signal CLKIN_IBUFG : std_logic;
 	signal CLK0_BUF : std_logic;
+        signal CLKFX_BUF : std_logic;
 	signal GND : std_logic;
 
 	component BUFG
@@ -120,13 +122,19 @@ begin
 			I => CLK0_BUF,
 			O => CLKFB_IN
 		);
+        
+        CLKFX_BUFG_INST : BUFG
+		port map (
+			I => CLKFX_BUF,
+			O => CLKFX_OUT
+		);
 
 	DCM_INST : DCM
 		generic map (
 			CLK_FEEDBACK => "1X",
 			CLKDV_DIVIDE => 8.000000,
-			CLKFX_DIVIDE => 1,
-			CLKFX_MULTIPLY => 4,
+			CLKFX_DIVIDE => 10,
+			CLKFX_MULTIPLY => 2,
 			CLKIN_DIVIDE_BY_2 => FALSE,
 			CLKIN_PERIOD => 20.000000,
 			CLKOUT_PHASE_SHIFT => "NONE",
@@ -147,7 +155,7 @@ begin
 			PSINCDEC => GND,
 			RST => RST_IN,
 			CLKDV => CLKDV_BUF,
-			CLKFX => open, -- DCM synth is not used
+			CLKFX => CLKFX_BUF, -- DCM synth is not used
 			CLKFX180 => open, -- ^^^^
 			CLK0 => CLK0_BUF, -- MAIN clock output, 0 phase
 			CLK2X => open,
