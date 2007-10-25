@@ -72,6 +72,7 @@
 -- Dependencies:
 -- 
 -- === Changelog ===
+-- Revision 0.05 - Cordic gain DEPENDS on # of iterations. Other minor changes.
 -- Revision 0.04 - Made parametrizable.
 -- MARK -> revision 0.03 has been tested. Works OK. Small problems with
 -- precision appear near 0 radians
@@ -88,7 +89,7 @@ use IEEE.NUMERIC_STD.ALL;
 use IEEE.MATH_REAL.all;
 
 entity cordic is
-        -- rev 0.04
+        -- rev 0.05
 	generic (
 		width : natural := PIPELINE_WIDTH;
                 prec : natural := PIPELINE_PREC);
@@ -99,7 +100,7 @@ entity cordic is
 		done : out std_logic);
 end cordic;
 
-architecture beh of cordic is
+architecture structural of cordic is
 	type state_t is (
 		ST_DONE, ST_INIT, ST_RUNNING, ST_LAST
 	);
@@ -124,52 +125,14 @@ architecture beh of cordic is
 	alias z_msb : std_logic is z_reg_out(width - 1);
 	signal n_z_msb : std_logic;
 
-	-- Components
-	component add_sub is
-		generic (
-			width : natural := PIPELINE_WIDTH
-		);
-		port (
-			a, b: in std_logic_vector(width - 1 downto 0);
-			add_nsub : in std_logic;
-			o: out std_logic_vector(width - 1 downto 0);
-			f_ov, f_z: out std_logic
-		);
-	end component;
-
-	component reg is
-		generic (
-			width : natural := PIPELINE_WIDTH
-		);
-		port (
-			clk, we, rst : in std_logic;
-			i : in std_logic_vector (width - 1 downto 0);
-			o : out std_logic_vector (width - 1 downto 0)
-		);
-	end component;
-
-	component k_lt_comp is
-		generic (
-			width : natural := PIPELINE_WIDTH;
-			k : pipeline_integer := 0
-		);
-		port (
-			a : in std_logic_vector(width - 1 downto 0);
-			a_lt_k : out std_logic
-		);
-	end component;
-
-	component k_gt_comp is
-		generic (
-			width : natural := PIPELINE_WIDTH;
-			k : pipeline_integer := 0
-		);
-		port (
-			a : in std_logic_vector(width - 1 downto 0);
-			a_gt_k : out std_logic
-		);
-	end component;
-
+        pure function cordic_gain ( n_iters : natural ) return real is
+                variable tmp_gain : real := 1.0;
+        begin
+                for i in 0 to n_iters - 1 loop
+                        tmp_gain := tmp_gain * sqrt(1.0 + 2.0 ** (-2.0 * real(i)));
+                end loop;
+                return tmp_gain;
+        end;
 begin
         -- Is input angle < - PI / 2.0?
 	lt_comp : entity work.k_lt_comp(beh)
@@ -189,7 +152,7 @@ begin
 			a => angle,
 			a_gt_k => gt_hPI_s);
 
-	x_add_sub : add_sub
+	x_add_sub : entity work.add_sub(alg)
                 generic map (
                         width => width)
 		port map (
@@ -203,7 +166,7 @@ begin
                         f_ov => open,
                         f_z => open);
 
-	y_add_sub : add_sub
+	y_add_sub : entity work.add_sub(alg)
                 generic map (
                         width => width)
 		port map (
@@ -217,7 +180,7 @@ begin
                         f_ov => open,
                         f_z => open);
 
-	z_add_sub : add_sub
+	z_add_sub : entity work.add_sub(alg)
                 generic map (
                         width => width)
 		port map (
@@ -228,7 +191,7 @@ begin
 			-- SALIDS
 			o => z_add_sub_out);
 
-	x_reg : reg
+	x_reg : entity work.reg(alg)
                 generic map (
                         width => width)
 		port map (
@@ -238,7 +201,7 @@ begin
 			-- SALIDAS
 			o => x_reg_out);
 
-	y_reg : reg
+	y_reg : entity work.reg(alg)
                 generic map (
                         width => width)
 		port map (
@@ -248,7 +211,7 @@ begin
 			-- SALIDAS
 			o => y_reg_out);
 
-	z_reg : reg
+	z_reg : entity work.reg(alg)
                 generic map (
                         width => width)
 		port map (
@@ -259,7 +222,7 @@ begin
 			o => z_reg_out);
 
         -- Final cos value storage. Does not take an active part in algorithm
-	cos_reg : reg
+	cos_reg : entity work.reg(alg)
                 generic map (
                         width => width)
 		port map (
@@ -270,7 +233,7 @@ begin
 			o => cos);
 
         -- Final sin value storage. Does not take an active part in algorithm
-	sin_reg : reg
+	sin_reg : entity work.reg(alg)
                 generic map (
                         width => width)
 		port map (
@@ -364,12 +327,12 @@ begin
 	begin
 		if (gt_hPI_s = '1') then
 			x0 <= (others => '0');
-			y0 <= to_vector(INV_CORDIC_GAIN, width, prec);
+			y0 <= to_vector(1.0/cordic_gain(prec), width, prec);
 		elsif (lt_mhPI_s = '1') then
 			x0 <= (others => '0');
-			y0 <= to_vector(MINUS_INV_CORDIC_GAIN, width, prec);
+			y0 <= to_vector(-1.0/cordic_gain(prec), width, prec);
 		else
-			x0 <= to_vector(INV_CORDIC_GAIN, width, prec);
+			x0 <= to_vector(1.0/cordic_gain(prec), width, prec);
 			y0 <= (others => '0');
 		end if;
 	end process;
@@ -471,4 +434,4 @@ begin
 				done <= '0';
 		end case;
 	end process signals_gen;
-end beh;
+end structural;

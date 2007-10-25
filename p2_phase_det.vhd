@@ -106,7 +106,7 @@ begin
 
         input_reg_we_s <= run and c_done;
 
-	cordic_i : entity work.cordic(beh)
+	cordic_i : entity work.cordic(structural)
 		port map (
 			-- ENTRADAS
 			clk => clk, rst => rst,

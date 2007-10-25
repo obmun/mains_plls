@@ -59,9 +59,6 @@ package common is
         constant EXAMPLE_VAL_FX416 : pipeline_integer := 26312;
 	constant ZERO_FX316_V : std_logic_vector(PIPELINE_WIDTH - 1 downto 0) := (others => '0');
         constant ZERO_FX416_V : std_logic_vector(PIPELINE_WIDTH - 1 downto 0) := (others => '0');
-	constant CORDIC_GAIN : real := 1.64672851562500;  -- RECALCULATE ME
-	constant INV_CORDIC_GAIN : real := 0.60729980468750;  -- RECALCULATE ME
-	constant MINUS_INV_CORDIC_GAIN : real := -0.60729980468750;  -- RECALC
         constant PI : real := 3.14159265358979;
         constant MINUS_PI : real := -3.14159265358979;
         constant HALF_PI : real := 1.57079632679490;
