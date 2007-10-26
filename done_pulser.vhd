@@ -24,5 +24,5 @@ begin  -- beh
                         we   => en,
                         rst  => rst);
 
-        o <= i and not mono_out_s;
+        o <= i and not mono_out_s and not rst;
 end beh;
