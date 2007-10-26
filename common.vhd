@@ -19,6 +19,8 @@ package common is
 	constant EXT_PIPELINE_MAGN : natural := EXT_PIPELINE_WIDTH - EXT_PIPELINE_PREC;
 	constant PIPELINE_WIDTH_DIR_BITS : natural := 4; -- natural(ceil(log2(real(PIPELINE_WIDTH))));
 
+        constant EXT_IIR_FILTERS_PREC : natural := 15;
+
         -- *
 	-- * My pipeline types
 	-- *
