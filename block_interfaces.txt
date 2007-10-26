@@ -38,7 +38,7 @@ with the last calculated value at its output. If run is pulled up, next cicle th
 engine starts calculating the new outputs for the given input in that cycle rising edge. Done signal goes inmediatly down.
 
 Run can the be pulled down again as engine will be calculating till it obtains the value
-(it takes it 8 cycles). In the CYCLE THE ELEMENT KNOWS WILL HAVE THE VALUE
+(it takes it 8 cycles). You can keep it also high: the element won't start again calculating its new value until IT HAS FINISHED with your last request. In the CYCLE THE ELEMENT KNOWS WILL HAVE THE VALUE
 READY, sets the DONE port high again. So, BEFORE the next rising edge, the
 value is ready and stable in its output. This way (1 "cycle advance" in announcing the result is ready) an
 optimal chaining of repetitive calcs can be done without otherwise loosing at least one
@@ -47,6 +47,9 @@ clock cycle. Realize that done stays high for at least 1 cycle, even if run sign
 = The DONE pulser =
 
 TODO: FILL ME
+
+== The BIG boys: sample / done ports ==
+Sample / done ports behave the same as run /done. But instead of "run", the port is called "sample".
 
 == Elementos secuenciales: la interfaz run_en / run_passthru. El retardo genérico de señales ==
 
