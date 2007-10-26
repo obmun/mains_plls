@@ -40,6 +40,8 @@ architecture structural of p2_sync is
 
         signal in_signal_reg_out_s, freq2phase_out_s, sin_s, cos_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         signal in_sin_mul_out_s, in_sin_doubler_out_s, in_cos_mul_out_s, in_cos_doubler_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+        signal sin_speedup_reg_out_s : std_logic_vector(PIPELINE_WIDTH downto 0);
+        signal cos_speedup_reg_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         signal in_sin_doubler_out_E_s, in_cos_doubler_out_E_s, sin_fa_out_E_s, cos_fa_out_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
         signal sin_fa_out_s, cos_fa_out_s, sin_sin_mul_out_s, cos_cos_mul_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 begin  -- structural
@@ -114,6 +116,17 @@ begin  -- structural
                         i => in_sin_mul_out_s,
                         o => in_sin_doubler_out_s);
 
+        sin_speedup_reg :  entity work.reg(alg)
+                generic map (
+                        width => PIPELINE_WIDTH + 1)
+                port map (
+                        clk => clk,
+                        we => sincos_cordic_done_pulsed_s,
+                        rst => rst,
+                        i(PIPELINE_WIDTH - 1 downto 0) => in_sin_doubler_out_s,
+                        i(PIPELINE_WIDTH) => sincos_cordic_done_pulsed_s,
+                        o => sin_speedup_reg_out_s);
+
         in_cos_mul : entity work.mul(beh)
                 generic map (
                         width => PIPELINE_WIDTH,
@@ -130,6 +143,17 @@ begin  -- structural
                         i => in_cos_mul_out_s,
                         o => in_cos_doubler_out_s);
 
+        cos_speedup_reg :  entity work.reg(alg)
+                generic map (
+                        width => PIPELINE_WIDTH)
+                -- sincos_cordic_done_pulsed_s is already delayed by sin_speedup_reg
+                port map (
+                        clk => clk,
+                        we => sincos_cordic_done_pulsed_s,
+                        rst => rst,
+                        i => in_cos_doubler_out_s,
+                        o => cos_speedup_reg_out_s);
+
         sin_fa_input_conv : entity work.pipeline_conv(alg)
                 generic map (
                         in_width  => PIPELINE_WIDTH,
@@ -137,7 +161,7 @@ begin  -- structural
                         out_width => EXT_PIPELINE_WIDTH,
                         out_prec  => FA_PREC)
                 port map (
-                        i => in_sin_doubler_out_s,
+                        i => sin_speedup_reg_out_s(PIPELINE_WIDTH - 1 downto 0),
                         o => in_sin_doubler_out_E_s);
         
         sin_fa : entity work.fa(beh)
@@ -151,7 +175,7 @@ begin  -- structural
                         rst            => rst,
                         i              => in_sin_doubler_out_E_s,
                         o              => sin_fa_out_E_s,
-                        run_en         => sincos_cordic_done_pulsed_s,
+                        run_en         => sin_speedup_reg_out_s(PIPELINE_WIDTH),
                         run_passthru   => sin_fa_delayed_run_s,
                         delayer_in => (others => '-'),
                         delayer_out => open);
@@ -185,9 +209,9 @@ begin  -- structural
                 port map (
                         clk            => clk,
                         rst            => rst,
-                        i              => in_cos_doubler_out_E_s,
+                        i              => cos_speedup_reg_out_s,
                         o              => cos_fa_out_E_s,
-                        run_en         => sincos_cordic_done_pulsed_s,
+                        run_en         => sin_speedup_reg_out_s(PIPELINE_WIDTH),
                         run_passthru   => cos_fa_delayed_run_s,
                         delayer_in => (others => '-'),
                         delayer_out => open);
