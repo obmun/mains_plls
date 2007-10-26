@@ -20,6 +20,7 @@
 
 library IEEE;
 use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
 library work;
 use work.common.all;
 
@@ -36,7 +37,7 @@ architecture structural of p2_sync is
         
         signal first_run_s, first_run_pulsed_s, freq2phase_delayed_run_s : std_logic;
         signal sincos_cordic_done_s, sincos_cordic_done_pulsed_s, sin_fa_delayed_run_s, cos_fa_delayed_run_s, fa_delayed_run_s : std_logic;
-        signal atan_cordic_done_s : std_logic;
+        signal atan_cordic_done_s, atan_has_run_since_sample_s : std_logic;
 
         signal in_signal_reg_out_s, freq2phase_out_s, sin_s, cos_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         signal in_sin_mul_out_s, in_sin_doubler_out_s, in_cos_mul_out_s, in_cos_doubler_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
@@ -44,6 +45,7 @@ architecture structural of p2_sync is
         signal cos_speedup_reg_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         signal in_sin_doubler_out_E_s, in_cos_doubler_out_E_s, sin_fa_out_E_s, cos_fa_out_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
         signal sin_fa_out_s, cos_fa_out_s, sin_sin_mul_out_s, cos_cos_mul_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+        signal phase_error_s, big_phase_s, main_phase_det_k_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 begin  -- structural
 
         first_run_s <= atan_cordic_done_s and sample;
@@ -67,7 +69,7 @@ begin  -- structural
                 generic map (
                         width         => PIPELINE_WIDTH,
                         prec          => PIPELINE_PREC,
-                        gain          => 1.0,
+                        gain          => 0.0,
                         delayer_width => 1)
                 port map (
                         clk => clk,
@@ -121,7 +123,7 @@ begin  -- structural
                         width => PIPELINE_WIDTH + 1)
                 port map (
                         clk => clk,
-                        we => sincos_cordic_done_pulsed_s,
+                        we => '1',
                         rst => rst,
                         i(PIPELINE_WIDTH - 1 downto 0) => in_sin_doubler_out_s,
                         i(PIPELINE_WIDTH) => sincos_cordic_done_pulsed_s,
@@ -149,7 +151,7 @@ begin  -- structural
                 -- sincos_cordic_done_pulsed_s is already delayed by sin_speedup_reg
                 port map (
                         clk => clk,
-                        we => sincos_cordic_done_pulsed_s,
+                        we => '1',
                         rst => rst,
                         i => in_cos_doubler_out_s,
                         o => cos_speedup_reg_out_s);
@@ -197,7 +199,7 @@ begin  -- structural
                         out_width => EXT_PIPELINE_WIDTH,
                         out_prec  => FA_PREC)
                 port map (
-                        i => in_cos_doubler_out_s,
+                        i => cos_speedup_reg_out_s,
                         o => in_cos_doubler_out_E_s);
 
         cos_fa : entity work.fa(beh)
@@ -209,7 +211,7 @@ begin  -- structural
                 port map (
                         clk            => clk,
                         rst            => rst,
-                        i              => cos_speedup_reg_out_s,
+                        i              => in_cos_doubler_out_E_s,
                         o              => cos_fa_out_E_s,
                         run_en         => sin_speedup_reg_out_s(PIPELINE_WIDTH),
                         run_passthru   => cos_fa_delayed_run_s,
@@ -236,14 +238,63 @@ begin  -- structural
                         clk   => clk,
                         rst   => rst,
                         run   => fa_delayed_run_s,
-                        x => cos_fa_out_s,
-                        y => sin_fa_out_s,
-                        angle => phase,
+                        x => sin_fa_out_s,
+                        y => cos_fa_out_s,
+                        angle => phase_error_s,
                         modu => ampl,
                         done  => atan_cordic_done_s);
 
-        done <= atan_cordic_done_s;
-        
+        phase_adder : entity work.adder(alg)
+                generic map (
+                        width => PIPELINE_WIDTH)
+                port map (
+                        a => phase_error_s,
+                        b => freq2phase_out_s,
+                        o => big_phase_s);
+
+        -- Phase correction
+        main_phase_det_k_gen : process(big_phase_s)
+        begin
+                if (signed(big_phase_s) > signed(to_pipeline_vector(PI))) then
+                        main_phase_det_k_s <= to_pipeline_vector(MINUS_TWO_PI);
+                elsif (signed(big_phase_s) < signed(to_pipeline_vector(MINUS_PI))) then
+                        main_phase_det_k_s <= to_pipeline_vector(TWO_PI);
+                else
+                        main_phase_det_k_s <= (others => '0');
+                end if;
+        end process main_phase_det_k_gen;
+        main_phase_det_adder : entity work.adder(alg)
+                generic map (
+                        width => PIPELINE_WIDTH)
+                port map (
+                        a => big_phase_s,
+                        b => main_phase_det_k_s,
+                        o => phase);
+
+        -- done signal generation
+        -- Some extra processes needed to make done behave according to
+        -- block_interface.txt specifications
+        atan_has_run_since_sample_gen : process(clk)
+        begin
+                if rising_edge(clk) then
+                        if (rst = '1') then
+                                atan_has_run_since_sample_s <= '1';
+                        else
+                                if (sample = '1') then
+                                        atan_has_run_since_sample_s <= '0';
+                                else
+                                        if (fa_delayed_run_s = '1') then
+                                                atan_has_run_since_sample_s <= '1';
+                                        end if;
+                                end if;
+                        end if;
+                end if;
+        end process atan_has_run_since_sample_gen;
+        with atan_has_run_since_sample_s select
+                done <=
+                atan_cordic_done_s when '1',
+                '0'                when others;
+
         sin_sin_mul : entity work.mul(beh)
                 generic map (
                         width => PIPELINE_WIDTH,
@@ -262,7 +313,7 @@ begin  -- structural
                         b => cos_fa_out_s,
                         o => cos_cos_mul_out_s);
 
-        adder_i : entity work.adder(alg)
+        out_signal_adder_i : entity work.adder(alg)
                 generic map (
                         width => PIPELINE_WIDTH)
                 port map (
