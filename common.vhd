@@ -51,10 +51,10 @@ package common is
 	-- CURRENT CONFIG:
 	-- >> SAMPLE RATE: 10 KHz
         constant SAMPLING_FREQ : real := 10000.0;
-        constant SAMPLING_PERIOD : real := 0.0001;
+        constant SAMPLING_PERIOD : real := 1.0 / SAMPLING_FREQ;
 
-        constant AC_FREQ : real := 314.1592653589793;  -- rad / s
-        constant AC_FREQ_SAMPLE_SCALED : real := 0.03141593; -- 2*Pi*50*Ts
+        constant AC_FREQ : real := 314.1592653589793;  -- 2 * Pi * 50 - rad / s
+        constant AC_FREQ_SAMPLE_SCALED : real := AC_FREQ * SAMPLING_PERIOD;
 
 	-- Math constants
 	constant EXAMPLE_VAL_FX316 : pipeline_integer := 26312;
