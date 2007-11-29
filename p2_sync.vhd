@@ -290,10 +290,7 @@ begin  -- structural
                         end if;
                 end if;
         end process atan_has_run_since_sample_gen;
-        with atan_has_run_since_sample_s select
-                done <=
-                atan_cordic_done_s when '1',
-                '0'                when others;
+        done <= atan_cordic_done_s when atan_has_run_since_sample_s = '1' else '0';
 
         sin_sin_mul : entity work.mul(beh)
                 generic map (

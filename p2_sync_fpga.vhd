@@ -64,7 +64,6 @@ architecture structural of p2_sync_fpga is
         signal dac_ncs_s : std_logic;       -- dac_ncs could be directly connected
                                             -- from dac_adc to dac_adc_fpga port.
         signal adc_conv_s : std_logic;      -- Same as with dac_ncs signal
-        signal counter_s : std_logic_vector(11 downto 0);
 
 begin
         platform_i : entity work.platform(beh)
@@ -147,14 +146,14 @@ begin
         -- * CORRECTLY CONVERT ME *
         -- ************************
         -- Output for normalized sine
-        -- tmp_out_sample_s <= std_logic_vector(shift_right(signed(out_signal_s), 0) + signed(to_pipeline_vector(1.01)));
-        -- out_sample_s <= tmp_out_sample_s(width - 2 - 1 downto width - DAC_VAL_SIZE - 1 - 1);
+        -- tmp_out_sample_s <= std_logic_vector(shift_right(signed(out_signal_s), 0) + signed(to_pipeline_vector(1.4)));
+        -- out_sample_s <= tmp_out_sample_s(PIPELINE_WIDTH - 2 - 1 downto PIPELINE_WIDTH - DAC_VAL_SIZE - 1 - 1);
         -- Output for phase
         tmp_out_sample_s <= std_logic_vector(shift_right(signed(out_signal_s), 1) + signed(to_pipeline_vector(1.6)));
         out_sample_s <= tmp_out_sample_s(PIPELINE_WIDTH - 2 - 0 downto PIPELINE_WIDTH - DAC_VAL_SIZE - 1 - 0);
         -- Output for amplitude
         -- tmp_out_sample_s <= std_logic_vector(shift_right(signed(out_signal_s), 0));
-        -- out_sample_s <= tmp_out_sample_s(width - 2 - 1 downto width - DAC_VAL_SIZE - 1 - 1);
+        -- out_sample_s <= tmp_out_sample_s(PIPELINE_WIDTH - 2 - 1 downto PIPELINE_WIDTH - DAC_VAL_SIZE - 1 - 1);
 
         spi_gen : process(spi_owned_out_s, spi_mosi_s, spi_sck_s)
         begin
