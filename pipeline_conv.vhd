@@ -18,6 +18,7 @@
 -- Revision 0.01 - File Created
 -- Additional Comments:
 -- TODO:
+-- * MAKE rounding mode configurable thru a generic
 -- * ADD A SECOND ARCHITECTURE WITH A CORRECT ROUNDING MODE. But I don't really
 -- know if I'm gonna need it
 -- * REVIEW ME!! Check if TB covers all cases

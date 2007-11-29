@@ -14,8 +14,10 @@
 -- 
 -- Revision:
 -- Revision 0.01 - File Created
--- Additional Comments:
--- REVIEW SO IT GENERATES CORRECTLY OVERFLOW and ZERO CONDITIONS ... needed?
+-- === TODO ===
+-- * An adder-subtracter is obviously a very OPTIMAL structure. This shouldn't be
+-- inferring an adder and a subtracter and then multiplexing output. See for
+-- example Wikipedia entry about this matter.
 --------------------------------------------------------------------------------
 library IEEE;
 use WORK.COMMON.ALL;
