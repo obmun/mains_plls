@@ -36,7 +36,7 @@ fi
 
 echo "Configuring KCM components to use '$impl' implementation"
 for file in $FILES; do
-    dest_file=file."$CONFIGURED_EXT"
+    dest_file=$file."$CONFIGURED_EXT"
     echo "  Setting KCM implementation in $dest_file";
     if [[ -e $dest_file ]]
     then
