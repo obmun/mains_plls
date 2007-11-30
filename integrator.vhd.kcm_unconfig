@@ -70,16 +70,6 @@ architecture alg of integrator is
             o : out std_logic_vector (width - 1 downto 0));
     end component;
     
-    component kcm is
-        generic(
-            width : natural := PIPELINE_WIDTH;
-            prec : natural := PIPELINE_PREC;
-            k : pipeline_integer := -23410); -- Cte de ejemplo. Una síntesis de esta cte infiere un multiplicador
-        port(
-            i : in std_logic_vector(width - 1 downto 0);
-            o : out std_logic_vector(width - 1 downto 0));
-    end component;
-    
     component adder is
             -- rev 0.01
             generic (
@@ -104,15 +94,15 @@ begin
 			clk => clk, we => en, rst => rst,
 			i => o_s, o => c);
         
-	kcm_i : kcm
-		generic map (
+	kcm_i : entity work.kcm(CONFIG_architecture)
+                generic map (
 			width => width,
 			prec => prec,
 			k => SAMPLE_PERIOD_FX316)
-		port map (
-			i => a,
-			o => b);
-
+                port map (
+                        i => a,
+                        o => b);
+        
 	add_add_i : adder
 		generic map (
 			width => width

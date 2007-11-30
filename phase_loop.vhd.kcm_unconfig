@@ -141,7 +141,7 @@ begin
                         delayer_out(1) => fva_delayed_done_s);
 
 	-- PI filter components
-	pi_p_kcm : entity work.kcm(beh)
+	pi_p_kcm : entity work.kcm(CONFIG_architecture)
 		generic map (
 			k => PHASE_LOOP_PI_P_CONST)
 		port map (

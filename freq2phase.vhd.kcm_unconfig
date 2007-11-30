@@ -128,7 +128,7 @@ begin
 			a => fb_adder_out,
 			a_gt_k => gt_pi);
 
-	kcm_i : entity work.kcm(beh)
+	kcm_i : entity work.kcm(CONFIG_architecture)
 		generic map (
                         width => width, prec => prec,
 			k => SAMPLING_PERIOD * gain)

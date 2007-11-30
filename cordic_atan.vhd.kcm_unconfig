@@ -183,7 +183,7 @@ begin
 			-- SALIDAS
 			o => modu_reg_out_s);
 
-        modu_kcm : entity work.kcm(structural_mm)
+        modu_kcm : entity work.kcm(CONFIG_architecture)
                 generic map (
                         width => width,
                         prec  => prec,
