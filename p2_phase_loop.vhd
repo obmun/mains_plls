@@ -65,12 +65,12 @@ architecture beh of p2_phase_loop is
 
 	-- Internal signals
 	signal phase_s, phase_det_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-        signal phase_det_done_s, phase_det_done_pulsed_s, iir_1st_ord_done_s, iir_2nd_ord_done_s : std_logic;
+        signal phase_det_done_s, phase_det_done_pulsed_s, iir_1st_ord_done_s, iir_1st_ord_done_REG_s, iir_2nd_ord_done_s : std_logic;
         signal phase_det_run_s : std_logic;
-        signal iir_1st_ord_delayed_done_s, iir_2nd_ord_delayed_done_s, freq2phase_delayed_done_s : std_logic;
+        signal iir_1st_ord_delayed_done_s, iir_1st_ord_delayed_done_REG_s, iir_2nd_ord_delayed_done_s, freq2phase_delayed_done_s : std_logic;
 	-- > Filter signals
         signal phase_det_out_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
-	signal iir_1st_ord_out_E_s, iir_2nd_ord_out_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
+	signal iir_1st_ord_out_E_s, iir_1st_ord_out_E_reg_s, iir_2nd_ord_out_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
         signal iir_2nd_ord_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         -- GARBAGE SIGNALS
         -- These are here because ModelSim complains about keeping a formal
@@ -128,6 +128,24 @@ begin
                         delayer_in(1) => phase_det_done_s,
                         delayer_out(0) => garbage_1_s,
                         delayer_out(1) => iir_1st_ord_delayed_done_s);
+
+        -- Speed up register: combinational path form by
+        -- phase_det (last mul out) -> 1st ord b0 mul -> 1st ord z0 add -> 2nd
+        -- ord b0 bul -> 2nd ord z0 add -> 2nd ord a2 mul -> z2 reg IS BIG.
+        -- Path must be broken.
+        iir_1st_ord_out_E_reg_i : entity work.reg(alg)
+                generic map (
+                        width => EXT_PIPELINE_WIDTH + 2)
+                port map (
+                        clk => clk,
+                        we => '1',
+                        rst => rst,
+                        i(EXT_PIPELINE_WIDTH - 1 downto 0) => iir_1st_ord_out_E_s,
+                        i(EXT_PIPELINE_WIDTH) => iir_1st_ord_done_s,
+                        i(EXT_PIPELINE_WIDTH + 1) => iir_1st_ord_delayed_done_s,
+                        o(EXT_PIPELINE_WIDTH - 1 downto 0) => iir_1st_ord_out_E_reg_s,
+                        o(EXT_PIPELINE_WIDTH) => iir_1st_ord_done_REG_s,
+                        o(EXT_PIPELINE_WIDTH + 1) => iir_1st_ord_delayed_done_REG_s);
         
         iir_2nd_ord : entity work.filter_2nd_order_iir(beh)
                 generic map (
@@ -140,12 +158,12 @@ begin
                         delayer_width => 2)
                 port map (
                         clk => clk, rst => rst,
-                        i => iir_1st_ord_out_E_s,
+                        i => iir_1st_ord_out_E_reg_s,
                         o => iir_2nd_ord_out_E_s,
-                        run_en => iir_1st_ord_done_s,
+                        run_en => iir_1st_ord_done_REG_s,
                         run_passthru => iir_2nd_ord_done_s,
                         delayer_in(0) => '-',
-                        delayer_in(1) => iir_1st_ord_delayed_done_s,
+                        delayer_in(1) => iir_1st_ord_delayed_done_REG_s,
                         delayer_out(0) => garbage_2_s,
                         delayer_out(1) => iir_2nd_ord_delayed_done_s);
 
