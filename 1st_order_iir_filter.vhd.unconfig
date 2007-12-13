@@ -67,7 +67,7 @@ architecture beh of filter_1st_order_iir is
         
         signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
 begin  -- beh
-        b0_mult : entity work.kcm(CONFIG_architecture)
+        b0_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
                 generic map (
                         width => width,
                         prec => prec,
@@ -106,7 +106,7 @@ begin  -- beh
                         f_ov => open,
                         f_z => open);
 
-        b1_mult : entity work.kcm(CONFIG_architecture)
+        b1_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
                 generic map (
                         width => width,
                         prec => prec,
@@ -115,7 +115,7 @@ begin  -- beh
                         i => i,
                         o => b1_mult_out_s);
 
-        a1_mult : entity work.kcm(CONFIG_architecture)
+        a1_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
                 generic map (
                         width => width,
                         prec => prec,
@@ -165,7 +165,7 @@ architecture structural_cond_reg_tdfii of filter_1st_order_iir is
         signal int_delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
 #endif        
 begin  -- beh
-        b0_mult : entity work.kcm(CONFIG_architecture)
+        b0_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
                 generic map (
                         width => width,
                         prec => prec,
@@ -208,7 +208,7 @@ begin  -- beh
                         f_ov => open,
                         f_z => open);
 
-        b1_mult : entity work.kcm(CONFIG_architecture)
+        b1_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
                 generic map (
                         width => width,
                         prec => prec,
@@ -217,7 +217,7 @@ begin  -- beh
                         i => i,
                         o => b1_mult_out_s);
 
-        a1_mult : entity work.kcm(CONFIG_architecture)
+        a1_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
                 generic map (
                         width => width,
                         prec => prec,
