@@ -54,6 +54,9 @@
 --
 -- TODO:
 --------------------------------------------------------------------------------
+
+#include "configuration.inc"
+
 library IEEE;
 library WORK;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -119,7 +122,7 @@ begin
 			clk => clk, we => run_en, rst => rst,
 			i => o_s, o => c);
         
-	kcm_i : entity work.kcm(CONFIG_architecture)
+	kcm_i : entity work.kcm(CONF_KCM_ARCHITECTURE)
 		generic map (
 			width => width, prec => prec,
 			k => k * SAMPLING_PERIOD)

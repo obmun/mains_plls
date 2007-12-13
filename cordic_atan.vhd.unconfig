@@ -9,6 +9,9 @@
 -- Target Device:  
 -- Tool versions:  
 --
+-- === IMPORTANT NOTES ===
+-- MUST BE PREPROCESSED
+--
 -- === SPECS ===
 -- Latency: VARIABLE (depends on pipeline precision)
 -- Throughoutput: VARIABLE (depends on pipeline precision)
@@ -41,6 +44,9 @@
 -- Additional Comments:
 -- 
 --------------------------------------------------------------------------------
+
+#include "configuration.inc"
+
 library IEEE;
 use WORK.COMMON.ALL;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -183,7 +189,7 @@ begin
 			-- SALIDAS
 			o => modu_reg_out_s);
 
-        modu_kcm : entity work.kcm(CONFIG_architecture)
+        modu_kcm : entity work.kcm(CONF_KCM_ARCHITECTURE)
                 generic map (
                         width => width,
                         prec  => prec,

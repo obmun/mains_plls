@@ -57,6 +57,9 @@
 -- *** TODO ***
 --
 --------------------------------------------------------------------------------
+
+#include "configuration.inc"
+
 library IEEE;
 library WORK;
 use WORK.COMMON.all;
@@ -128,7 +131,7 @@ begin
 			a => fb_adder_out,
 			a_gt_k => gt_pi);
 
-	kcm_i : entity work.kcm(CONFIG_architecture)
+	kcm_i : entity work.kcm(CONF_KCM_ARCHITECTURE)
 		generic map (
                         width => width, prec => prec,
 			k => SAMPLING_PERIOD * gain)
