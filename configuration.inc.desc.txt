@@ -1,0 +1,13 @@
+-- Design configuration file
+-- This design configuration file allows to configure some aspects of the building blocks library in the final implemented FPGA entity.
+--
+--
+-- Using C Preprocessor many configuration issues can be solved
+-- The first problem appeared when trying to use VHDL configuration on instanced KCM entities.
+-- As we tend to use direct instantiation, VHDL configurations couldn't be applied. A script was implemented for analyzing those VHD files containing KCM entities and setting the architecture to the one chosen by the user.
+--
+-- Then we started doing conditional compilation: certain features (speed up registers) where added to the iir filters (1st order and 2nd order) if a KCM MM architecture was being used. -> That forced me to use the C preprocessor
+--
+-- So, at one point, if I wanted to compile under ISE, I previously had to do 2 things on cmd line: a) Call the configure script b) Call the C preprocessor (provided by MinGW GCC compiler) over VHDL sources. It was a waste of time.
+--
+-- Original functionality implemented by the configure_kcm script could be easily done with C Preprocessor.
