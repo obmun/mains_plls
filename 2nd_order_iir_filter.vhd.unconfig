@@ -1,3 +1,5 @@
+-- -*- Mode: vhdl -*-
+
 --------------------------------------------------------------------------------
 -- Company: UVigo
 -- Engineer: Jacobo Cabaleiro
@@ -88,7 +90,7 @@ architecture structural_tdfii of filter_2nd_order_iir is
 
         signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
 begin  -- beh
-        b0_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        b0_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec => prec,
@@ -128,7 +130,7 @@ begin  -- beh
                         f_ov => open,
                         f_z => open);
 
-        b1_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        b1_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec => prec,
@@ -137,7 +139,7 @@ begin  -- beh
                         i => i,
                         o => b1_mult_out_s);
 
-        a1_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        a1_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec => prec,
@@ -166,7 +168,7 @@ begin  -- beh
                         f_ov => open,
                         f_z => open);
 
-        b2_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        b2_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec => prec,
@@ -175,7 +177,7 @@ begin  -- beh
                         i => i,
                         o => b2_mult_out_s);
 
-        a2_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        a2_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec => prec,
@@ -211,7 +213,7 @@ end structural_tdfii;
 
 architecture structural_cond_reg_tdfii of filter_2nd_order_iir is
         signal o_s : std_logic_vector(width - 1 downto 0);
-#if KCM_ARCHITECTURE_IS(structural_mm)
+#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
         signal o_reg_s : std_logic_vector(width - 1 downto 0);
         signal out_reg_out_s, out_reg_in_s : std_logic_vector(width + delayer_width - 1 downto 0);
 #endif
@@ -221,11 +223,11 @@ architecture structural_cond_reg_tdfii of filter_2nd_order_iir is
         signal z1_adder_out_s, z2_adder_out_s : std_logic_vector(width - 1 downto 0);
 
         signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
-#if  KCM_ARCHITECTURE_IS(structural_mm)
+#if  KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
         signal int_delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
 #endif
 begin  -- beh   
-        b0_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        b0_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec => prec,
@@ -249,7 +251,7 @@ begin  -- beh
                         width => width)
                 port map (
                         clk => clk,
-#if KCM_ARCHITECTURE_IS(structural_mm)
+#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
                         we => std_logic(int_delayer_out_s(0)),
 #else
                         we  => run_en,
@@ -269,7 +271,7 @@ begin  -- beh
                         f_ov => open,
                         f_z => open);
 
-        b1_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        b1_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec => prec,
@@ -278,13 +280,13 @@ begin  -- beh
                         i => i,
                         o => b1_mult_out_s);
 
-        a1_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        a1_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec => prec,
                         k => -a1)
                 port map (
-#if KCM_ARCHITECTURE_IS(structural_mm)
+#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
                         i => o_reg_s,
 #else
                         i => o_s,
@@ -296,7 +298,7 @@ begin  -- beh
                         width => width)
                 port map (
                         clk => clk,
-#if KCM_ARCHITECTURE_IS(structural_mm)
+#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
                         we => std_logic(int_delayer_out_s(0)),
 #else
                         we  => run_en,
@@ -315,7 +317,7 @@ begin  -- beh
                         f_ov => open,
                         f_z => open);
 
-        b2_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        b2_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec => prec,
@@ -324,26 +326,26 @@ begin  -- beh
                         i => i,
                         o => b2_mult_out_s);
 
-        a2_mult : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        a2_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec => prec,
                         k => -a2)
                 port map (
-#if KCM_ARCHITECTURE_IS(structural_mm)
+#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
                         i => o_reg_s,
 #else
                         i => o_s,
 #endif
                         o => a2_mult_out_s);
 
-#if KCM_ARCHITECTURE_IS(structural_mm)
+#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
         o <= o_reg_s;
 #else
         o <= o_s;
 #endif
 
-#if KCM_ARCHITECTURE_IS(structural_mm)
+#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
         out_reg : entity work.reg(alg)
                 generic map (
                         width => delayer_width + width)
@@ -366,7 +368,7 @@ begin  -- beh
 		port map (
 			clk => clk, we => '1', rst => rst,
 			i => delayer_in_s,
-#if KCM_ARCHITECTURE_IS(structural_mm)
+#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
                         o => int_delayer_out_s
 #else
 			o => delayer_out_s

@@ -1,3 +1,5 @@
+-- -*- Mode: vhdl -*-
+
 --------------------------------------------------------------------------------
 -- Company: UVigo
 -- Engineer: Jacobo Cabaleiro
@@ -75,7 +77,7 @@ architecture beh of fa is
 	signal kcm_out_s, fifo_out_s, reg_out_s, sub_out_s, o_s : std_logic_vector(width - 1 downto 0);
         signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);        
 begin
-        kcm_i : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        kcm_i : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec  => prec,

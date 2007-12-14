@@ -1,3 +1,5 @@
+-- -*- Mode: vhdl -*-
+
 --------------------------------------------------------------------------------
 -- Company: UVigo
 -- Engineer: Jacobo Cabaleiro
@@ -189,7 +191,7 @@ begin
 			-- SALIDAS
 			o => modu_reg_out_s);
 
-        modu_kcm : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        modu_kcm : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec  => prec,

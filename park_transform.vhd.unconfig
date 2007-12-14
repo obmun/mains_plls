@@ -1,3 +1,5 @@
+-- -*- Mode: vhdl -*-
+
 --------------------------------------------------------------------------------
 -- Company: UVigo
 -- Engineer: Jacobo Cabaleiro
@@ -66,7 +68,7 @@ architecture structural of park_transform is
         signal d_comp_1_s, d_comp_2_s, d_comp_3_s, q_comp_1_s, q_comp_2_s, q_comp_3_s : std_logic_vector(width - 1 downto 0);
         
 begin  -- structural
-        kcm_1_i : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        kcm_1_i : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec  => prec,
@@ -75,7 +77,7 @@ begin  -- structural
                         i => cos,
                         o => alfa_cos_s);
 
-        kcm_2_i : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        kcm_2_i : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec  => prec,
@@ -84,7 +86,7 @@ begin  -- structural
                         i => cos,
                         o => beta_cos_s);
 
-        kcm_3_i : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        kcm_3_i : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec  => prec,
@@ -93,7 +95,7 @@ begin  -- structural
                         i => sin,
                         o => alfa_sin_s);
 
-        kcm_4_i : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        kcm_4_i : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec  => prec,
@@ -138,7 +140,7 @@ begin  -- structural
                         o => cos_m_2pi_3_s,
                         f_ov => open, f_z => open);
         
-        kcm_5_i : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        kcm_5_i : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec  => prec,
@@ -147,7 +149,7 @@ begin  -- structural
                         i => cos,
                         o => scaled_cos_s);
 
-        kcm_6_i : entity work.kcm(CONF_KCM_ARCHITECTURE)
+        kcm_6_i : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec  => prec,

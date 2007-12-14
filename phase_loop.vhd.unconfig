@@ -1,3 +1,5 @@
+-- -*- Mode: vhdl -*-
+
 --------------------------------------------------------------------------------
 -- Company: UVigo
 -- Engineer: Jacobo Cabaleiro
@@ -141,7 +143,7 @@ begin
                         delayer_out(1) => fva_delayed_done_s);
 
 	-- PI filter components
-	pi_p_kcm : entity work.kcm(CONFIG_architecture)
+	pi_p_kcm : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
 		generic map (
 			k => PHASE_LOOP_PI_P_CONST)
 		port map (

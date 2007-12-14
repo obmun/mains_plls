@@ -1,3 +1,5 @@
+-- -*- Mode: vhdl -*-
+
 --------------------------------------------------------------------------------
 -- Company: Universidad de Vigo
 -- Engineer: Jacobo Cabaleiro
@@ -131,7 +133,7 @@ begin
 			a => fb_adder_out,
 			a_gt_k => gt_pi);
 
-	kcm_i : entity work.kcm(CONF_KCM_ARCHITECTURE)
+	kcm_i : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
 		generic map (
                         width => width, prec => prec,
 			k => SAMPLING_PERIOD * gain)
