@@ -83,149 +83,14 @@ end filter_2nd_order_iir;
 
 architecture structural_tdfii of filter_2nd_order_iir is
         signal o_s : std_logic_vector(width - 1 downto 0);
-        signal b0_mult_out_s, b1_mult_out_s, b2_mult_out_s : std_logic_vector(width - 1 downto 0);
-        signal a1_mult_out_s, a2_mult_out_s : std_logic_vector(width - 1 downto 0);
-        signal z1_out_s, z2_out_s : std_logic_vector(width - 1 downto 0);
-        signal z1_adder_out_s, z2_adder_out_s : std_logic_vector(width - 1 downto 0);
-
-        signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
-begin  -- beh
-        b0_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
-                generic map (
-                        width => width,
-                        prec => prec,
-                        k => b0)
-                port map (
-                        i => i,
-                        o => b0_mult_out_s);
-        
-        z0_adder : entity work.adder(alg)
-                generic map (
-                        width => width)
-                port map (
-                        a => b0_mult_out_s,
-                        b => z1_out_s,
-                        o => o_s,
-                        f_ov => open,
-                        f_z => open);
-
-        z1 : entity work.reg(alg)
-                generic map (
-                        width => width)
-                port map (
-                        clk => clk,
-                        we  => run_en,
-                        rst => rst,
-                        i   => z1_adder_out_s,
-                        o   => z1_out_s);
-
-        z1_adder : entity work.tri_adder(beh)
-                generic map (
-                        width => width)
-                port map (
-                        a => b1_mult_out_s,
-                        b => a1_mult_out_s,
-                        c => z2_out_s,
-                        o => z1_adder_out_s,
-                        f_ov => open,
-                        f_z => open);
-
-        b1_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
-                generic map (
-                        width => width,
-                        prec => prec,
-                        k => b1)
-                port map (
-                        i => i,
-                        o => b1_mult_out_s);
-
-        a1_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
-                generic map (
-                        width => width,
-                        prec => prec,
-                        k => -a1)
-                port map (
-                        i => o_s,
-                        o => a1_mult_out_s);
-
-        z2 : entity work.reg(alg)
-                generic map (
-                        width => width)
-                port map (
-                        clk => clk,
-                        we  => run_en,
-                        rst => rst,
-                        i   => z2_adder_out_s,
-                        o   => z2_out_s);
-
-        z2_adder : entity work.adder(alg)
-                generic map (
-                        width => width)
-                port map (
-                        a => b2_mult_out_s,
-                        b => a2_mult_out_s,
-                        o => z2_adder_out_s,
-                        f_ov => open,
-                        f_z => open);
-
-        b2_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
-                generic map (
-                        width => width,
-                        prec => prec,
-                        k => b2)
-                port map (
-                        i => i,
-                        o => b2_mult_out_s);
-
-        a2_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
-                generic map (
-                        width => width,
-                        prec => prec,
-                        k => -a2)
-                port map (
-                        i => o_s,
-                        o => a2_mult_out_s);
-
-        o <= o_s;
-
-        delayer : entity work.reg(alg)
-                generic map (
-                        width => delayer_width)
-		port map (
-			clk => clk, we => '1', rst => rst,
-			i => delayer_in_s,
-			o => delayer_out_s);
-
-        single_delayer_gen: if (delayer_width = 1) generate
-                delayer_in_s(0) <= run_en;
-                run_passthru <= std_logic(delayer_out_s(0));
-                delayer_out(0) <= delayer_out_s(0);
-        end generate single_delayer_gen;
-        
-        broad_delayer_gen: if (delayer_width > 1) generate
-                delayer_in_s(0) <= run_en;
-                delayer_in_s(delayer_width - 1 downto 1) <= delayer_in(delayer_width - 1 downto 1);
-                run_passthru <= std_logic(delayer_out_s(0));
-                delayer_out <= delayer_out_s;
-        end generate broad_delayer_gen;
-end structural_tdfii;
-                    
-
-architecture structural_cond_reg_tdfii of filter_2nd_order_iir is
-        signal o_s : std_logic_vector(width - 1 downto 0);
-#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
         signal o_reg_s : std_logic_vector(width - 1 downto 0);
-        signal out_reg_out_s, out_reg_in_s : std_logic_vector(width + delayer_width - 1 downto 0);
-#endif
+
         signal b0_mult_out_s, b1_mult_out_s, b2_mult_out_s : std_logic_vector(width - 1 downto 0);
         signal a1_mult_out_s, a2_mult_out_s : std_logic_vector(width - 1 downto 0);
         signal z1_out_s, z2_out_s : std_logic_vector(width - 1 downto 0);
         signal z1_adder_out_s, z2_adder_out_s : std_logic_vector(width - 1 downto 0);
 
         signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
-#if  KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
-        signal int_delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
-#endif
 begin  -- beh   
         b0_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
@@ -251,11 +116,7 @@ begin  -- beh
                         width => width)
                 port map (
                         clk => clk,
-#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
-                        we => std_logic(int_delayer_out_s(0)),
-#else
                         we  => run_en,
-#endif
                         rst => rst,
                         i   => z1_adder_out_s,
                         o   => z1_out_s);
@@ -286,11 +147,7 @@ begin  -- beh
                         prec => prec,
                         k => -a1)
                 port map (
-#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
-                        i => o_reg_s,
-#else
                         i => o_s,
-#endif
                         o => a1_mult_out_s);
 
         z2 : entity work.reg(alg)
@@ -298,11 +155,7 @@ begin  -- beh
                         width => width)
                 port map (
                         clk => clk,
-#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
-                        we => std_logic(int_delayer_out_s(0)),
-#else
                         we  => run_en,
-#endif
                         rst => rst,
                         i   => z2_adder_out_s,
                         o   => z2_out_s);
@@ -332,35 +185,20 @@ begin  -- beh
                         prec => prec,
                         k => -a2)
                 port map (
-#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
-                        i => o_reg_s,
-#else
                         i => o_s,
-#endif
                         o => a2_mult_out_s);
 
-#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
         o <= o_reg_s;
-#else
-        o <= o_s;
-#endif
 
-#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
         out_reg : entity work.reg(alg)
                 generic map (
-                        width => delayer_width + width)
+                        width => width)
                 port map (
                         clk => clk,
-                        we => '1',
+                        we => run_en,
                         rst => rst,
-                        i => out_reg_in_s,
-                        o => out_reg_out_s);
-        
-        out_reg_in_s(width - 1 downto 0) <= o_s;
-        out_reg_in_s(delayer_width + width - 1 downto width) <= int_delayer_out_s;
-        o_reg_s <= out_reg_out_s(width - 1 downto 0);
-        delayer_out_s <= out_reg_out_s(delayer_width + width - 1 downto width);
-#endif
+                        i => o_s,
+                        o => o_reg_s);
         
         delayer : entity work.reg(alg)
                 generic map (
@@ -368,12 +206,7 @@ begin  -- beh
 		port map (
 			clk => clk, we => '1', rst => rst,
 			i => delayer_in_s,
-#if KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM)
-                        o => int_delayer_out_s
-#else
-			o => delayer_out_s
-#endif
-                        );
+			o => delayer_out_s);
 
         single_delayer_gen: if (delayer_width = 1) generate
                 delayer_in_s(0) <= run_en;
@@ -387,4 +220,4 @@ begin  -- beh
         delayer_out <= delayer_out_s;
         run_passthru <= std_logic(delayer_out_s(0));
         
-end structural_cond_reg_tdfii;
+end structural_tdfii;
