@@ -1,3 +1,5 @@
+-- -*- Mode: vhdl -*-
+
 --------------------------------------------------------------------------------
 -- Company: UVigo
 -- Engineer: Jacobo Cabaleiro
@@ -32,6 +34,8 @@
 -- 
 --------------------------------------------------------------------------------
 
+#include "configuration.inc"
+
 library IEEE;
 library WORK;
 use WORK.COMMON.all;
@@ -65,12 +69,21 @@ architecture beh of p2_phase_loop is
 
 	-- Internal signals
 	signal phase_s, phase_det_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-        signal phase_det_done_s, phase_det_done_pulsed_s, iir_1st_ord_done_s, iir_1st_ord_done_REG_s, iir_2nd_ord_done_s : std_logic;
+        signal phase_det_done_s, phase_det_done_pulsed_s, iir_1st_ord_done_s, iir_2nd_ord_done_s : std_logic;
+#if ((KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM) & IIR_ARCHITECTURE_IS(IIR_ARCH_STRUCTURAL_TDFII)) | KCM_ARCHITECTURE_IS(KCM_ARCH_BEH))
+        signal iir_1st_ord_done_REG_s : std_logic;
+#endif
         signal phase_det_run_s : std_logic;
-        signal iir_1st_ord_delayed_done_s, iir_1st_ord_delayed_done_REG_s, iir_2nd_ord_delayed_done_s, freq2phase_delayed_done_s : std_logic;
+        signal iir_1st_ord_delayed_done_s, iir_2nd_ord_delayed_done_s, freq2phase_delayed_done_s : std_logic;
+#if ((KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM) & IIR_ARCHITECTURE_IS(IIR_ARCH_STRUCTURAL_TDFII)) | KCM_ARCHITECTURE_IS(KCM_ARCH_BEH))
+        signal iir_1st_ord_delayed_done_REG_s : std_logic;
+#endif
 	-- > Filter signals
         signal phase_det_out_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
-	signal iir_1st_ord_out_E_s, iir_1st_ord_out_E_reg_s, iir_2nd_ord_out_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
+        signal iir_1st_ord_out_E_s, iir_2nd_ord_out_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
+#if ((KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM) & IIR_ARCHITECTURE_IS(IIR_ARCH_STRUCTURAL_TDFII)) | KCM_ARCHITECTURE_IS(KCM_ARCH_BEH))
+        signal iir_1st_ord_out_E_reg_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
+#endif
         signal iir_2nd_ord_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         -- GARBAGE SIGNALS
         -- These are here because ModelSim complains about keeping a formal
@@ -111,7 +124,7 @@ begin
                         i => phase_det_out_s,
                         o => phase_det_out_E_s);
         
-        iir_1st_ord : entity work.filter_1st_order_iir(beh)
+        iir_1st_ord : entity work.filter_1st_order_iir(CONF_IIR_ARCHITECTURE_STR)
                 generic map (
                         width => EXT_PIPELINE_WIDTH, prec => IIR_FILTERS_PREC,
                         b0 => coef_1st_ord_filt_num(0),
@@ -132,7 +145,9 @@ begin
         -- Speed up register: combinational path form by
         -- phase_det (last mul out) -> 1st ord b0 mul -> 1st ord z0 add -> 2nd
         -- ord b0 bul -> 2nd ord z0 add -> 2nd ord a2 mul -> z2 reg IS BIG.
-        -- Path must be broken.
+        -- Path must be broken for those iir implementation which do not
+        -- include internal speed-up registers
+#if ((KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM) & IIR_ARCHITECTURE_IS(IIR_ARCH_STRUCTURAL_TDFII)) | KCM_ARCHITECTURE_IS(KCM_ARCH_BEH))
         iir_1st_ord_out_E_reg_i : entity work.reg(alg)
                 generic map (
                         width => EXT_PIPELINE_WIDTH + 2)
@@ -146,8 +161,9 @@ begin
                         o(EXT_PIPELINE_WIDTH - 1 downto 0) => iir_1st_ord_out_E_reg_s,
                         o(EXT_PIPELINE_WIDTH) => iir_1st_ord_done_REG_s,
                         o(EXT_PIPELINE_WIDTH + 1) => iir_1st_ord_delayed_done_REG_s);
+#endif
         
-        iir_2nd_ord : entity work.filter_2nd_order_iir(beh)
+        iir_2nd_ord : entity work.filter_2nd_order_iir(CONF_IIR_ARCHITECTURE_STR)
                 generic map (
                         width => EXT_PIPELINE_WIDTH, prec => IIR_FILTERS_PREC,
                         b0 => coef_2nd_ord_filt_num(0),
@@ -158,12 +174,24 @@ begin
                         delayer_width => 2)
                 port map (
                         clk => clk, rst => rst,
+#if ((KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM) & IIR_ARCHITECTURE_IS(IIR_ARCH_STRUCTURAL_TDFII)) | KCM_ARCHITECTURE_IS(KCM_ARCH_BEH))
                         i => iir_1st_ord_out_E_reg_s,
+#else
+                        i => iir_1st_ord_out_E_s,
+#endif
                         o => iir_2nd_ord_out_E_s,
+#if ((KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM) & IIR_ARCHITECTURE_IS(IIR_ARCH_STRUCTURAL_TDFII)) | KCM_ARCHITECTURE_IS(KCM_ARCH_BEH))
                         run_en => iir_1st_ord_done_REG_s,
+#else
+                        run_en => iir_1st_ord_done_s,
+#endif
                         run_passthru => iir_2nd_ord_done_s,
                         delayer_in(0) => '-',
+#if ((KCM_ARCHITECTURE_IS(KCM_ARCH_STRUCTURAL_MM) & IIR_ARCHITECTURE_IS(IIR_ARCH_STRUCTURAL_TDFII)) | KCM_ARCHITECTURE_IS(KCM_ARCH_BEH))
                         delayer_in(1) => iir_1st_ord_delayed_done_REG_s,
+#else
+                        delayer_in(1) => iir_1st_ord_delayed_done_s,
+#endif
                         delayer_out(0) => garbage_2_s,
                         delayer_out(1) => iir_2nd_ord_delayed_done_s);
 
@@ -177,22 +205,6 @@ begin
                         i => iir_2nd_ord_out_E_s,
                         o => iir_2nd_ord_out_s);
 
-        -- Speed up register. Combinational path formed by pi_int -> pi_adder
-        -- -> freq2phase combinational logic at input is TOO long
---        pi_out_reg_i : entity work.reg(alg)
---                generic map (
---                        width => PIPELINE_WIDTH + 2)
---                port map (
---                        clk => clk,
---                        we  => '1',
---                        rst => rst,
---                        i(PIPELINE_WIDTH - 1 downto 0) => pi_adder_out_s,
---                        i(PIPELINE_WIDTH) => pi_done_s,
---                        i(PIPELINE_WIDTH + 1) => pi_delayed_done_s,
---                        o(PIPELINE_WIDTH - 1 downto 0) => pi_adder_out_REG_s,
---                        o(PIPELINE_WIDTH) => pi_done_REG_s,
---                        o(PIPELINE_WIDTH + 1) => pi_delayed_done_REG_s);
-        
 	freq2phase_i : entity work.freq2phase(beh)
                 generic map (
                         width => PIPELINE_WIDTH,
