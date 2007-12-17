@@ -154,6 +154,10 @@ begin
 end beh3;
 
 
+-- Multiplerless Multiplication implementation of a kcm.
+-- Constant is converted to a modificed CSD (Canonic Signed Digit)
+-- representation and thru the usage of multiple generate loops, an optimal set
+-- of primitive additions and subtractions are generated
 architecture structural_mm of kcm is
         -- I need as many intermediate results (tmp_res) as bits has the
         -- constant multiplicand, and "one more" to maintain generate for uniform
