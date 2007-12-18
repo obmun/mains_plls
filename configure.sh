@@ -9,7 +9,7 @@ E_BADARGS=65
 UNCONFIGURED_EXT="vhd.unconfig"
 CONFIGURED_EXT="vhd"
 
-FILES="1st_order_iir_filter 2nd_order_iir_filter cordic_atan fa freq2phase integrator kcm_integrator p2_phase_loop park_transform phase_loop"
+FILES="1st_order_iir_filter 2nd_order_iir_filter cordic_atan fa freq2phase integrator kcm_integrator p2_phase_loop p2_3p_phase_loop park_transform phase_loop"
 
 echo "Preprocessing sources:"
 for file in $FILES; do

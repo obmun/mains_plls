@@ -1,0 +1,194 @@
+-- -*- Mode: vhdl -*-
+
+--------------------------------------------------------------------------------
+-- Company: UVigo
+-- Engineer: Jacobo Cabaleiro
+--
+-- Create Date:    
+-- Design Name:    
+-- Module Name: p2_phase_loop - beh
+-- Project Name:   
+-- Target Device:  
+-- Tool versions:
+--
+-- *** Short desc ***
+-- Class: sequential iterative
+-- The PLL phase loop for the 3-phase PLLTrifasicoImplementarBeta1 design (see
+-- october_2007 paper), which corresponds with my three_phase_pll_obmun_cleaned
+-- model.
+--
+-- *** Description ***
+-- Has: synchronous reset.
+--
+-- ** PORT DESCRIPTION **
+-- rst -> Synchronous reset port. A reset ONLY initializes some seq elements to a initial known state, but does not reset some big internal storage elements as buffers (see FA). It's stupid as the presence of a FA will always mean that a big initial # of samples are needed to obtain stable output.
+-- freq -> Current detected frequency. THIS PORT DOES NOT FOLLOW COMMON
+-- PIPELINE FORMAT. Its fixed to a unsigned 6 bits magnitude (allowing for
+-- frequencies up to 64 Hz downto 0) and 10 bits prec (more than adequate :)
+-- for the frequency measurement.
+--
+-- Dependencies:
+-- 
+-- *** Changelog ***
+-- Revision 0.01 - File Created, following Fran Simulink model
+-- 
+--------------------------------------------------------------------------------
+
+#include "configuration.inc"
+
+library IEEE;
+library WORK;
+use WORK.COMMON.all;
+use IEEE.STD_LOGIC_1164.all;
+use IEEE.NUMERIC_STD.all;
+
+entity p2_3p_phase_loop is
+	port (
+		clk, rst, run : in std_logic;
+		q_input : in std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+		phase, freq : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+                sin, cos : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+		done : out std_logic);
+end p2_3p_phase_loop;
+
+architecture structural of p2_3p_phase_loop is
+	-- Types
+        type coef_1st_ord is array (0 to 1) of real;
+
+        -- Some constants
+        constant coef_1st_ord_filt_num : coef_1st_ord := (1.001, -0.999);
+        constant coef_1st_ord_filt_den : coef_1st_ord := (1.0, -1.0);
+        -- filter gain: 420
+
+        constant IIR_FILTERS_PREC : natural := EXT_IIR_FILTERS_PREC;
+
+	-- Internal signals
+        signal q_input_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
+#if IIR_ARCHITECTURE_IS(IIR_ARCH_FAST_STRUCTURAL_TDFII)
+        signal q_reg_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+        signal q_reg_input_s, q_reg_output_s : std_logic_vector(PIPELINE_WIDTH downto 0);
+#endif
+	signal phase_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+        signal filter_done_s, freq2phase_done_s, cordic_done_s : std_logic;
+        signal pulsed_run_s, filter_run_s : std_logic;
+#if IIR_ARCHITECTURE_IS(IIR_ARCH_FAST_STRUCTURAL_TDFII)
+        signal filter_run_delayed_s : std_logic;
+#endif
+	-- > Filter signals
+        signal filter_out_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
+        signal filter_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+        -- GARBAGE SIGNALS
+        -- These are here because ModelSim complains about keeping a formal
+        -- partially open (some of its bits are asigned, other are opened), and
+        -- ModelSim requires, at the same time, all of the formal bits to be
+        -- mapped to a signal. The only way is to use garbage signals, that
+        -- later during synthesis get deleted by the synthesizer.
+        signal garbage_1_s, garbage_2_s : std_logic;
+begin
+
+        run_pulser : entity work.done_pulser(beh)
+                port map (
+                        clk => clk,
+                        en  => '1',
+                        rst => rst,
+                        i   => run,
+                        o   => pulsed_run_s);
+        
+        -- This block must follow the run_done interface. But, as it's first
+        -- processing block is a 1st_order_iir_filter (with some of its
+        -- architecture presenting a 2 cycles latency); it's a sequential block
+        -- with a run_passthru iface, which DOES NOT ALLOW input to be changed while 2nd
+        -- cycle. We need, for those affected architectures, to add an input
+        -- register, because this block is a run_done block, which allows the
+        -- input to be changed after the first clk cycle.
+
+#if IIR_ARCHITECTURE_IS(IIR_ARCH_FAST_STRUCTURAL_TDFII)
+        q_reg : entity work.reg(alg)
+                generic map (
+                        width => PIPELINE_WIDTH + 1)
+                port map (
+                        clk => clk,
+                        we  => filter_run_s,
+                        rst => rst,
+                        i   => q_reg_input_s,
+                        o   => q_reg_output_s);
+
+        q_reg_input_s(PIPELINE_WIDTH - 1 downto 0) <= q_input;
+        q_reg_input_s(PIPELINE_WIDTH) <= filter_run_s;
+        q_reg_out_s <= q_reg_output_s(PIPELINE_WIDTH - 1 downto 0);
+        filter_run_delayed_s <= q_reg_output_s(PIPELINE_WIDTH);
+#endif
+        
+        in_filter_conv : entity work.pipeline_conv(alg)
+                generic map (
+                        in_width  => PIPELINE_WIDTH,
+                        in_prec   => PIPELINE_PREC,
+                        out_width => EXT_PIPELINE_WIDTH,
+                        out_prec  => IIR_FILTERS_PREC)
+                port map (
+#if IIR_ARCHITECTURE_IS(IIR_ARCH_FAST_STRUCTURAL_TDFII)
+                        i => q_reg_out_s,
+#else
+                        i => q_input,                        
+#endif
+                        o => q_input_E_s);
+        
+        filter : entity work.filter_1st_order_iir(CONF_IIR_ARCHITECTURE_STR)
+                generic map (
+                        width => EXT_PIPELINE_WIDTH, prec => IIR_FILTERS_PREC,
+                        b0 => coef_1st_ord_filt_num(0),
+                        b1 => coef_1st_ord_filt_num(1),
+                        a1 => coef_1st_ord_filt_den(1),
+                        delayer_width => 1)
+                port map (
+                        clk => clk, rst => rst,
+                        i => q_input_E_s,
+                        o => filter_out_E_s,
+#if IIR_ARCHITECTURE_IS(IIR_ARCH_FAST_STRUCTURAL_TDFII)
+                        run_en => filter_run_delayed_s,
+#else
+                        run_en => filter_run_s,
+#endif
+                        run_passthru => filter_done_s,
+                        delayer_in(0) => '-',
+                        delayer_out(0) => garbage_1_s);
+                
+        out_filter_conv : entity work.pipeline_conv(alg)
+                generic map (
+                        in_width  => EXT_PIPELINE_WIDTH,
+                        in_prec   => IIR_FILTERS_PREC,
+                        out_width => PIPELINE_WIDTH,
+                        out_prec  => PIPELINE_PREC)
+                port map (
+                        i => filter_out_E_s,
+                        o => filter_out_s);
+
+	freq2phase_i : entity work.freq2phase(beh)
+                generic map (
+                        width => PIPELINE_WIDTH,
+                        prec => PIPELINE_PREC,
+                        gain => 420.0,
+                        delayer_width => 1)
+		port map (
+			clk => clk, rst => rst,
+			f => filter_out_s,
+			p => phase_s,
+                        run_en => filter_done_s,
+                        run_passthru => freq2phase_done_s,
+                        delayer_in(0) => '-',
+                        delayer_out(0) => garbage_2_s);
+        
+        cordic_i : entity work.cordic(structural)
+                port map (
+                        clk   => clk,
+                        rst   => rst,
+                        run   => freq2phase_done_s,
+                        angle => phase_s,
+                        sin   => sin,
+                        cos   => cos,
+                        done  => cordic_done_s);
+        
+	phase <= phase_s;
+        done <= cordic_done_s;
+        filter_run_s <= pulsed_run_s and cordic_done_s;
+end structural;

@@ -1,0 +1,25 @@
+vlib work
+vcom -93 -explicit  common.vhd
+vcom -93 -explicit  reg.vhd
+vcom -93 -explicit  done_pulser.vhd
+vcom -93 -explicit  kcm.vhd
+vcom -93 -explicit  subsor.vhd
+vcom -93 -explicit  adder.vhd
+vcom -93 -explicit  mul.vhd
+vcom -93 -explicit  tri_adder.vhd
+vcom -93 -explicit  park_transform.vhd
+vcom -93 -explicit  pipeline_conv.vhd
+vcom -93 -explicit  fifo.vhd
+vcom -93 -explicit  fa.vhd
+vcom -93 -explicit  1st_order_iir_filter.vhd
+vcom -93 -explicit  k_gt_comp.vhd
+vcom -93 -explicit  k_2pi_sub.vhd
+vcom -93 -explicit  freq2phase.vhd
+vcom -93 -explicit  k_lt_comp.vhd
+vcom -93 -explicit  add_sub.vhd
+vcom -93 -explicit  signed_shifter.vhd
+vcom -93 -explicit  cordic_atan_lut.vhd
+vcom -93 -explicit  cordic.vhd
+vcom -93 -explicit  p2_3p_phase_loop.vhd
+vcom -93 -explicit  p2_3p_pll.vhd
+vsimulink work.p2_3p_pll
