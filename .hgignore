@@ -1,5 +1,29 @@
 syntax: glob
 
+# Generated after configuration
+1st_order_iir_filter.vhd
+1st_order_iir_filter.vhd.backup
+2nd_order_iir_filter.vhd
+2nd_order_iir_filter.vhd.backup
+cordic_atan.vhd
+cordic_atan.vhd.backup
+fa.vhd
+fa.vhd.backup
+freq2phase.vhd
+freq2phase.vhd.backup
+integrator.vhd
+integrator.vhd.backup
+kcm_integrator.vhd
+kcm_integrator.vhd.backup
+p2_phase_loop.vhd
+p2_phase_loop.vhd.backup
+p2_3p_phase_loop.vhd
+p2_3p_phase_loop.vhd.backup
+park_transform.vhd
+park_transform.vhd.backup
+phase_loop.vhd
+phase_loop.vhd.backup
+
 # The fucking Xilinx ISE files ...
 *.asm
 *.asy
