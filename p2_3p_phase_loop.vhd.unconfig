@@ -66,7 +66,6 @@ architecture structural of p2_3p_phase_loop is
         signal q_input_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
 #if IIR_ARCHITECTURE_IS(IIR_ARCH_FAST_STRUCTURAL_TDFII)
         signal q_reg_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-        signal q_reg_input_s, q_reg_output_s : std_logic_vector(PIPELINE_WIDTH downto 0);
 #endif
 	signal phase_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         signal filter_done_s, freq2phase_done_s, cordic_done_s : std_logic;
@@ -95,8 +94,8 @@ begin
                         o   => pulsed_run_s);
         
         -- This block must follow the run_done interface. But, as it's first
-        -- processing block is a 1st_order_iir_filter (with some of its
-        -- architecture presenting a 2 cycles latency); it's a sequential block
+        -- processing block we find a 1st_order_iir_filter. Some of the
+        -- 1st_order_iir_filter architectures present a 2 cycles latency!!!. It's a sequential block
         -- with a run_passthru iface, which DOES NOT ALLOW input to be changed while 2nd
         -- cycle. We need, for those affected architectures, to add an input
         -- register, because this block is a run_done block, which allows the
@@ -105,18 +104,23 @@ begin
 #if IIR_ARCHITECTURE_IS(IIR_ARCH_FAST_STRUCTURAL_TDFII)
         q_reg : entity work.reg(alg)
                 generic map (
-                        width => PIPELINE_WIDTH + 1)
+                        width => PIPELINE_WIDTH)
                 port map (
                         clk => clk,
                         we  => filter_run_s,
                         rst => rst,
-                        i   => q_reg_input_s,
-                        o   => q_reg_output_s);
+                        i   => q_input,
+                        o   => q_reg_out_s);
 
-        q_reg_input_s(PIPELINE_WIDTH - 1 downto 0) <= q_input;
-        q_reg_input_s(PIPELINE_WIDTH) <= filter_run_s;
-        q_reg_out_s <= q_reg_output_s(PIPELINE_WIDTH - 1 downto 0);
-        filter_run_delayed_s <= q_reg_output_s(PIPELINE_WIDTH);
+        filter_run_reg : entity work.reg(alg)
+                generic map (
+                        width => 1)
+                port map (
+                        clk  => clk,
+                        we   => '1',
+                        rst  => rst,
+                        i(0) => filter_run_s,
+                        o(0) => filter_run_delayed_s);
 #endif
         
         in_filter_conv : entity work.pipeline_conv(alg)
