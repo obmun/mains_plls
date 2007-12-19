@@ -1,0 +1,10 @@
+vlib work
+vcom -93 -explicit  common.vhd
+vcom -93 -explicit  kcm.vhd
+vcom -93 -explicit  subsor.vhd
+vcom -93 -explicit  adder.vhd
+vcom -93 -explicit  mul.vhd
+vcom -93 -explicit  tri_adder.vhd
+vcom -93 -explicit  park_transform.vhd
+vcom -93 -explicit  park_transform_wrapper.vhd
+vsimulink work.park_transform_wrapper

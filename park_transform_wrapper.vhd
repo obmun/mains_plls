@@ -9,8 +9,8 @@ use IEEE.STD_LOGIC_1164.all;
 
 entity park_transform_wrapper is
         port (
-                a,b,c,sin,cos : in  std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-                d,q : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0));
+                a, b, c, sin, cos : in  std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+                d, q : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0));
 end park_transform_wrapper;
 
 architecture beh of park_transform_wrapper is
