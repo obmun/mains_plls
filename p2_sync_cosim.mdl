@@ -43,7 +43,7 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "Administrador"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Fri Oct 26 16:13:39 2007"
+  LastModifiedDate	  "Fri Oct 26 16:25:02 2007"
   ModelVersionFormat	  "1.%<AutoIncrement:21>"
   ConfigurationManager	  "None"
   LinearizationMsg	  "none"

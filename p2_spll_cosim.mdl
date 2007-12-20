@@ -1,12 +1,12 @@
 Model {
-  Name			  "phase_loop_cosim"
+  Name			  "p2_spll_cosim"
   Version		  6.4
   MdlSubVersion		  0
   GraphicalInterface {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.7"
+    ComputedModelVersion    "1.17"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -43,8 +43,8 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "Administrador"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Tue Nov 20 16:36:52 2007"
-  ModelVersionFormat	  "1.%<AutoIncrement:7>"
+  LastModifiedDate	  "Fri Oct 19 20:09:54 2007"
+  ModelVersionFormat	  "1.%<AutoIncrement:17>"
   ConfigurationManager	  "None"
   LinearizationMsg	  "none"
   Profile		  off
@@ -102,7 +102,7 @@ Model {
 	  $ObjectID		  2
 	  Version		  "1.2.0"
 	  StartTime		  "0.0"
-	  StopTime		  "12e-2"
+	  StopTime		  "0.4"
 	  AbsTol		  "auto"
 	  FixedStep		  "auto"
 	  InitialStep		  "auto"
@@ -571,8 +571,8 @@ Model {
     FontAngle		    "normal"
   }
   System {
-    Name		    "phase_loop_cosim"
-    Location		    [2, 70, 1278, 764]
+    Name		    "p2_spll_cosim"
+    Location		    [2, 70, 1278, 780]
     Open		    on
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
@@ -584,21 +584,12 @@ Model {
     TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
     TiledPageScale	    1
     ShowPageBoundaries	    off
-    ZoomFactor		    "125"
+    ZoomFactor		    "100"
     ReportName		    "simulink-default.rpt"
-    Block {
-      BlockType		      DataTypeConversion
-      Name		      "Clk 2 std_logic"
-      Position		      [385, 88, 460, 122]
-      OutDataTypeMode	      "boolean"
-      RndMeth		      "Floor"
-      SaturateOnIntegerOverflow	off
-    }
     Block {
       BlockType		      Constant
       Name		      "Constant"
-      Position		      [170, 180, 200, 210]
-      Orientation	      "up"
+      Position		      [235, 180, 265, 210]
       Value		      "0"
       VectorParams1D	      on
       SamplingMode	      "Sample based"
@@ -611,8 +602,40 @@ Model {
     }
     Block {
       BlockType		      DataTypeConversion
+      Name		      "Data Type Conversion"
+      Position		      [495, 233, 570, 267]
+      OutDataTypeMode	      "Specify via dialog"
+      OutScaling	      "2^(-pipeline_prec)"
+      RndMeth		      "Nearest"
+    }
+    Block {
+      BlockType		      DataTypeConversion
+      Name		      "Data Type Conversion1"
+      Position		      [510, 48, 585, 82]
+      OutDataTypeMode	      "boolean"
+      RndMeth		      "Floor"
+      SaturateOnIntegerOverflow	off
+    }
+    Block {
+      BlockType		      DataTypeConversion
+      Name		      "Data Type Conversion2"
+      Position		      [505, 128, 580, 162]
+      OutDataTypeMode	      "boolean"
+      RndMeth		      "Floor"
+      SaturateOnIntegerOverflow	off
+    }
+    Block {
+      BlockType		      DataTypeConversion
+      Name		      "Data Type Conversion3"
+      Position		      [485, 183, 560, 217]
+      OutDataTypeMode	      "boolean"
+      RndMeth		      "Floor"
+      SaturateOnIntegerOverflow	off
+    }
+    Block {
+      BlockType		      DataTypeConversion
       Name		      "Data Type Conversion4"
-      Position		      [775, 108, 850, 142]
+      Position		      [910, 118, 985, 152]
       RndMeth		      "Floor"
       SaturateOnIntegerOverflow	off
       Port {
@@ -625,7 +648,7 @@ Model {
     Block {
       BlockType		      DataTypeConversion
       Name		      "Data Type Conversion5"
-      Position		      [775, 163, 850, 197]
+      Position		      [925, 173, 1000, 207]
       RndMeth		      "Floor"
       SaturateOnIntegerOverflow	off
       Port {
@@ -638,45 +661,37 @@ Model {
     Block {
       BlockType		      DataTypeConversion
       Name		      "Data Type Conversion6"
-      Position		      [775, 213, 850, 247]
+      Position		      [930, 228, 1005, 262]
       RndMeth		      "Floor"
       SaturateOnIntegerOverflow	off
-      Port {
-	PortNumber		1
-	Name			"error_fase"
-	RTWStorageClass		"Auto"
-	DataLoggingNameMode	"SignalName"
-      }
     }
     Block {
       BlockType		      DataTypeConversion
       Name		      "Data Type Conversion7"
-      Position		      [775, 268, 850, 302]
+      Position		      [945, 323, 1020, 357]
       RndMeth		      "Floor"
       SaturateOnIntegerOverflow	off
-      Port {
-	PortNumber		1
-	Name			"salida_pi"
-	RTWStorageClass		"Auto"
-	DataLoggingNameMode	"SignalName"
-      }
     }
     Block {
       BlockType		      Reference
       Name		      "HDL Cosimulation"
-      Ports		      [4, 5]
-      Position		      [520, 125, 705, 255]
+      Ports		      [4, 10]
+      Position		      [655, 150, 840, 285]
       DialogController	      "modelsimddg.CoSim"
       DialogControllerArgs    "DataTag0"
       SourceBlock	      "modelsimlib/HDL Cosimulation"
       SourceType	      "Simulink and ModelSim Cosimulation"
-      PortPaths		      "/phase_loop/clk;/phase_loop/run;/phase_loop/rst"
-";/phase_loop/norm_input;/phase_loop/phase;/phase_loop/norm_sin;/phase_loop/do"
-"ne;/phase_loop/phase_det_i/phase_error;/phase_loop/fa_i/o"
-      PortModes		      "[1 1 1 1 2 2 2 2 2 ]"
-      PortTimes		      "[1,1,1,1,1e-5,1e-5,1e-6,1e-5,1e-5]"
-      PortSigns		      "[-1 -1 -1 -1 1 1 -1 1 1 ]"
-      PortFracLengths	      "[0,0,0,0,10,10,0,10,10]"
+      PortPaths		      "/p2_spll/clk;/p2_spll/sample;/p2_spll/rst;/p2_s"
+"pll/in_signal;/p2_spll/phase;/p2_spll/out_signal;/p2_spll/ampl;/p2_spll/phase"
+"_loop_i/phase_det_out_s;/p2_spll/ampl_fa/kcm_out_s;/p2_spll/ampl_fa/fifo_out_"
+"s;/p2_spll/ampl_fa/sub_out_s;/p2_spll/ampl_fa/reg_out_s;/p2_spll/ampl_fa/o_s;"
+"/p2_spll/done"
+      PortModes		      "[1 1 1 1 2 2 2 2 2 2 2 2 2 2 ]"
+      PortTimes		      "[1,1,1,1,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-"
+"5,1e-5,1]"
+      PortSigns		      "[-1 -1 -1 -1 1 1 1 1 1 1 1 1 1 -1 ]"
+      PortFracLengths	      "[0,0,0,0,pipeline_prec,pipeline_prec,pipeline_p"
+"rec,pipeline_prec,14,14,14,14,14,0]"
       CommLocal		      on
       CommSharedMemory	      off
       CommPortNumber	      "4449"
@@ -690,27 +705,28 @@ Model {
       idxCellArray	      "{'UNUSED_VAR'}"
     }
     Block {
-      BlockType		      DataTypeConversion
-      Name		      "Input 2 pipeline"
-      Position		      [385, 243, 460, 277]
-      OutDataTypeMode	      "Specify via dialog"
-      OutScaling	      "2^(-10)"
-      RndMeth		      "Nearest"
+      BlockType		      Mux
+      Name		      "Mux"
+      Ports		      [3, 1]
+      Position		      [1100, 75, 1115, 195]
+      ShowName		      off
+      Inputs		      "3"
+      DisplayOption	      "bar"
     }
     Block {
       BlockType		      Mux
-      Name		      "Mux"
-      Ports		      [5, 1]
-      Position		      [930, 101, 945, 179]
+      Name		      "Mux1"
+      Ports		      [3, 1]
+      Position		      [1120, 295, 1135, 415]
       ShowName		      off
-      Inputs		      "5"
+      Inputs		      "3"
       DisplayOption	      "bar"
     }
     Block {
       BlockType		      DiscretePulseGenerator
       Name		      "Pulse\nGenerator"
       Ports		      [0, 1]
-      Position		      [315, 88, 360, 122]
+      Position		      [425, 48, 470, 82]
       PulseType		      "Time based"
       Period		      "1/(1e6)"
       PulseWidth	      "50"
@@ -719,45 +735,27 @@ Model {
       BlockType		      DiscretePulseGenerator
       Name		      "Pulse\nGenerator1"
       Ports		      [0, 1]
-      Position		      [168, 95, 202, 140]
-      Orientation	      "down"
-      NamePlacement	      "alternate"
+      Position		      [270, 48, 315, 82]
       PulseType		      "Time based"
       Period		      "0.1e-3"
       PulseWidth	      "2"
     }
     Block {
-      BlockType		      DataTypeConversion
-      Name		      "Rst step to std_logic"
-      Position		      [385, 188, 460, 222]
-      OutDataTypeMode	      "boolean"
-      RndMeth		      "Floor"
-      SaturateOnIntegerOverflow	off
-    }
-    Block {
-      BlockType		      DataTypeConversion
-      Name		      "Run (sample) to std_logic"
-      Position		      [385, 138, 460, 172]
-      OutDataTypeMode	      "boolean"
-      RndMeth		      "Floor"
-      SaturateOnIntegerOverflow	off
-    }
-    Block {
       BlockType		      Scope
       Name		      "Scope"
-      Ports		      [1]
-      Position		      [1005, 114, 1035, 146]
+      Ports		      [2]
+      Position		      [1180, 197, 1210, 233]
       Floating		      off
-      Location		      [-3, 41, 1277, 795]
+      Location		      [-3, 49, 1277, 803]
       Open		      off
-      NumInputPorts	      "1"
-      ZoomMode		      "yonly"
+      NumInputPorts	      "2"
       List {
 	ListType		AxesTitles
 	axes1			"%<SignalLabel>"
+	axes2			"%<SignalLabel>"
       }
-      YMin		      "-3.5"
-      YMax		      "3.5"
+      YMin		      "-3.5~-0.75"
+      YMax		      "3.5~1.25"
       DataFormat	      "StructureWithTime"
       MaxDataPoints	      "500000"
       SampleTime	      "0"
@@ -766,21 +764,21 @@ Model {
       BlockType		      Sin
       Name		      "Sine Wave1"
       Ports		      [0, 1]
-      Position		      [230, 245, 260, 275]
+      Position		      [360, 235, 390, 265]
       SineType		      "Time based"
-      Frequency		      "2*pi*49.5"
+      Frequency		      "2*pi*50"
       Phase		      "1"
     }
     Block {
       BlockType		      Step
       Name		      "Step"
-      Position		      [130, 140, 160, 170]
+      Position		      [175, 115, 205, 145]
       Time		      "4*(1/1e6)"
     }
     Block {
       BlockType		      Step
       Name		      "Step1"
-      Position		      [330, 190, 360, 220]
+      Position		      [390, 175, 420, 205]
       Time		      "6*(1/1e6)"
       Before		      "1"
       After		      "0"
@@ -788,7 +786,7 @@ Model {
     Block {
       BlockType		      Switch
       Name		      "Switch"
-      Position		      [235, 140, 265, 170]
+      Position		      [365, 115, 395, 145]
       Criteria		      "u2 > Threshold"
       InputSameDT	      off
       OutDataTypeMode	      "Inherit via back propagation"
@@ -798,22 +796,22 @@ Model {
       SampleTime	      "1e-7"
     }
     Line {
-      SrcBlock		      "Input 2 pipeline"
+      SrcBlock		      "Data Type Conversion"
       SrcPort		      1
-      Points		      [20, 0; 0, -25]
+      Points		      [20, 0; 0, 20]
       DstBlock		      "HDL Cosimulation"
       DstPort		      4
     }
     Line {
       SrcBlock		      "Sine Wave1"
       SrcPort		      1
-      Points		      [40, 0]
+      Points		      [45, 0]
       Branch {
-	DstBlock		"Input 2 pipeline"
+	DstBlock		"Data Type Conversion"
 	DstPort			1
       }
       Branch {
-	Points			[0, -180; 590, 0; 0, 30]
+	Points			[0, -155]
 	DstBlock		"Mux"
 	DstPort			1
       }
@@ -821,46 +819,48 @@ Model {
     Line {
       SrcBlock		      "Pulse\nGenerator"
       SrcPort		      1
-      DstBlock		      "Clk 2 std_logic"
+      DstBlock		      "Data Type Conversion1"
       DstPort		      1
     }
     Line {
-      SrcBlock		      "Clk 2 std_logic"
+      SrcBlock		      "Data Type Conversion1"
       SrcPort		      1
-      Points		      [35, 0; 0, 40]
+      Points		      [20, 0; 0, 100]
       DstBlock		      "HDL Cosimulation"
       DstPort		      1
     }
     Line {
       SrcBlock		      "Switch"
       SrcPort		      1
-      Points		      [0, 0]
-      DstBlock		      "Run (sample) to std_logic"
+      Points		      [60, 0; 0, 15]
+      DstBlock		      "Data Type Conversion2"
       DstPort		      1
     }
     Line {
-      SrcBlock		      "Run (sample) to std_logic"
+      SrcBlock		      "Data Type Conversion2"
       SrcPort		      1
-      Points		      [25, 0; 0, 20]
+      Points		      [0, 55]
       DstBlock		      "HDL Cosimulation"
       DstPort		      2
     }
     Line {
       SrcBlock		      "Step1"
       SrcPort		      1
-      DstBlock		      "Rst step to std_logic"
+      Points		      [20, 0; 0, 10]
+      DstBlock		      "Data Type Conversion3"
       DstPort		      1
     }
     Line {
-      SrcBlock		      "Rst step to std_logic"
+      SrcBlock		      "Data Type Conversion3"
       SrcPort		      1
+      Points		      [75, 0]
       DstBlock		      "HDL Cosimulation"
       DstPort		      3
     }
     Line {
       SrcBlock		      "Constant"
       SrcPort		      1
-      Points		      [0, -10]
+      Points		      [10, 0; 0, -55]
       DstBlock		      "Switch"
       DstPort		      3
     }
@@ -874,7 +874,7 @@ Model {
     Line {
       SrcBlock		      "Pulse\nGenerator1"
       SrcPort		      1
-      Points		      [0, 0]
+      Points		      [30, 0]
       DstBlock		      "Switch"
       DstPort		      1
     }
@@ -887,7 +887,7 @@ Model {
     Line {
       SrcBlock		      "HDL Cosimulation"
       SrcPort		      1
-      Points		      [35, 0; 0, -15]
+      Points		      [40, 0; 0, -15]
       DstBlock		      "Data Type Conversion4"
       DstPort		      1
     }
@@ -900,52 +900,55 @@ Model {
       DstPort		      2
     }
     Line {
-      SrcBlock		      "HDL Cosimulation"
-      SrcPort		      2
-      Points		      [40, 0; 0, 15]
-      DstBlock		      "Data Type Conversion5"
-      DstPort		      1
-    }
-    Line {
       Name		      "seno_salida"
-      Labels		      [2, 0]
+      Labels		      [1, 0]
       SrcBlock		      "Data Type Conversion5"
       SrcPort		      1
-      Points		      [15, 0; 0, -40]
+      Points		      [80, 0]
       DstBlock		      "Mux"
       DstPort		      3
     }
     Line {
       SrcBlock		      "HDL Cosimulation"
-      SrcPort		      4
-      Points		      [45, 0; 0, 15]
+      SrcPort		      2
+      Points		      [45, 0; 0, 25]
+      DstBlock		      "Data Type Conversion5"
+      DstPort		      1
+    }
+    Line {
+      SrcBlock		      "HDL Cosimulation"
+      SrcPort		      3
+      Points		      [15, 0; 0, 65]
       DstBlock		      "Data Type Conversion6"
       DstPort		      1
     }
     Line {
-      Name		      "error_fase"
-      Labels		      [2, 0]
       SrcBlock		      "Data Type Conversion6"
       SrcPort		      1
-      Points		      [35, 0; 0, -75]
-      DstBlock		      "Mux"
-      DstPort		      4
+      Points		      [45, 0; 0, 70]
+      DstBlock		      "Mux1"
+      DstPort		      1
     }
     Line {
       SrcBlock		      "HDL Cosimulation"
-      SrcPort		      5
-      Points		      [35, 0; 0, 45]
+      SrcPort		      4
+      Points		      [5, 0; 0, 145]
       DstBlock		      "Data Type Conversion7"
       DstPort		      1
     }
     Line {
-      Name		      "salida_pi"
-      Labels		      [2, 0]
       SrcBlock		      "Data Type Conversion7"
       SrcPort		      1
-      Points		      [45, 0; 0, -115]
-      DstBlock		      "Mux"
-      DstPort		      5
+      Points		      [40, 0; 0, 15]
+      DstBlock		      "Mux1"
+      DstPort		      2
+    }
+    Line {
+      SrcBlock		      "Mux1"
+      SrcPort		      1
+      Points		      [10, 0; 0, -130]
+      DstBlock		      "Scope"
+      DstPort		      2
     }
   }
 }

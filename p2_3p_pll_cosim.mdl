@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.23"
+    ComputedModelVersion    "1.24"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -43,8 +43,8 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "Administrador"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Tue Dec 18 18:48:57 2007"
-  ModelVersionFormat	  "1.%<AutoIncrement:23>"
+  LastModifiedDate	  "Wed Dec 19 15:57:12 2007"
+  ModelVersionFormat	  "1.%<AutoIncrement:24>"
   ConfigurationManager	  "None"
   LinearizationMsg	  "none"
   Profile		  off
@@ -770,8 +770,8 @@ Model {
 	axes1			"%<SignalLabel>"
 	axes2			"%<SignalLabel>"
       }
-      YMin		      "-3.5~-0.8"
-      YMax		      "3.5~1.1"
+      YMin		      "-3.5~-0.05"
+      YMax		      "3.5~1"
       DataFormat	      "StructureWithTime"
       MaxDataPoints	      "500000"
       SampleTime	      "0"
@@ -782,7 +782,7 @@ Model {
       Ports		      [0, 1]
       Position		      [235, 385, 265, 415]
       SineType		      "Time based"
-      Frequency		      "2*pi*50"
+      Frequency		      "2*pi*50.5"
     }
     Block {
       BlockType		      Sin
@@ -790,7 +790,7 @@ Model {
       Ports		      [0, 1]
       Position		      [235, 435, 265, 465]
       SineType		      "Time based"
-      Frequency		      "2*pi*50"
+      Frequency		      "2*pi*50.5"
       Phase		      "-2*pi/3"
     }
     Block {
@@ -799,7 +799,7 @@ Model {
       Ports		      [0, 1]
       Position		      [235, 490, 265, 520]
       SineType		      "Time based"
-      Frequency		      "2*pi*50"
+      Frequency		      "2*pi*50.5"
       Phase		      "2*pi/3"
     }
     Block {
@@ -844,7 +844,6 @@ Model {
     Line {
       SrcBlock		      "Switch"
       SrcPort		      1
-      Points		      [60, 0]
       DstBlock		      "Data Type Conversion2"
       DstPort		      1
     }
@@ -858,7 +857,6 @@ Model {
     Line {
       SrcBlock		      "Step1"
       SrcPort		      1
-      Points		      [20, 0]
       DstBlock		      "Data Type Conversion3"
       DstPort		      1
     }
@@ -946,21 +944,26 @@ Model {
     Line {
       SrcBlock		      "Sine Wave1"
       SrcPort		      1
-      Points		      [15, 0]
-      DstBlock		      "Data Type Conversion"
-      DstPort		      1
+      Points		      [10, 0]
+      Branch {
+	DstBlock		"Data Type Conversion"
+	DstPort			1
+      }
+      Branch {
+	Points			[0, -55; -115, 0; 0, -275; 395, 0; 0, 125]
+	DstBlock		"Mux"
+	DstPort			1
+      }
     }
     Line {
       SrcBlock		      "Sine Wave2"
       SrcPort		      1
-      Points		      [15, 0]
       DstBlock		      "Data Type Conversion8"
       DstPort		      1
     }
     Line {
       SrcBlock		      "Sine Wave3"
       SrcPort		      1
-      Points		      [15, 0]
       DstBlock		      "Data Type Conversion9"
       DstPort		      1
     }
