@@ -4,8 +4,8 @@
 -- test. That's when the idea of full FPGA separation appeared.
 -- * Internally, spll uses only 1 / 0 logic. This file adds the 3rd state
 -- output pins.
--- * Allows for usage of a DCM, without messing Xilinx details inside spll.vhd file
--- * Allows the definition of debug lines, that duplicate the ouput of
+-- * Allows for usage of a DCM, without messing with Xilinx details inside spll.vhd file
+-- * Allows the definition of debug lines, which duplicate the output of
 -- internal or input signals
 --
 -- *** CHANGELOG ***

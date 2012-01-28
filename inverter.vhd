@@ -1,3 +1,8 @@
+-- *** Short desc
+--
+-- Inverts a given vector of bits; that is, input is considered a number in 2s complement, and
+-- "inverts" it so that a + (-a) = 0
+
 library IEEE;
 library WORK;
 use IEEE.STD_LOGIC_1164.ALL;

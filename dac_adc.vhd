@@ -10,25 +10,32 @@
 -- Tool versions:
 --
 -- *** Description ***
--- This is the Interface to the Digilent LT SPI ADC and DAC ICs
--- Digilent board includes a quad DAC and ADC, connected thru a shared SPI bus.
+--
+-- This is the Interface to the Digilent LT SPI ADC and DAC ICs. Digilent board includes a quad DAC
+-- and ADC, connected thru a shared SPI bus.
+--
 -- ** ICs specs **
+--
 -- * DAC specs *
 --  -> -3 db freq: 180 KHz. At 100 KHz response is still at 0 dB.
 --  -> 12 bit resolution (32 bit instruction size)
+--
 -- * ADC specs *
 --  -> 14 bit resolution
 --  -> Bipolar input range, representation of value in 2s complement (1 bit for
 --  magnitude)
+--
 --  With the FPGA board input stage, dynamic range is +- 1.25 V, centered in
 --  1.65 V
 -- 
 -- ** SPI driving **
+--
 -- To simplify implementation and avoid carefull checking of LTC devices timings,
 -- we're gonna drive the SPI bus at half sys clk => 25 MHz. It's fast enough for
 -- our app and allows design simplification.
 --
 -- * Delay between DAC and ADC *
+--
 -- One basic problem arises: both devices cannot be driven simultaneously, as
 -- both share the SPI bus. Ideally, on a sampling (discreete time) system:
 --     ^
@@ -38,63 +45,68 @@
 -- Out-| old  - new
 --     |      |
 --     -------|------> t
+--
 -- New input sample and new ouput sample should be captured at the same moment. Here our decision is
--- to first set the new value with the DAC and after the minimum possible delay
--- (1 / 25 MHz * 32 bits, plus a little more) get the new [old :)] input.
+-- to first set the new value with the DAC and after the minimum possible delay (1 / 25 MHz * 32
+-- bits, plus a little more) get the new [old :)] input.
 -- 
 -- ** Sample frequency **
--- We set the INPUT and OUPUT sampling freq. to 10 KHz, so we have enough 
--- room. Also, no more sampling freq is needed in our app.
+--
+-- We set the INPUT and OUPUT sampling freq. to 10 KHz, so we have enough room. Also, higher
+-- sampling freq is not needed in our app.
 -- 
 -- * How to set DAC fs *
+--
 -- Sampling freq depends on the signals sent by the FPGA (esentially last SPI SCK 
 -- rising edge). We must be carefull and get a steady SCK signal clock
 -- 
 -- 
--- *** HOW TO CONTROL IT ***
--- Tell it to run (run = 1). It has its own "internal reference" of timings, as this block 
--- takes care of maintaining a CONSTANT fs (sampling period).
+-- *** HOW TO CONTROL ME ***
+--
+-- Tell me to run (run = 1). I have my own "internal reference" of timings, as this block takes care
+-- of maintaining a CONSTANT fs (sampling period).
 -- 
 -- PORT DESCRIPTION:
 -- * [out] have_sample: sube a 1 durante 1 ciclo: el siguiente a recibir el nuevo valor del adc
 --                      Justo durante ese ciclo ya está el nuevo valor de entrada en in_sample.
 -- * [out] need_sample: sube a 1 durante 1 ciclo, el anterior a tener q usar el nuevo valor para el DAC.
 --                      Justo en el siguiente rising edge, el valor en out_sample es leído
--- Dependencies:
--- 
+--
 -- Todo:
 -- | * (DONE) Check what problems can arise if interface with internal logic is driven by the half
 -- |   speed clock
 -- |   THERE WAS NOT half speed interfacing with the rest of the world at all
 -- | * Study fusion of dac and adc st control. They're not the same but quite similar.
 -- | * Study posibility of reducing global cntr size at least by 1 by using a reduced input clock
--- Revision:
--- Revision 0.07 - REVERT last BUG CORRECTION (adc_shift_reg we signal). IT WAS
--- OK (remember once WE is up, it's in next cycle when storing takes place!!).
--- Also, revert one of the assert, which was incorrect (the one on run_dac and
--- global st DAC_LAST)
--- Revision 0.06 - Added some more asserts missing in some elses in signal
--- generation procedures. CORRECTED adc shift register WE signal genereation:
--- it was being generating in the first data sub state; in this substate,
--- spi_clk is being rised, and we have to wait till it's stable, in the next substate.
--- Revision 0.05 - Some minor changes. adc_spi_miso (specific miso ADC) was not
--- being used, as input shit reg was being driven directly with global miso
--- signal. In global_st FSM signal generation process, some drivings for
--- global_cnt_d were missing, making synthesizer think it was a register and
--- not "logic". adc_shift_reg_load was not being used, as in adc shift reg port
--- map, load port was being directly tied to 0 value
--- Revision 0.04 - Final corrections: corrected total clock count (to get a
--- fixed 20 KHz signal), I was not waiting between ADC transfers, and
--- have_sample signal implementation was missing
--- Revision 0.03 - Removed Z output on dac_spi_sck, adc_spi_sck and
--- dac_spi_mosi on respective signal gen processes. We're not being as
--- "optimal" as we could, as in reality thru the use of spi_owned we're wasting
--- more SPI cycles (two or three as much) as the real ones needed to finish the
--- communication with ADC and DAC. But this way, it's easier. 
+--
+-- *** Revision ***
+--
+-- Revision 0.07 - REVERT last BUG CORRECTION (adc_shift_reg we signal). IT WAS OK (remember once WE
+-- is up, it's in next cycle when storing takes place!!).  Also, revert one of the assert, which was
+-- incorrect (the one on run_dac and global st DAC_LAST)
+--
+-- Revision 0.06 - Added some more asserts missing in some elses in signal generation
+-- procedures. CORRECTED adc shift register WE signal genereation: it was being generating in the
+-- first data sub state; in this substate, spi_clk is being rised, and we have to wait till it's
+-- stable, in the next substate.
+--
+-- Revision 0.05 - Some minor changes. adc_spi_miso (specific miso ADC) was not being used, as input
+-- shit reg was being driven directly with global miso signal. In global_st FSM signal generation
+-- process, some drivings for global_cnt_d were missing, making synthesizer think it was a register
+-- and not "logic". adc_shift_reg_load was not being used, as in adc shift reg port map, load port
+-- was being directly tied to 0 value
+--
+-- Revision 0.04 - Final corrections: corrected total clock count (to get a fixed 20 KHz signal), I
+-- was not waiting between ADC transfers, and have_sample signal implementation was missing
+--
+-- Revision 0.03 - Removed Z output on dac_spi_sck, adc_spi_sck and dac_spi_mosi on respective
+-- signal gen processes. We're not being as "optimal" as we could, as in reality thru the use of
+-- spi_owned we're wasting more SPI cycles (two or three as much) as the real ones needed to finish
+-- the communication with ADC and DAC. But this way, it's easier.
+--
 -- Revision 0.02 - First edited thru Emacs! Long life to Emacs! (and vhdl-mode)
+--
 -- Revision 0.01 - File Created
--- Additional Comments:
--- 
 --------------------------------------------------------------------------------
 
 library IEEE;

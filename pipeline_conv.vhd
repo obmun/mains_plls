@@ -1,23 +1,13 @@
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
---
--- Create Date:    09:55:04 06/26/06
--- Design Name:    
--- Module Name:    pipeline_expander - alg
--- Project Name:   
--- Target Device:  
--- Tool versions:  
--- Description:
---
--- Dependencies:
--- 
 -- *** Changelog ***
+--
 -- Revision 0.02 - Port renaming and file structure change to overcome ModelSim
 -- simulator problem!
+--
 -- Revision 0.01 - File Created
--- Additional Comments:
--- TODO:
+--
+-- *** TODO ***
+--
 -- * MAKE rounding mode configurable thru a generic
 -- * ADD A SECOND ARCHITECTURE WITH A CORRECT ROUNDING MODE. But I don't really
 -- know if I'm gonna need it
