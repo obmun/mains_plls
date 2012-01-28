@@ -1,0 +1,17 @@
+NET "adc_conv"  LOC = "P11" | IOSTANDARD = LVCMOS33  | DRIVE = 6  | SLEW = SLOW ; 
+NET "amp_ncs"  LOC = "N7" | IOSTANDARD = LVCMOS33  | DRIVE = 6  | SLEW = SLOW ; 
+NET "amp_shdn"  LOC = "P7" | IOSTANDARD = LVCMOS33 | DRIVE = 6  | SLEW = SLOW ;
+NET "clk"  LOC = "C9" | IOSTANDARD = LVCMOS33 ; 
+NET "dac_clr"  LOC = "P8" | IOSTANDARD = LVCMOS33  | DRIVE = 8  | SLEW = SLOW ; 
+NET "dac_ncs"  LOC = "N8" | DRIVE = 8  | SLEW = SLOW  | IOSTANDARD = LVCMOS33 ; 
+NET "isf_ce0"  LOC = "D16" | IOSTANDARD = LVCMOS33 ; 
+NET "spi_miso"  LOC = "N10" | IOSTANDARD = LVCMOS33 ; 
+NET "spi_mosi"  LOC = "T4" | IOSTANDARD = LVCMOS33  | DRIVE = 6 | SLEW = SLOW ; 
+NET "spi_sck"  LOC = "U16" | IOSTANDARD = LVCMOS33  | DRIVE = 6 | SLEW = SLOW ; 
+NET "stsf_b"  LOC = "U3" | IOSTANDARD = LVCMOS33  | SLEW = SLOW ; 
+NET "xpf_init_b"  LOC = "T3" | IOSTANDARD = LVCMOS33  | DRIVE = 4  | SLEW = SLOW ; 
+NET "debug_d7" LOC = "D7" | IOSTANDARD = LVCMOS33 | DRIVE = 6 | SLEW = SLOW;
+NET "debug_c7" LOC = "C7" | IOSTANDARD = LVTTL | DRIVE = 8 | SLEW = SLOW;
+NET "debug_f8" LOC = "F8" | IOSTANDARD = LVCMOS33 | DRIVE = 6 | SLEW = SLOW;
+NET "debug_e8" LOC = "E8" | IOSTANDARD = LVCMOS33 | DRIVE = 6 | SLEW = SLOW;
+NET "led"  LOC = "F12" | IOSTANDARD = LVTTL  | SLEW = SLOW  | DRIVE = 8 ;
