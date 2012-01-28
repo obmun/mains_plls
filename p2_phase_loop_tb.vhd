@@ -20,7 +20,7 @@ begin  -- beh
                         clk => clk_s,
                         rst => rst_s,
                         run => run_s,
-                        norm_input => norm_input_s,
+                        input => norm_input_s,
                         phase => phase_s,
                         norm_sin => norm_s,
                         done => done_s);

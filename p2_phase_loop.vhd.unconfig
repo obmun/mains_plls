@@ -12,24 +12,32 @@
 -- Tool versions:
 --
 -- *** Short desc ***
+--
 -- Class: sequential iterative
+--
 -- The PLL phase loop for the PLLMonofasicoImplementarBeta2 design (see
 -- october_2007 paper)
 --
 -- *** Description ***
+--
 -- Has: synchronous reset.
 --
 -- ** PORT DESCRIPTION **
--- rst -> Synchronous reset port. A reset ONLY initializes some seq elements to a initial known state, but does not reset some big internal storage elements as buffers (see FA). It's stupid as the presence of a FA will always mean that a big initial # of samples are needed to obtain stable output.
+--
+-- rst -> Synchronous reset port. A reset ONLY initializes some seq elements to a initial known
+-- state, but does not reset some big internal storage elements as buffers (see FA). It's stupid as
+-- the presence of a FA will always mean that a big initial # of samples are needed to obtain stable
+-- output.
 --
 -- Dependencies:
 -- 
 -- *** Changelog ***
--- Revision 0.02 - Gain on the first IIR LPF filter is moved to the freq2phase
--- block. This way, precision can be keep high on the filters path, as error
--- output should not be really "that" high (4 bits enough? => max 8 as
--- magnitude). We need the prec. due to the IIR filter nature (see PFC doc).
--- IIR filters are wrapped with an ext_pipeline_width, and 14 bits prec!
+--
+-- Revision 0.02 - Gain on the first IIR LPF filter is moved to the freq2phase block. This way,
+-- precision can be keep high on the filters path, as error output should not be really "that" high
+-- (4 bits enough? => max 8 as magnitude). We need the prec. due to the IIR filter nature (see PFC
+-- doc).  IIR filters are wrapped with an ext_pipeline_width, and 14 bits prec!
+--
 -- Revision 0.01 - File Created, following Fran Simulink model
 -- 
 --------------------------------------------------------------------------------
@@ -42,20 +50,22 @@ use WORK.COMMON.all;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
 
+
 entity p2_phase_loop is
-	port (
-		clk, rst, run : in std_logic;
-		input : in std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-		phase, norm_sin : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-		-- freq : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0); I CANNOT SHOW FREQ!!!! 50 => 6 bits magnitude!!!!!!
-		done : out std_logic);
+     port (
+          clk, rst, run : in std_logic;
+          input : in std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+          phase, norm_sin : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+          -- freq : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0); I CANNOT SHOW FREQ!!!! 50 => 6 bits magnitude!!!!!!
+          done : out std_logic);
 end p2_phase_loop;
 
+
 architecture beh of p2_phase_loop is
-	-- Types
-	type state_t is (ST_DONE, ST_RUNNING, ST_LAST);
-        type coef_1st_ord is array (0 to 1) of real;
-        type coef_2nd_ord is array (0 to 2) of real;
+     -- Types
+     type state_t is (ST_DONE, ST_RUNNING, ST_LAST);
+     type coef_1st_ord is array (0 to 1) of real;
+     type coef_2nd_ord is array (0 to 2) of real;
 
         -- Some constants
         constant coef_2nd_ord_filt_num : coef_2nd_ord := (0.972, -1.94, 0.972);
@@ -89,7 +99,7 @@ begin
 		port map (
 			run => phase_det_run_s,
                         rst => rst, clk => clk,
-			norm_input => input,
+			input => input,
 			curr_phase => phase_s,
 			-- Out value signals
 			phase_error => phase_det_out_s,
