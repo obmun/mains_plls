@@ -1,0 +1,5 @@
+=== Short description ===
+
+Modelsim project for Cordic co-simulation
+
+Stupid Modelsim project holding all required .vhds for compiling Cordic entity.
