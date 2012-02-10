@@ -40,8 +40,11 @@ phase_loop.vhd.backup
 *.edn
 *.fdo
 *.html
+*.lck
 *.ldo
+*.lpc
 *.lso
+*.map
 *.ncd
 *.ndo
 *.ngc
@@ -52,6 +55,7 @@ phase_loop.vhd.backup
 *.par
 *.pcf
 *.prj
+*.ptwx
 *.ref
 *.sdf
 *.stx
@@ -60,21 +64,28 @@ phase_loop.vhd.backup
 *.twr
 *.twx
 *.untf
+*.unroutes
 *.ut
 *.v
 *.veo
 *.vhdsim_*
 *.vho
 *.xco
+*.xml
 *.xpi
+*.xrpt
+*.xst
 *_log
 *_tracker
 *pad_txt
 
-__projnav*
+iseconfig/*
 mppr_result*
+planAhead*
 slprj/*
 work\*
+_xmsgs/*
+__projnav*
 
 *.mrp
 *.nc1
@@ -96,5 +107,6 @@ _ngo*
 # Other things ...
 
 modelsim/work/*
+modelsim/*.mti
 
 *~
