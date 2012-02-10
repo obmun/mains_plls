@@ -27,46 +27,46 @@
 -- el algoritmo Cordic.
 --
 -- == Implementacion ==
--- La implementación original "forzaba" demasiadas cosas en lugar de dar
--- flexibilidad al sintetizador, con lo que tenía un problema principal: poco flexible.
 --
--- Para poder implementar una LUT utilizable si se aumentaba la precisión, se
--- decidió "almacenar" los ángulos para una precisión máxima alta, q sabemos
--- dificilmente llegaremos a utilizar en el diseño. En este caso, ese valor de
--- precisión es de **24 BITS**.
+-- La implementación original "forzaba" demasiadas cosas en lugar de dar flexibilidad al
+-- sintetizador, con lo que tenía un problema principal: poco flexible.
 --
--- Como no todos los ángulos pueden ser necesarios (direccionamiento) ni todos los
--- bits de precisión son necesarios (trimming de los bits finales de las
--- palabras), las siguientes decisiones se tomaron:
--- * La dirección de entrada no es un logic_vector, si no diretamente un
--- entero. La dirección máxima se fija mediante un generic, utilizado en un
--- assert para emitir un error en caso de ser este valor superado [la
--- explicación de por qué se usa un assert, a continuación]
--- * Se intentó, para el caso del Xilinx ISE 7.1, codificar un límite para la
--- dirección (subrango en el puerto de entrada de la dirección, subtypo con
--- limitación de rango, if en el proceso para fijar una dirección local a un
--- máximo en caso que la dirección de entrada superase un valor) sin éxito. La
--- síntesis en lugar de mejorar [infiriendo roms de menor anchura y tamaño], empeoraba en gran medida: la herramienta no
--- era capaz de seguir infiriendo una ROM. La gran disponibilidad de memoria /
--- ROM distribuidas / concentradas en esta y prácticamente cualquier otra FPGA,
--- y el tamaño reducido de la ROM final implementada (aún en el caso de usar
--- todos los datos) hacen que NO MEREZCA LA PENA rallarse la
--- cabeza buscando reducir la anchura de palabra de la ROM de los 24 bits
--- originales a menos o del tamaño de la ROM de 26 a menos.
--- * Es muy fácil conseguir la asignación correcta de los bits de salida,
--- quedándose sólo con la precisión necesaria de los valores almacenados.
+-- Para poder implementar una LUT utilizable si se aumentaba la precisión, se decidió "almacenar"
+-- los ángulos para una precisión máxima alta, q sabemos dificilmente llegaremos a utilizar en el
+-- diseño. En este caso, ese valor de precisión es de **24 BITS**.
 --
--- This was quickly implemented by extensive use of emacs macros and a pair of
--- Matlab script for easily calculating the binary values of the angles.
+-- Como no todos los ángulos pueden ser necesarios (direccionamiento) ni todos los bits de precisión
+-- son necesarios (trimming de los bits finales de las palabras), las siguientes decisiones se
+-- tomaron:
+--
+-- * La dirección de entrada no es un logic_vector, si no diretamente un entero. La dirección máxima
+-- se fija mediante un generic, utilizado en un assert para emitir un error en caso de ser este
+-- valor superado [la explicación de por qué se usa un assert, a continuación]
+--
+-- * Se intentó, para el caso del Xilinx ISE 7.1, codificar un límite para la dirección (subrango en
+-- el puerto de entrada de la dirección, subtypo con limitación de rango, if en el proceso para
+-- fijar una dirección local a un máximo en caso que la dirección de entrada superase un valor) sin
+-- éxito. La síntesis en lugar de mejorar [infiriendo roms de menor anchura y tamaño], empeoraba en
+-- gran medida: la herramienta no era capaz de seguir infiriendo una ROM. La gran disponibilidad de
+-- memoria / ROM distribuidas / concentradas en esta y prácticamente cualquier otra FPGA, y el
+-- tamaño reducido de la ROM final implementada (aún en el caso de usar todos los datos) hacen que
+-- NO MEREZCA LA PENA rallarse la cabeza buscando reducir la anchura de palabra de la ROM de los 24
+-- bits originales a menos o del tamaño de la ROM de 26 a menos.
+--
+-- * Es muy fácil conseguir la asignación correcta de los bits de salida, quedándose sólo con la
+-- precisión necesaria de los valores almacenados.
+--
+-- This was quickly implemented by extensive use of emacs macros and a pair of Matlab script for
+-- easily calculating the binary values of the angles.
 --
 -- Dependencies:
 -- 
 -- === Changelog ===
--- Revision 0.02 - Cambio radical. Más anchura, más tamaño, para flexibilizar y
--- posibilitar su uso en cualquier situación.
+--
+-- Revision 0.02 - Cambio radical. Más anchura, más tamaño, para flexibilizar y posibilitar su uso
+-- en cualquier situación.
+--
 -- Revision 0.01 - File Created
--- Additional Comments:
--- 
 --------------------------------------------------------------------------------
 library IEEE;
 library WORK;
