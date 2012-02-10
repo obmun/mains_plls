@@ -76,9 +76,6 @@ mppr_result*
 slprj/*
 work\*
 
-
-
-
 *.mrp
 *.nc1
 *_Backup
@@ -88,7 +85,6 @@ work\*
 *.nlf
 *_synth
 
-
 *.tdo
 *.udo
 _cg*
@@ -97,6 +93,8 @@ _ngo*
 *.cfg
 *.wlf
 
-modelsim*
+# Other things ...
+
+modelsim/work/*
 
 *~
