@@ -1,6 +1,6 @@
 function path = CORDIC_MODELSIM_PROJECT_PATH
 
-path = 'C:\Users\obmun\Documents\pfc\spll\modelsim';
+path = PFC_MODELSIM_PROJECTS_PATH;
 
 end
 

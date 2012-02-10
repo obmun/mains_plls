@@ -15,6 +15,9 @@ function cordic_tb(hdli_obj)
 %
 % This function makes use of an instance object, so make sure to instruct
 % the EDA software to make use of it
+%
+% == TODO ==
+% * Implement the 2nd part (the random part). Really necesary?
 
 %%
 rst = [0 '1'; 1 '0'];
