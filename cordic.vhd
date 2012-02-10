@@ -356,7 +356,7 @@ begin
 	step_counter : process(clk)
 		variable step_counter : std_logic_vector((integer(round(ceil(log2(real(prec - 1))))) - 1) downto 0);
 	begin
-                assert false report "Cordic step counter width: " & integer'image(integer(round(ceil(log2(real(prec)))))) severity note;
+               -- assert false report "Cordic step counter width: " & integer'image(integer(round(ceil(log2(real(prec)))))) severity note;
                 
 		if (rising_edge(clk)) then
 			if (init = '1') then
