@@ -16,20 +16,28 @@
 -- A PLL phase loop. Follows Cordic signals interface (RUN/DONE iface)
 --
 -- *** Description ***
+--
 -- Has: synchronous reset.
 --
 -- ** PORT DESCRIPTION **
--- rst -> Synchronous reset port. A reset ONLY initializes some seq elements to a initial known state, but does not reset some big internal storage elements as buffers (see FA). It's stupid as the presence of a FA will always mean that a big initial # of samples are needed to obtain stable output.
+--
+-- rst -> Synchronous reset port. A reset ONLY initializes some seq elements to a initial known
+-- state, but does not reset some big internal storage elements as buffers (see FA). It's stupid, as
+-- the presence of a FA will always mean that a big initial # of samples are needed to obtain stable
+-- output.
 --
 -- Dependencies:
 -- 
 -- *** Changelog ***
--- Revision 0.04 - Added register in the middle of a big big big combinational
--- path (pi_int -> pi_adder -> freq2phase input adder -> freq_2_phase reg).
--- Added at 37 % of total delay path [not the best place], in a "correct"
--- place. pi -> REG -> freq2phase
+--
+-- Revision 0.04 - Added register in the middle of a big big big combinational path (pi_int ->
+-- pi_adder -> freq2phase input adder -> freq_2_phase reg).  Added at 37 % of total delay path [not
+-- the best place], in a "correct" place. pi -> REG -> freq2phase
+--
 -- Revision 0.03 - Super change. Now, makes use of new seq. block control iface
+--
 -- Revision 0.02 - Interface modification. Good phase_det cycle integration with rest of pipeline.
+--
 -- Revision 0.01 - File Created
 -- 
 --------------------------------------------------------------------------------
@@ -129,7 +137,7 @@ begin
                         width => PIPELINE_WIDTH,
                         prec  => PIPELINE_PREC,
                         k => AC_FREQ,
-                        delay => 100,     -- fs / 100 Hz = 10000 / 100 = 1ç00
+                        delay => 100,     -- fs / 100 Hz = 10000 / 100 = 100
                         delayer_width => 2)
 		port map (
 			clk => clk, rst => rst,

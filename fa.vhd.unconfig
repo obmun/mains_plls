@@ -16,14 +16,19 @@
 -- Troughoutput: 1 sample / cycle
 -- 
 -- *** BRIEF DESCRIPTION ***
+--
 -- Class: sequential
--- Moving Averega Filter, recursive implementation, with configurable delay (rejected harmonic frequencies thru generic ports.
+--
+-- Moving Average Filter, recursive implementation, with configurable delay (rejected harmonic frequencies thru generic ports.
+--
 -- Works on clock's rising edge and has synchronous reset.
 -- 
 -- *** DESCRIPTION ***
+--
 -- Includes a synchronous reset.
--- It's an IIR, so you should be using a LOT OF PRECISION!!! when implementing
--- this thing. You have been warned.
+--
+-- It's an IIR, so you should be using a LOT OF PRECISION!!! when implementing this thing. You have
+-- been warned.
 -- 
 -- == PORT DESCRIPTION ==
 -- = Generics =
@@ -32,18 +37,24 @@
 -- * delay: # of clocks of delay (at least 1)
 -- 
 -- *** Changelog ***
--- Revision 0.05 - Stop fucking, please. CHANGED the implementation. This is
--- the REAL ONE. Check PFC notes.
--- Revision 0.04 - With change of kcm, no input multiplying constant is real
--- and user must not scale it by SAMPLING_PERIOD as its done inside the kcm_integrator.
+--
+-- Revision 0.05 - Stop fucking, please. CHANGED the implementation. This is the REAL ONE. Check PFC
+-- notes.
+--
+-- Revision 0.04 - With change of kcm, no input multiplying constant is real and user must not scale
+-- it by SAMPLING_PERIOD as its done inside the kcm_integrator.
+--
 -- Revision 0.03 - Implement new seq. control iface. REALLY create the generic
 -- for freq. and k control, instead of just advertising it in the brief description
+--
 -- Revision 0.02 - Added run / done style PORTS for syncronization with other sequential algorithms.
+--
 -- Revision 0.01 - File Created
 --
 -- *** Todo ***
 -- | 1.- REVIEW SINTHESIS!!!
 -- | 2.- Correctly implement RST behaviour!!!
+-- | 3.- Rename architecture from beh (behavioural) to what really is: structural!
 --------------------------------------------------------------------------------
 
 #include "configuration.inc"
