@@ -1,0 +1,6 @@
+function path = KCM_COSIM_TB_MODELSIM_PROJECT_PATH
+
+path = PFC_MODELSIM_PROJECTS_PATH;
+
+end
+
