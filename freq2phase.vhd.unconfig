@@ -1,17 +1,6 @@
--- -*- Mode: vhdl -*-
-
 --------------------------------------------------------------------------------
--- Company: Universidad de Vigo
--- Engineer: Jacobo Cabaleiro
---
--- Create Date:    
--- Design Name:    
--- Module Name:    freq2phase - alg
--- Project Name:   
--- Target Device:  
--- Tool versions:  
---
 -- *** BRIEF DESCRIPTION ***
+--
 -- Class: sequential.
 -- Entity that transforms freq + phase error info to instant phase for
 -- normalized signal generation. Return angle is in range - PI < angle <= PI
@@ -25,10 +14,12 @@
 -- known state.
 -- 
 -- ** PORT DESCRIPTION **
+--
 -- gain -> input port gain. Input values are pre-multiplied by this value
 -- rst -> synchronous reset signal
 -- 
 -- ** IMPLEMENTATION **
+--
 -- Why return between (-PI, PI] and not [0, 2PI)? It must be done this way and
 -- not with a normal integrator for two reasons:
 -- -> Output angle abs value must be limited to 0 < abs < PI. Other-
@@ -40,20 +31,26 @@
 --    Solution (lets supose Fs = 10 Khz): 2*pi*50 * SAMPLE_PERIOD = 0.031416!!!!
 -- 
 -- ** SPEED **
+--
 -- There is a big combinational depth in the path fa -> pi_kp -> freq2phase.
 -- Must be corrected outside this element.
 --
--- Dependencies:
--- 
 -- *** Revision ***
+--
 -- Revision 0.07 - Added optional input gain (we can afford it, as we scale
 -- down the input for its integration)
+--
 -- Revision 0.06 - Generic controllable pipeline width
+--
 -- Revision 0.05 - Added new seq. block control iface. Removed the speed up register.
+--
 -- Revision 0.04 - Added run / done style ports
+--
 -- Revision 0.03 - Integrated extra register to achieve better peformance (this had a hot path with
 --                 to much logic levels).
+--
 -- Revision 0.02 - Integrated central freq., mixed with Tp mul to avoid overflow of data path
+--
 -- Revision 0.01 - First version
 --
 -- *** TODO ***
@@ -68,129 +65,131 @@ use WORK.COMMON.all;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
 
+
 entity freq2phase is
-        -- rev 0.07
-	generic (
-		width : natural := PIPELINE_WIDTH;
-                prec : natural := PIPELINE_PREC;
-                gain: real := 1.0;
-                -- Seq. block iface
-                delayer_width : natural := 1);
-        
-	port (
-		clk, rst : in std_logic;
-		f : in std_logic_vector(width - 1 downto 0);
-		p : out std_logic_vector(width - 1 downto 0);
-                run_en : in std_logic;
-                run_passthru : out std_logic;
-                delayer_in : in std_logic_vector(delayer_width - 1 downto 0);
-                delayer_out : out std_logic_vector(delayer_width - 1 downto 0));
+     -- rev 0.07
+     generic (
+          width : natural := PIPELINE_WIDTH;
+          prec : natural := PIPELINE_PREC;
+          gain: real := 1.0;
+          -- Seq. block iface
+          delayer_width : natural := 1);
+     
+     port (
+          clk, rst : in std_logic;
+          f : in std_logic_vector(width - 1 downto 0);
+          p : out std_logic_vector(width - 1 downto 0);
+          run_en : in std_logic;
+          run_passthru : out std_logic;
+          delayer_in : in std_logic_vector(delayer_width - 1 downto 0);
+          delayer_out : out std_logic_vector(delayer_width - 1 downto 0));
 end freq2phase;
 
+
 architecture beh of freq2phase is
-        -- Intermediate constants
-        constant ac_freq_val : std_logic_vector(width - 1 downto 0) := to_vector(AC_FREQ_SAMPLE_SCALED, width, prec);
-        
-        -- Component declarations
-        component adder is
-                generic (
-                        width : natural := PIPELINE_WIDTH);
-                port (
-                        a, b: in std_logic_vector(width - 1 downto 0);
-                        o: out std_logic_vector(width - 1 downto 0);
-                        f_ov, f_z: out std_logic);
-        end component;
+     -- Intermediate constants
+     constant ac_freq_val : std_logic_vector(width - 1 downto 0) := to_vector(AC_FREQ_SAMPLE_SCALED, width, prec);
+     
+     -- Component declarations
+     component adder is
+          generic (
+               width : natural := PIPELINE_WIDTH);
+          port (
+               a, b: in std_logic_vector(width - 1 downto 0);
+               o: out std_logic_vector(width - 1 downto 0);
+               f_ov, f_z: out std_logic);
+     end component;
 
-	component k_gt_comp is
-		generic (
-			width : natural := PIPELINE_WIDTH;
-			k : pipeline_integer := 0);
-		port (
-			a : in std_logic_vector(width - 1 downto 0);
-			a_gt_k : out std_logic);
-	end component;
+     component k_gt_comp is
+          generic (
+               width : natural := PIPELINE_WIDTH;
+               k : pipeline_integer := 0);
+          port (
+               a : in std_logic_vector(width - 1 downto 0);
+               a_gt_k : out std_logic);
+     end component;
 
-	component reg is
-		generic (
-			width : natural := PIPELINE_WIDTH);
-		port (
-			clk, we, rst : in std_logic;
-			i : in std_logic_vector (width - 1 downto 0);
-			o : out std_logic_vector (width - 1 downto 0));
-	end component;
-        
-        -- Signals
-        signal gt_pi : std_logic;
-        signal reg_out, kcm_out, fb_adder_out, in_adder_out, pi_limit_out : std_logic_vector(width - 1 downto 0);
-        signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
+     component reg is
+          generic (
+               width : natural := PIPELINE_WIDTH);
+          port (
+               clk, we, rst : in std_logic;
+               i : in std_logic_vector (width - 1 downto 0);
+               o : out std_logic_vector (width - 1 downto 0));
+     end component;
+     
+     -- Signals
+     signal gt_pi : std_logic;
+     signal reg_out, kcm_out, fb_adder_out, in_adder_out, pi_limit_out : std_logic_vector(width - 1 downto 0);
+     signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
 
 begin
-	k_gt_comp_i : entity work.k_gt_comp(beh)
-		generic map (
-                        width => width, prec => prec,
-			k => PI)
-		port map (
-			a => fb_adder_out,
-			a_gt_k => gt_pi);
+     k_gt_comp_i : entity work.k_gt_comp(beh)
+          generic map (
+               width => width, prec => prec,
+               k => PI)
+          port map (
+               a => fb_adder_out,
+               a_gt_k => gt_pi);
 
-	kcm_i : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
-		generic map (
-                        width => width, prec => prec,
-			k => SAMPLING_PERIOD * gain)
-		port map (
-			i => f,
-			o => kcm_out);
+     kcm_i : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
+          generic map (
+               width => width, prec => prec,
+               k => SAMPLING_PERIOD * gain)
+          port map (
+               i => f,
+               o => kcm_out);
 
-	in_adder : adder
-                generic map (
-                        width => width)
-		port map (
-			a => kcm_out,
-			b => ac_freq_val,
-			o => in_adder_out);
+     in_adder : adder
+          generic map (
+               width => width)
+          port map (
+               a => kcm_out,
+               b => ac_freq_val,
+               o => in_adder_out);
 
-	fb_adder : adder
-		port map (
-			a => in_adder_out,
-			b => reg_out,
-			o => fb_adder_out);
+     fb_adder : adder
+          port map (
+               a => in_adder_out,
+               b => reg_out,
+               o => fb_adder_out);
 
-	reg_i : reg
-		port map (
-			clk => clk, we => run_en, rst => rst,
-			i => pi_limit_out, o => reg_out
-		);
+     reg_i : reg
+          port map (
+               clk => clk, we => run_en, rst => rst,
+               i => pi_limit_out, o => reg_out
+               );
 
-	k_2pi_sub_i : entity work.k_2pi_sub(beh)
-                generic map (
-                        width => width,
-                        prec  => prec)
-		port map (
-			en => gt_pi,
-			i => fb_adder_out,
-			o => pi_limit_out);
+     k_2pi_sub_i : entity work.k_2pi_sub(beh)
+          generic map (
+               width => width,
+               prec  => prec)
+          port map (
+               en => gt_pi,
+               i => fb_adder_out,
+               o => pi_limit_out);
 
-        delayer : reg
-                generic map (
-                        width => delayer_width)
-		port map (
-			clk => clk, we => '1', rst => rst,
-			i => delayer_in_s,
-			o => delayer_out_s);
+     delayer : reg
+          generic map (
+               width => delayer_width)
+          port map (
+               clk => clk, we => '1', rst => rst,
+               i => delayer_in_s,
+               o => delayer_out_s);
 
-        single_delayer_gen: if (delayer_width = 1) generate
-                delayer_in_s(0) <= run_en;
-                run_passthru <= std_logic(delayer_out_s(0));
-                delayer_out(0) <= delayer_out_s(0);
-        end generate single_delayer_gen;
+     single_delayer_gen: if (delayer_width = 1) generate
+          delayer_in_s(0) <= run_en;
+          run_passthru <= std_logic(delayer_out_s(0));
+          delayer_out(0) <= delayer_out_s(0);
+     end generate single_delayer_gen;
 
-        broad_delayer_gen: if (delayer_width > 1) generate
-                delayer_in_s(0) <= run_en;
-                delayer_in_s(delayer_width - 1 downto 1) <= delayer_in(delayer_width - 1 downto 1);
-                run_passthru <= std_logic(delayer_out_s(0));
-                delayer_out <= delayer_out_s;
-        end generate broad_delayer_gen;
-                
-	p <= reg_out;
+     broad_delayer_gen: if (delayer_width > 1) generate
+          delayer_in_s(0) <= run_en;
+          delayer_in_s(delayer_width - 1 downto 1) <= delayer_in(delayer_width - 1 downto 1);
+          run_passthru <= std_logic(delayer_out_s(0));
+          delayer_out <= delayer_out_s;
+     end generate broad_delayer_gen;
+     
+     p <= reg_out;
 
 end beh;
