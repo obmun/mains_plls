@@ -68,10 +68,6 @@ package common is
         constant TWO_PI : real := 6.28318530717959;
         constant MINUS_TWO_PI : real := -6.28318530717959;
 
-	-- Filter constants
-        constant PHASE_LOOP_PI_I_CONST : real := 1000.0;
-        constant PHASE_LOOP_PI_P_CONST : real := 100.0;
-
         pure function to_integer ( val : real; width : natural; prec : natural ) return integer;
         pure function to_vector ( val : real; width : natural; prec : natural ) return std_logic_vector;
         
