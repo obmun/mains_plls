@@ -1,0 +1,7 @@
+=== Short description ===
+
+Modelsim project for 'spll' controller (spll.vhd) co-simulation
+
+=== Description ===
+
+Stupid Modelsim project holding all required .vhdls for compiling the spll entity.
