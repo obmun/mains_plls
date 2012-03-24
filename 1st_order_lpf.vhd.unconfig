@@ -1,14 +1,27 @@
 --------------------------------------------------------------------------------
--- Company: Universidad de Vigo
--- Engineer: Jacobo Cabaleiro
+-- Perfecto ...
+-- En este bloque no había ni un sólo comentario acerca de la implementación.
 --
--- Create Date:    
--- Design Name:    
--- Module Name:    1st_order_lpf - alg
--- Project Name:   
--- Target Device:  
--- Tool versions:
+-- He deducido a mano que la función de transferencia implementada es:
+-- \[
+-- H(z) = \frac{0.048 + 0.905z^{-1}}{1 - 0.905z^{-1}}
+-- \]
 --
+-- Si se simula en Matlab usando freqz, se ve que efectivamente es un filtro paso bajo.  Deduzco que
+-- se obtuvo de los coeficientes de un filtro paso bajo diseñado en contínua (de una transformada
+-- s), pero no sé que tipo de cambio de s -> se aplicó. Probablemente bilineal. El problema es que
+-- "perdí" el modelo exacto de Matlab del que se obtuvo este elemento.
+--
+-- Aplicando una transformada bilineal inversa, se llega a la expresión transformada en s para la
+-- función de transferencia siguiente del filtro "analógico" equivalente:
+-- \[
+-- H(s) = \frac{(0.047 + 0.905) + sT/2(0.047 - 0.905)}{(1-0.905) + sT/2(1 + 0.905)}
+-- \]
+-- en donde T es el período de muestreo (1/10 KHz)
+--
+-- Es un LPF de orden 1, con un polo en 160 Hz y el cero en unos 3.53 KHz. Sorprendentemente, tiene
+-- una ganancia de 10! en contínua, que debería haber sido reducida a ganancia unitaria.
+-- 
 -- *** Brief description ***
 -- Class: sequential block
 --
@@ -16,9 +29,7 @@
 -- ** Ports **
 -- * Inputs *
 --
--- Dependencies:
--- 
--- Todo:
+-- *** Todo ***
 -- > Check if alfa^(-1) and -beta / alfa values can be automatically calculated from Kp. Right now user has to precalc them.
 --
 -- *** ChangeLog ***
@@ -28,11 +39,14 @@
 -- Additional Comments:
 -- 
 --------------------------------------------------------------------------------
+#include "configuration.inc"
+
 library IEEE;
 library WORK;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
 use WORK.COMMON.all;
+
 
 entity first_order_lpf is
         -- rev 0.03
@@ -50,19 +64,8 @@ entity first_order_lpf is
                 delayer_out : out std_logic_vector(delayer_width - 1 downto 0));
 end first_order_lpf;
 
-architecture alg of first_order_lpf is
-	component kcm
-		generic (
-			width : natural := PIPELINE_WIDTH;
-			prec : natural := PIPELINE_PREC;
-			k : pipeline_integer := -23410 -- Cte de ejemplo. Una síntesis de esta cte infiere un multiplicador
-		);
-		port (
-			i : in std_logic_vector(width - 1 downto 0);
-			o : out std_logic_vector(width - 1 downto 0)
-		);
-	end component;
 
+architecture alg of first_order_lpf is
 	component adder is
 		generic (
 			width : natural := PIPELINE_WIDTH
@@ -77,18 +80,18 @@ architecture alg of first_order_lpf is
 	signal i_kcm_out, fb_adder_out, reg_adder_out, delay_out, fb_kcm_out : std_logic_vector(width - 1 downto 0);
         signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
 begin
-	i_kcm : kcm
+	i_kcm : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
 		generic map (
-			k => 390 -- 0,047619047
+			k => 0.047619047
 		)
 		port map (
 			i => i,
 			o => i_kcm_out
 		);
 
-	fb_kcm : kcm
+	fb_kcm : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
 		generic map (
-			k => 7412 -- 0,904761
+			k => 0.904761
 		)
 		port map (
 			i => delay_out,
