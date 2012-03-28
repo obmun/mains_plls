@@ -1,22 +1,10 @@
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
+-- === Revision ===
 --
--- Create Date:    13:17:04 06/29/06
--- Design Name:    
--- Module Name:    spll - alg
--- Project Name:   
--- Target Device:  
--- Tool versions:  
--- Description:
---
--- Dependencies:
--- 
--- Revision:
 -- Revision 0.02 - 2nd paper simple SPLL (this one) doesn't really have a
 -- complex Ampl loop. Removed and added necesary logic right here.
+--
 -- Revision 0.01 - File Created
--- Additional Comments:
 -- 
 --------------------------------------------------------------------------------
 library IEEE;
