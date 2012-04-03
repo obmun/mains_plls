@@ -1,23 +1,8 @@
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
+-- === TODO ===
+-- 1.- Check if overflow flags are necesary. Maybe during debug, but NOT in final production.
 --
--- Create Date:    04:49:34 05/05/06
--- Design Name:    
--- Module Name:    add_add - alg
--- Project Name:   
--- Target Device:  
--- Tool versions:  
--- Description:
---
--- Dependencies:
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- TODO:
--- | 1.- Check if overflow flags are necesary. Maybe during debug, but NOT in final production.
--- | 2.- Implement overflow detection at ALL!!!
+-- 2.- Implement overflow detection at all!
 --------------------------------------------------------------------------------
 
 library IEEE;
