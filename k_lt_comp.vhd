@@ -1,23 +1,16 @@
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
+-- *** Brief description ***
 --
--- Create Date:    19:35:01 06/15/06
--- Design Name:    
--- Module Name:    k_lt_comp - beh
--- Project Name:   
--- Target Device:  
--- Tool versions:  
--- Description:
 -- Less than comparator with constant comparison value
--- Dependencies:
--- 
--- Revision:
+--
+-- *** Revisions ***
+--
+-- Revision 0.03 - Comparison constant is now a real
+--
 -- Revision 0.02 - Simulation with ModelSim showed small problems in generic port declarations.
 --                 Input comparison constant is now an INTEGER (fixed point number must be converted to integer with a shift and inserted)
+--
 -- Revision 0.01 - File Created
--- Additional Comments:
--- 
 --------------------------------------------------------------------------------
 library IEEE;
 use WORK.COMMON.ALL;

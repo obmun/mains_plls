@@ -1,23 +1,9 @@
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
---
--- Create Date:    04:20:29 05/05/06
--- Design Name:    
--- Module Name:    add_sub - alg
--- Project Name:   
--- Target Device:  
--- Tool versions:  
--- Description:
---
--- Dependencies:
--- 
--- Revision:
--- Revision 0.01 - File Created
 -- === TODO ===
--- * An adder-subtracter is obviously a very OPTIMAL structure. This shouldn't be
--- inferring an adder and a subtracter and then multiplexing output. See for
--- example Wikipedia entry about this matter.
+--
+-- * An adder-subtracter is obviously a very OPTIMAL structure. This shouldn't be inferring an adder
+-- and a subtracter and then multiplexing output. Check synthesis. See, for example, Wikipedia entry
+-- about this subject (adder-substractor)
 --------------------------------------------------------------------------------
 library IEEE;
 use WORK.COMMON.ALL;
