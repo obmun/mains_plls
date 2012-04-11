@@ -144,6 +144,9 @@ begin
 		port map (
 			clk => clk, load => init, we => '1',
 			s_in => B"00",
+                        -- We ignore input magnitude bit. Obviously, sqrt NEEDS positive inputs.
+                        -- This way, we can achieve precision "faster" by reducing the input size by
+                        -- one bit
 			p_in(17 downto 1) => i(16 downto 0), p_in(0) => '0',
 			-- o(width - 1 downto width - 2) => d_reg_out_hi, o(width - 3 downto 0) => open || Incorrect LRM section 1.1.1.2
 			o(width - 1 downto width - 2) => d_reg_out_hi, o(width - 3 downto 0) => garbage_16);
