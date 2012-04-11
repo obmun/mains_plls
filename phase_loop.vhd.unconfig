@@ -55,20 +55,6 @@ architecture alg of phase_loop is
      constant PHASE_LOOP_PI_P_CONST : real := 100.0;
      
      -- Component declaration
-     component phase_det is
-          -- rev 0.02
-          port (
-               -- Input value signals
-               norm_input, curr_phase : in std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-               -- Input control signals
-               run, rst, clk : in std_logic;
-               -- Out value signals
-               phase_error : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-               norm_output : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-               -- Out control signals
-               done : out std_logic);
-     end component;
-
      component fva is
           -- rev 0.02
           generic (
@@ -108,7 +94,7 @@ architecture alg of phase_loop is
      signal garbage_1_s, garbage_2_s, garbage_3_s : std_logic;
 begin
      -- ** Big blocks **
-     phase_det_i : phase_det
+     phase_det_i : entity work.phase_det(alg)
           port map (
                run => phase_det_run_s,
                rst => rst, clk => clk,
