@@ -49,7 +49,8 @@ end p2_phase_loop;
 
 architecture beh of p2_phase_loop is
      -- Types
-     type state_t is (ST_DONE, ST_RUNNING, ST_LAST);
+     type state_t is (ST_DONE, ST_RUNNING);
+     
      type coef_1st_ord is array (0 to 1) of real;
      type coef_2nd_ord is array (0 to 2) of real;
 
@@ -63,6 +64,8 @@ architecture beh of p2_phase_loop is
 
         constant IIR_FILTERS_PREC : natural := EXT_IIR_FILTERS_PREC;
 
+     	signal st : state_t;
+     
 	-- Internal signals
 	signal phase_s, phase_det_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         signal phase_det_done_s, phase_det_done_pulsed_s, iir_1st_ord_done_s, iir_2nd_ord_done_s : std_logic;
@@ -110,7 +113,8 @@ begin
                 port map (
                         i => phase_det_out_s,
                         o => phase_det_out_E_s);
-        
+
+        -- Latency: 1 clk
         iir_1st_ord : entity work.filter_1st_order_iir(CONF_IIR_ARCHITECTURE_STR)
                 generic map (
                         width => EXT_PIPELINE_WIDTH, prec => IIR_FILTERS_PREC,
@@ -129,6 +133,7 @@ begin
                         delayer_out(0) => garbage_1_s,
                         delayer_out(1) => iir_1st_ord_delayed_done_s);
 
+        -- Latency: 1 clk, independently of IIR arch
         iir_2nd_ord : entity work.filter_2nd_order_iir(CONF_IIR_ARCHITECTURE_STR)
                 generic map (
                         width => EXT_PIPELINE_WIDTH, prec => IIR_FILTERS_PREC,
@@ -159,6 +164,7 @@ begin
                         i => iir_2nd_ord_out_E_s,
                         o => iir_2nd_ord_out_s);
 
+        -- Latency: 0 clks
 	freq2phase_i : entity work.freq2phase(beh)
                 generic map (
                         width => PIPELINE_WIDTH,
@@ -178,7 +184,67 @@ begin
                         delayer_out(0) => garbage_3_s,
                         delayer_out(1) => freq2phase_delayed_done_s);
 
+        state_ctrl : process(clk)
+	begin
+             if (rising_edge(clk)) then
+                  if (rst = '1') then
+                       st <= ST_DONE;
+                  else
+                       case st is
+                            when ST_DONE =>
+                                 if (run = '1') then
+                                      st <= ST_RUNNING;
+                                 else
+                                      st <= ST_DONE;
+                                 end if;
+                            when ST_RUNNING =>
+                                 if (iir_2nd_ord_done_s = '0') then
+                                      st <= ST_RUNNING;
+                                 else
+                                      st <= ST_DONE;
+                                 end if;
+                            when others =>
+                                 assert false
+                                      report "Unkown Cordic state! Should not happen!"
+                                      severity error;
+                                 st <= st;
+                       end case;
+                  end if;
+             end if;
+	end process state_ctrl;
+
+	signals_gen : process(st)
+	begin
+             case st is
+                  when ST_DONE =>
+                       done <= '1';
+                  when ST_RUNNING =>
+                       done <= '0';
+                  when others =>
+                       done <= '0';
+             end case;
+	end process signals_gen;
+
+        
 	phase <= phase_s;
-        done <= freq2phase_delayed_done_s and phase_det_done_s;
+        -- This solution below works just PARTIALLY:
+        -- done <= freq2phase_delayed_done_s and phase_det_done_s;
+        --
+        -- I say "partially" because it does not work when block is reset!!!
+        --
+        -- This block follows full run_done iface, so when a rst is issued, the output 'done' port
+        -- must be set to 1.
+        --
+        -- At the same time, every internal element with memory must be also reset. run_passthru
+        -- blocks must be therefore reset. But a reset of a run_passthru element, sets delayer
+        -- ouputs to 0!
+        --
+        -- So, using the above solution, a reset would correctly set the 'done' output of the
+        -- phase_det to '1', but also would set the delayer registers inside the run_passthru
+        -- filtering elements to 0! While the phase_det done propagates thru the filters chain, the
+        -- phase detector done output remains at 0 for a certain number of cycles. This BREAKS the
+        -- run_done specification
+        --
+        -- The solution was to use a very simple state machine for this task
         phase_det_run_s <= run and freq2phase_delayed_done_s and phase_det_done_s;
 end beh;
