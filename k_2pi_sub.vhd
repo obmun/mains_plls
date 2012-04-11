@@ -10,33 +10,47 @@
 -- Tool versions:  7.1i
 --
 -- === Brief description ===
--- Módulo que RESTA a la entrada 2*PI.
+--
+-- Módulo que resta a la entrada el valor 2*pi, aunque el formato del pipeline tenga una magnitud
+-- limitada que no permita representar la constante 2*pi.
 --
 -- === Description ===
--- El uso de esta entidad es en aquellos casos en los que se quiere mantener
--- 0 <= |phi| < PI, restando 2*PI cuado phi acabe de superar el límite de PI.
 --
--- La codificación elegida originalmente (FX3.16) obligaba a la utilización de
--- este elemento, ya que 2*PI no era un valor representable en el PIPELINE. La
--- implementación del mismo se realizaba aumentando la anchura del pipeline original.
+-- El uso habitual de esta entidad es en aquellos casos en los que se quiere mantener 0 <= |phi| <
+-- PI, mediante la resta de la constante 2*pi en cuanto se detecte que el ángulo phi acabe de
+-- superar el límite superior de pi, pero se dispone de un pipeline con magnitud limitada. Con un
+-- elemento restador del ancho del pipeline y una constante en una de sus entradas, no sería posible
+-- realizar la resta.
 --
--- Ahora mismo, el ancho de pipeline es 100% flexible. Las primeras pruebas nos
--- parecen mostrar que al menos deberemos usar un FX4.16 o incluso FX5.16 (con
--- tan sólo 9 bits para la parte fraccionaria), todas con capacidad para representar 2*PI.
+-- Este bloque se encarga de internamente extender el pipeline, si es necesario, para representar la
+-- constante 2*pi, y llevar a cabo la resta. 
 --
--- Preferimos sin embargo mantener la táctica de que TODOS los ángulos vayan en
--- argumento principal (-180 < 0 <= 180), y seguimos utilizando este elemento.
--- 
--- Dependencies:
+-- == Necesidad ==
+--
+-- La codificación elegida originalmente (FX3.16) obligaba a la utilización de este elemento, ya que
+-- 2*pi no era un valor representable en el pipeline. Para comodidad, en lugar de "anchear" el
+-- pipeline temporalmente en el punto donde fuese necesario el reajuste del valor de determinado
+-- ángulo, se diseño este bloque.
+--
+-- Ahora mismo, el ancho de pipeline es 100% flexible. Las primeras pruebas nos parecen indicar que
+-- al menos deberemos usar un FX4.16 o incluso FX5.16 (con tan sólo 9 bits para la parte
+-- fraccionaria), todas con capacidad para representar 2*pi. Este bloque parecería carecer de uso
+--
+-- Preferimos sin embargo mantener la táctica de que todos los ángulos vayan en argumento principal
+-- (-180 < 0 <= 180), y seguimos utilizando este elemento.
 -- 
 -- === TODO ===
--- == Check if constant adder is using "simplified logic".
+--
+-- == Check if constant adder is using "simplified logic" ==
+--
 -- 1.- A 17 bit adder is CORRECTLY inferred. But I'M ADDING A CONSTANT.
 --      Check in the final implementation is design is simplified with k in mind.
 --
 -- === Revision ===
--- Revision 0.02 - Reworked: adapted to new to_vector and to_integer system,
--- and made it automatically detect if pipeline width must be extended.
+--
+-- Revision 0.02 - Reworked: adapted to new to_vector and to_integer system, and made it
+-- automatically detect if pipeline width must be extended.
+--
 -- Revision 0.01 - File Created
 --------------------------------------------------------------------------------
 library IEEE;

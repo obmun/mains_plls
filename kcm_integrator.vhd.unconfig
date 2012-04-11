@@ -3,8 +3,9 @@
 -- Discrete integrator (from continuous integrator using invariant
 -- impulse response transform; forward Euler integration) with sync reset
 --
+-- Class: sequential
 -- Latency: 0 cycles [each time the a new value is given, the ouput value is updated]
--- Throughoutput: 1 sample / cycle
+-- Throughoutput: 1 sample / cycle [the internal state must be updated]
 --
 -- *** DESCRIPTION ***
 -- Implements the expression:

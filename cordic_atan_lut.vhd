@@ -26,6 +26,16 @@
 -- cualquier prec y ancho de palabra asï como para cualquier numero de steps en
 -- el algoritmo Cordic.
 --
+-- == Ports ==
+-- * Generics *
+-- -> width, prec: definition of pipeline format
+-- -> last_angle: the max valid address. If addr > last_angle, entity asserts
+-- * Inputs *
+-- -> addr: 0 indexed
+-- * Outputs *
+-- -> angle: sin value for given input angle
+--
+--
 -- == Implementacion ==
 --
 -- La implementación original "forzaba" demasiadas cosas en lugar de dar flexibilidad al
@@ -56,11 +66,9 @@
 -- * Es muy fácil conseguir la asignación correcta de los bits de salida, quedándose sólo con la
 -- precisión necesaria de los valores almacenados.
 --
--- This was quickly implemented by extensive use of emacs macros and a pair of Matlab script for
+-- This was quickly implemented by extensive use of emacs macros and a pair of Matlab scripts for
 -- easily calculating the binary values of the angles.
 --
--- Dependencies:
--- 
 -- === Changelog ===
 --
 -- Revision 0.02 - Cambio radical. Más anchura, más tamaño, para flexibilizar y posibilitar su uso
@@ -87,6 +95,7 @@ end cordic_atan_lut;
 architecture beh of cordic_atan_lut is
 	subtype angle_t is std_logic_vector(23 downto 0);
         type rom_t is array (0 to 24) of angle_t;
+        -- 45º = pi/4 rad ~= 0,78 < 1 => we do not need magnitud bits, just precision
         constant ROM : rom_t := (
                 "110010010000111111011011",  -- 45º
                 "011101101011000110011100",

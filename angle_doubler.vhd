@@ -1,40 +1,31 @@
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
---
--- Create Date:    
--- Design Name:    
--- Module Name:    
--- Project Name:   
--- Target Device:  
--- Tool versions:  
---
 -- *** BRIEF DESCRIPTION ***
--- Doubles a give angle (2*theta), taking into account the MAGNITUDE LIMITS of
--- our usual pipeline width :) [also known as the 'good old' principal
--- determination of the arg function]
+--
+-- Doubles a given input angle theta (out = 2 * theta), folding the result into -pi < out < pi limits.
+--
+--- This entity was designed for doubling an input angle taking into account the magnitude limits of
+-- our usual pipeline width (16 bits) [also known as the 'good old' principal determination of the arg
+-- function]
 --
 -- *** DESCRIPTION ***
--- During debugging of phase_det, it was realized that we were getting
--- precision problems because angle duplication was not doing carefully. When
--- input angle was near Pi, duplicated angle was overloading pipeline,
--- corresponding sin for harmonic correction was incorrect and phase_det phase
--- error result was wrong.
 --
--- This double_angle block takes care of correcly duplicating input angle.
+-- During debugging of phase_det, it was realized that we were getting precision problems because
+-- angle duplication was not being done carefully. When input angle was near Pi, the angle
+-- duplication was overloading the pipeline, and corresponding sin() for harmonic correction was
+-- incorrect and phase_det phase error result was incorrect.
+--
+-- This block takes care of correcly duplicating input angle.
+--
 -- Input angle must: -pi < in_theta < pi
--- Ouput angle is gonna be: -pi < in_theta < pi
+-- Ouput angle is going to be: -pi < in_theta < pi
 --
--- THIS BLOCK takes of returning the "inverse" angle in case of input_theta * 2
--- is a > pi angle. The same for the negative ones.
+-- THIS BLOCK takes care of returning the "inverse" angle in case of input_theta * 2 is a > pi
+-- angle. The same for the negative ones.
 --
--- IT's specifically designed taking into acount the magnitude limits of a 16
--- bits wide pipeline. That's the reason no generics are found. IT cannot be parametrized.
+-- IT's specifically designed taking into acount the magnitude limits of a 16 bits wide
+-- pipeline. That's the reason no generics are found. IT cannot be directly "parametrized", but
+-- makes use of common library pipeline description constants
 --
--- Dependencies:
--- 
--- Revision:
--- Revision 0.01 - File Created
 -- 
 --------------------------------------------------------------------------------
 
@@ -42,11 +33,13 @@ library IEEE;
 use WORK.COMMON.ALL;
 use IEEE.STD_LOGIC_1164.ALL;
 
+
 entity angle_doubler is
-        port (
-                i : in std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-                o : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0));
+     port(
+          i : in std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+          o : out std_logic_vector(PIPELINE_WIDTH - 1 downto 0));
 end angle_doubler;
+
 
 architecture beh of angle_doubler is
         signal i_angle_EXT_s, angle_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);

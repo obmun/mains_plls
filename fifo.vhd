@@ -1,22 +1,17 @@
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
+-- *** Description ***
 --
--- Create Date:    02:17:31 05/05/06
--- Design Name:    
--- Module Name:    fifo - alg
--- Project Name:   
--- Target Device:  
--- Tool versions:  
--- Description:
--- | FIFO based on memory blocks
--- Dependencies:
+-- FIFO based on memory blocks
 -- 
--- Revision:
--- Revision 0.02 - Revised implementation. Now executes faster (15 MHz :)), compiler doesn't throw warnings and consumes less FPGA resources!!!!
+-- *** Revisions ***
+--
+-- Revision 0.02 - Revised implementation. Now executes faster (15 MHz :)), compiler doesn't throw
+-- warnings and consumes less FPGA resources!!!!
+--
 -- Revision 0.01 - First implementation
--- Additional Comments:
--- >> TO DO: intentar comprender exactamente la razón de la síntesis. < DONE
+--
+-- *** TODO ***
+-- >> Intentar comprender exactamente la razón de la síntesis. < DONE
 --------------------------------------------------------------------------------
 library IEEE;
 library WORK;
