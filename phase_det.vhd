@@ -61,37 +61,6 @@ entity phase_det is
 end phase_det;
 
 architecture alg of phase_det is
-	component subsor is
-		generic (
-			width : natural := PIPELINE_WIDTH
-		);
-		port (
-			a, b: in std_logic_vector(width - 1 downto 0);
-			o: out std_logic_vector(width - 1 downto 0);
-			f_ov, f_z: out std_logic
-		);
-	end component;
-
-	component k_2_div is
-		generic (
-			width : natural := PIPELINE_WIDTH
-		);
-		port (
-			i : in std_logic_vector(width - 1 downto 0);
-			o : out std_logic_vector(width - 1 downto 0)
-		);
-	end component;
-
-	component k_2_mul is
-		generic (
-			width : natural := PIPELINE_WIDTH
-		);
-		port (
-			i : in std_logic_vector(width - 1 downto 0);
-			o : out std_logic_vector(width - 1 downto 0)
-		);
-	end component;
-
 	signal cos_out, sin_2_out : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 	signal mul_out, k_div_out, angle_doubler_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         signal doubler_reg_out_s : std_logic_vector(PIPELINE_WIDTH downto 0);
@@ -146,7 +115,7 @@ begin
 			-- SALIDAS
 			o => mul_out);
 
-	subsor_i : subsor
+	subsor_i : entity work.subsor(alg)
 		port map (
 			-- ENTRADAS
 			a => mul_out,
@@ -157,11 +126,10 @@ begin
                         f_ov => open,
                         f_z => open);
 
-	k_2_div_i : k_2_div
+	k_2_div_i : entity work.k_2_div(alg)
 		port map (
 			i => sin_2_out,
-			o => k_div_out
-		);
+			o => k_div_out);
 
         angle_doubler_i : entity work.angle_doubler(beh)
                 port map (
