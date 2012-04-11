@@ -50,9 +50,21 @@ architecture alg of phase_loop is
      -- Types
      type state_t is (ST_DONE, ST_RUNNING, ST_LAST);
 
-     -- Gain constants
-     constant PHASE_LOOP_PI_I_CONST : real := 1000.0;
-     constant PHASE_LOOP_PI_P_CONST : real := 100.0;
+     -- === Gain constants ===
+     -- Ganancias originales del PI:
+     --  * Kp = 100
+     --  * Ki = 1000
+     -- El Ki se podía usar directamente, ya que es una constante acoplada en un integrador.
+     -- Kp, tal y como está, es inutiilizable, ya que satura el pipeline de magnitud reducida.
+     -- La solución está por distribuir la ganancia del Kp al "integrador" del NCO
+     -- Así, haremos:
+     --  * G = 25
+     --  * Kp' = Kp / G = 4
+     --  * Ki' = ki / G = 40
+     -- La ganancia G se integra en el NCO
+     constant PHASE_LOOP_PI_I_CONST : real := 40.0;
+     constant PHASE_LOOP_PI_P_CONST : real := 4.0;
+     constant PHASE_LOOP_G : real := 25.0;
      
      -- Component declaration
      component fva is
@@ -160,8 +172,7 @@ begin
                b => p_kcm_out_s,
                o => pi_adder_out_s,
                f_ov => open,
-               f_z => open
-               );
+               f_z => open);
 
      -- Speed up register. Combinational path formed by pi_int -> pi_adder
      -- -> freq2phase combinational logic at input is TOO long
@@ -182,7 +193,8 @@ begin
      freq2phase_i : entity work.freq2phase(beh)
           generic map (
                width => PIPELINE_WIDTH,
-               delayer_width => 2)
+               delayer_width => 2,
+               gain => PHASE_LOOP_G)
           port map (
                clk => clk, rst => rst,
                f => pi_adder_out_REG_s,
