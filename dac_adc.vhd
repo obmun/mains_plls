@@ -1,38 +1,42 @@
 --------------------------------------------------------------------------------
--- Company: UVigo
--- Engineer: Jacobo Cabaleiro
+-- *** Brief description ***
 --
--- Create Date:    15:23:00 024/08/07
--- Design Name:    
--- Module Name:    dac_adc - beh
--- Project Name:   
--- Target Device:  
--- Tool versions:
+-- Block which encapsulates all the logic for interfacing the Digilent Spartan-3E board Linear SPI
+-- ADC and DAC ICs.
 --
 -- *** Description ***
 --
--- This is the Interface to the Digilent LT SPI ADC and DAC ICs. Digilent board includes a quad DAC
--- and ADC, connected thru a shared SPI bus.
+-- Digilent board includes a quad DAC and dual channel ADC, connected thru a shared SPI bus,
+-- between them and between other components.
 --
--- ** ICs specs **
+-- This is the Interface to the Digilent LT SPI ADC and DAC ICs. Digilent board includes a quad DAC
+-- and ADC, connected thru a shared SPI bus. ADC input stage includes a programmable gain amp, which
+-- we don't use.
+--
+-- ** ICs (ADC/DAC) basic specs **
 --
 -- * DAC specs *
---  -> -3 db freq: 180 KHz. At 100 KHz response is still at 0 dB.
---  -> 12 bit resolution (32 bit instruction size)
+-- -> -3 db freq: 180 KHz. At 100 KHz response is still at 0 dB.
+-- -> 12 bit resolution (32 bit instruction size)
+-- -> Channels A & B: voltage reference = 3.3 V (max voltage)
+-- -> Channels C & D: voltage reference = 2.5 V (max voltage)
 --
 -- * ADC specs *
---  -> 14 bit resolution
---  -> Bipolar input range, representation of value in 2s complement (1 bit for
---  magnitude)
+-- -> 14 bit resolution
+-- -> Bipolar input range, representation of value in 2s complement (1 bit for
+-- magnitude)
+-- -> max(f_s) = 1.5 MHz!
+-- -> Período de reloj mínimo: 19.6 ns 
 --
---  With the FPGA board input stage, dynamic range is +- 1.25 V, centered in
---  1.65 V
+-- With the FPGA board input stage, dynamic range is +- 1.25 V, centered in
+-- 1.65 V
+--  
 -- 
 -- ** SPI driving **
 --
--- To simplify implementation and avoid carefull checking of LTC devices timings,
--- we're gonna drive the SPI bus at half sys clk => 25 MHz. It's fast enough for
--- our app and allows design simplification.
+-- To simplify implementation and avoid carefull checking of Linear Tech devices timings (DAC and
+-- ADC chips), we're gonna drive the SPI bus at half sys clk => 25 MHz. It's fast enough for our app
+-- and allows design simplification.
 --
 -- * Delay between DAC and ADC *
 --
@@ -340,8 +344,7 @@ begin
 			      end if;
 			 when others =>
 			      global_st <= global_st;
-			      assert false report "Unknown global state!!! Should not happen!!!" severity error; --
-                              -- false is a "non constant condition" for ISE. WTF??
+			      report "Unknown global state! Should not happen!" severity error; --
 		    end case;
 	       end if;
 	  end if;
@@ -401,8 +404,7 @@ begin
 		    run_adc <= '-';
 		    global_cntr_load <= '-';
                     global_cntr_d <= (others => '0');
-		    assert false
-			 report "Unknown global state!!! Should not happen!!!"
+                    report "Unknown global state!!! Should not happen!!!"
 			 severity error;
 	  end case;
      end process global_signal;
@@ -436,8 +438,7 @@ begin
 			      if (run_dac = '1') then
 				   dac_st <= DAC_ST_PREAMBLE_0;
 			      else
-				   assert false
-					report "DAC comm internally interrupted. Should not happen!!!"
+                                   report "DAC comm internally interrupted. Should not happen!!!"
 					severity error;
 				   dac_st <= DAC_ST_IDLE;
 			      end if;
@@ -445,8 +446,7 @@ begin
 			      if (run_dac = '1') then
 				   dac_st <= DAC_ST_PREAMBLE_1;
 			      else
-				   assert false
-					report "DAC comm internally interrupted. Shuold not happen!!!"
+                                   report "DAC comm internally interrupted. Shuold not happen!!!"
 					severity error;
 				   dac_st <= DAC_ST_IDLE;
 			      end if;
@@ -458,8 +458,7 @@ begin
 					dac_st <= DAC_ST_PREAMBLE_0;
 				   end if;
 			      else
-				   assert false
-					report "DAC comm internally interrupted. Shuold not happen!!!"
+                                   report "DAC comm internally interrupted. Shuold not happen!!!"
 					severity error;
 				   dac_st <= DAC_ST_IDLE;
 			      end if;
@@ -467,8 +466,7 @@ begin
 			      if (run_dac = '1') then
 				   dac_st <= DAC_ST_DATA_1;
 			      else
-				   assert false
-					report "DAC comm internally interrupted. Shuold not happen!!!"
+                                   report "DAC comm internally interrupted. Shuold not happen!!!"
 					severity error;
 				   dac_st <= DAC_ST_IDLE;
 			      end if;
@@ -480,8 +478,7 @@ begin
 					dac_st <= DAC_ST_DATA_0;
 				   end if;
 			      else
-				   assert false
-					report "DAC comm internally interrupted. Shuold not happen!!!"
+                                   report "DAC comm internally interrupted. Shuold not happen!!!"
 					severity error;
 				   dac_st <= DAC_ST_IDLE;
 			      end if;
@@ -489,8 +486,7 @@ begin
 			      if (run_dac = '1') then
 				   dac_st <= DAC_ST_POSTDATA_1;
 			      else
-                                  assert false
-                                      report "DAC comm internally interrupted. Shuold not happen!!!"
+                                   report "DAC comm internally interrupted. Shuold not happen!!!"
                                       severity error;
                                   dac_st <= DAC_ST_IDLE;                                  
 			      end if;
@@ -511,8 +507,7 @@ begin
                                   dac_st <= DAC_ST_IDLE;
 			      end if;
 			 when others =>
-			      assert false
-				   report "Unknown DAC state!!! Should not happen!!!"
+                              report "Unknown DAC state!!! Should not happen!!!"
 				   severity error;
 			      dac_st <= dac_st;
 		    end case;
@@ -689,8 +684,7 @@ begin
 		    dac_cntr_en <= '-';
 		    dac_cntr_load <= '-';
                     dac_cntr_d <= (others => '-');
-		    assert false
-			 report "Unknown DAC state!!! Should not happen!!!"
+                    report "Unknown DAC state!!! Should not happen!!!"
 			 severity error;
 	  end case;
      end process dac_signal;
@@ -715,8 +709,7 @@ begin
 			      if (run_adc = '1') then
 				   adc_st <= ADC_ST_PREAMBLE_0;
 			      else
-				   assert false
-					report "ADC comm internally interrupted. Should not happen!!!"
+                                   report "ADC comm internally interrupted. Should not happen!!!"
 					severity error;
 				   adc_st <= ADC_ST_IDLE;
 			      end if;
@@ -724,8 +717,7 @@ begin
 			      if (run_adc = '1') then
 				   adc_st <= ADC_ST_PREAMBLE_1;
 			      else
-				   assert false
-					report "ADC comm internally interrupted. Shuold not happen!!!"
+                                   report "ADC comm internally interrupted. Shuold not happen!!!"
 					severity error;
 				   adc_st <= ADC_ST_IDLE;
 			      end if;
@@ -737,8 +729,7 @@ begin
 					adc_st <= ADC_ST_PREAMBLE_0;
 				   end if;
 			      else
-				   assert false
-					report "ADC comm internally interrupted. Shuold not happen!!!"
+                                   report "ADC comm internally interrupted. Shuold not happen!!!"
 					severity error;
 				   adc_st <= ADC_ST_IDLE;
 			      end if;
@@ -746,8 +737,7 @@ begin
 			      if (run_adc = '1') then
 				   adc_st <= ADC_ST_DATA_1;
 			      else
-				   assert false
-					report "ADC comm internally interrupted. Shuold not happen!!!"
+                                   report "ADC comm internally interrupted. Shuold not happen!!!"
 					severity error;
 				   adc_st <= ADC_ST_IDLE;
 			      end if;
@@ -759,8 +749,7 @@ begin
 					adc_st <= ADC_ST_DATA_0;
 				   end if;
 			      else
-				   assert false
-					report "DAC comm internally interrupted. Shuold not happen!!!"
+                                   report "DAC comm internally interrupted. Shuold not happen!!!"
 					severity error;
 				   adc_st <= ADC_ST_IDLE;
 			      end if;
@@ -768,8 +757,7 @@ begin
 			      if (run_adc = '1') then
 				   adc_st <= ADC_ST_GARBAGE_1;
 			      else
-				   assert false
-					report "ADC comm internally interrupted. Shuold not happen!!!"
+                                   report "ADC comm internally interrupted. Shuold not happen!!!"
 					severity error;
 				   adc_st <= ADC_ST_IDLE;
 			      end if;
@@ -781,8 +769,7 @@ begin
 					adc_st <= ADC_ST_GARBAGE_0;
 				   end if;
 			      else
-				   assert false
-					report "DAC comm internally interrupted. Shuold not happen!!!"
+                                   report "DAC comm internally interrupted. Shuold not happen!!!"
 					severity error;
 				   adc_st <= ADC_ST_IDLE;
 			      end if;
@@ -801,8 +788,7 @@ begin
 			      else
 			      end if;
 			 when others =>
-			      assert false
-				   report "Unknown DAC state!!! Should not happen!!!"
+                              report "Unknown DAC state!!! Should not happen!!!"
 				   severity error;
 			      adc_st <= adc_st;
 		    end case;
@@ -974,8 +960,7 @@ begin
 		    adc_cntr_en <= '-';
 		    adc_cntr_load <= '-';
                     adc_cntr_d <= (others => '0');  -- Should be -
-		    assert false
-			 report "Unknown DAC state!!! Should not happen!!!"
+                    report "Unknown DAC state!!! Should not happen!!!"
 			 severity error;
 	  end case;
      end process adc_signal;
