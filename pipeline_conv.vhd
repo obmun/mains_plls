@@ -35,18 +35,18 @@ end pipeline_conv;
 architecture alg of pipeline_conv is
         constant in_magn : natural := in_width - in_prec;
         constant out_magn : natural := out_width - out_prec;
-begin
-        -- XILINX is not able to synthesize this. Just comment this tests out.
-        -- Arghh!!
---        param_check : process
---        begin
---                assert in_width > in_prec report "in_width < in_prec" severity error;
---                assert out_width > out_prec report "out_width < out_prec" severity error;
---                assert in_magn > 0 report "input magnitude bits <= 0" severity error;
---                assert out_magn > 0 report "output magnitude bits <= 0" severity error;
---                wait;
---        end process param_check;
+        
+        function execute_checks return std_logic is
+        begin
+             assert in_width > in_prec report "in_width < in_prec" severity failure;
+             assert out_width > out_prec report "out_width < out_prec" severity failure;
+             assert in_magn > 0 report "input magnitude bits <= 0" severity failure;
+             assert out_magn > 0 report "output magnitude bits <= 0" severity failure;
+             return '0';
+        end execute_checks;
 
+        signal garbage_s : std_logic := execute_checks;
+begin
         -- Fractionary part
         frac_gen_0 : if (in_prec < out_prec) generate
                 frac_part_conv : process(i)
