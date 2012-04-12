@@ -1,22 +1,11 @@
--- -*- Mode: vhdl -*-
-
 --------------------------------------------------------------------------------
--- Company: UVigo
--- Engineer: Jacobo Cabaleiro
---
--- Create Date:    
--- Design Name:    
--- Module Name: filter - beh
--- Project Name:   
--- Target Device:  
--- Tool versions:  
---
 -- === IMPORTANT NOTES ===
 -- MUST BE PREPROCESSED
 --
--- === SPECS ===
--- Latency: 1 clk [when wake up] / 0 clks
--- Throughoutput: 1 sample / clk
+-- === Brief description ===
+-- Class: sequential
+-- Latency: 1 clk [see each architecture notes]
+-- Throughoutput: depends on architecture
 -- 
 -- === Brief DESCRIPTION ===
 -- Class: sequential
@@ -60,6 +49,10 @@ entity filter_1st_order_iir is
 end filter_1st_order_iir;
 
 
+-- *** Brief description ***
+--
+-- Latency: 1 clk [pipeline is "registered" at final output pt, for reducing combinational path length]
+-- Throughoutput: 1 sample/clk [internal state must be updated]
 architecture structural_tdfii of filter_1st_order_iir is
         signal o_s : std_logic_vector(width - 1 downto 0);
         signal o_reg_s : std_logic_vector(width - 1 downto 0);
@@ -161,6 +154,12 @@ begin
 end structural_tdfii;
                     
 
+-- *** Brief description ***
+--
+-- ** Specs **
+--
+-- Latency: 1 clk [pipeline is "registered" for reducing combinational path length]
+-- Throughoutput: 2 samples/clk [internal state must be updated in 2 different steps]
 architecture fast_structural_tdfii of filter_1st_order_iir is
         signal o_s : std_logic_vector(width - 1 downto 0);
         signal o_reg_s : std_logic_vector(width - 1 downto 0);
@@ -169,7 +168,7 @@ architecture fast_structural_tdfii of filter_1st_order_iir is
         signal z1_out_s : std_logic_vector(width - 1 downto 0);
         signal z1_adder_out_s : std_logic_vector(width - 1 downto 0);
         
-        signal delayer_in_s, delayer_out_s, int_delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
+        signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
 begin
         b0_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
@@ -195,7 +194,7 @@ begin
                         width => width)
                 port map (
                         clk => clk,
-                        we  => std_logic(int_delayer_out_s(0)),
+                        we  => std_logic(delayer_out_s(0)),
                         rst => rst,
                         i   => z1_adder_out_s,
                         o   => z1_out_s);
@@ -246,14 +245,6 @@ begin
 		port map (
 			clk => clk, we => '1', rst => rst,
 			i => delayer_in_s,
-			o => int_delayer_out_s);
-
-        delayer_delayer : entity work.reg(alg)
-                generic map (
-                        width => delayer_width)
-		port map (
-			clk => clk, we => '1', rst => rst,
-			i => int_delayer_out_s,
 			o => delayer_out_s);
 
         single_delayer_gen: if (delayer_width = 1) generate

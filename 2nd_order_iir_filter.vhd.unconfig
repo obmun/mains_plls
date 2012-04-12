@@ -1,29 +1,17 @@
--- -*- Mode: vhdl -*-
-
 --------------------------------------------------------------------------------
--- Company: UVigo
--- Engineer: Jacobo Cabaleiro
---
--- Create Date:    
--- Design Name:    
--- Module Name: filter - beh
--- Project Name:   
--- Target Device:  
--- Tool versions:  
---
 -- === IMPORTANT NOTES ===
 -- MUST BE PREPROCESSED
---
--- === SPECS ===
--- Latency: 1 clk [when wake up] / 0 clks
--- Throughoutput: 1 sample / clk
 -- 
 -- === Brief DESCRIPTION ===
 -- Class: sequential
+-- Latency: 1 clk [see each architecture notes]
+-- Throughoutput: depends on architecture
+--
 -- 2nd order IIR filter, implemented with a Transposed-Form IIR filter
 -- structure.
 --
 -- === Description ===
+--
 -- The IIR form which better stands coefficient quantization artifacts is the
 -- IIR cascade form. We're implementing a Transposed-Form because it minimizes
 -- the # of adders and memory elements to be used (see http://cnx.org/content/m11919/latest/)
@@ -34,17 +22,38 @@
 --   1 + a_1 * z^-1 + a_2 * z^-2
 --
 -- == Ports ==
--- See block_interfaces.txt for description of the digital block interface.
+--
+-- See description of the "run_passthru" interface for a definition of the control signals.
+--
 -- = Generics =
 -- * width: ports and internal pipeline width
 -- * prec: ports and internal pipeline precision
 -- * b0, b1, b2, a1, a2: see previous transfer function. Self-explained.
+--
 -- = Inputs =
 -- -> CLK
 -- -> RST: synchronous reset
--- -> RUN: 
+-- -> RUN:
+--
 -- = Outputs =
--- -> 
+-- ->
+--
+-- == Speed ==
+--
+-- The combinational path between input and output, due to the multiple adders and constant
+-- multiplications, is deep, even if this element has registers for unit delay
+-- implementation. Therefore, internally, an additional register is added for speeding things up.
+--
+-- Register is positioned in 2 different places, resulting in 2 different architectures:
+-- * structural_tdfii
+--   With the speed-up register just buffering the final output signal. Stupid solution that can be
+--   easily improved. Just don't use it. See next architecture.
+-- * fast_structural_tdfii
+--   Speed-up register is buffering the final output, but input to feedback multipliers is also
+--   taken from this input register, greatly reducing the max delay without adding additional
+--   latency to the block. However, throughtput is reduced by a half, as total # of cycles per sample is 2,
+--   but latency is kept at 1 cycle. In our usual configurations, this is not a problem as we have
+--   to wait more for an initial long iterative element like a CORDIC.
 -- 
 -- === Changelog ===
 -- Revision 0.01 - File Created
@@ -58,6 +67,7 @@ library IEEE;
 use WORK.COMMON.all;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
+
 
 entity filter_2nd_order_iir is
         generic (
@@ -81,6 +91,10 @@ entity filter_2nd_order_iir is
 end filter_2nd_order_iir;
 
 
+-- *** Brief description ***
+--
+-- Latency: 1 clk [pipeline is "registered" at final output pt, for reducing combinational path length]
+-- Throughoutput:  sample/clk [internal state must be updated]
 architecture structural_tdfii of filter_2nd_order_iir is
         signal o_s : std_logic_vector(width - 1 downto 0);
         signal o_reg_s : std_logic_vector(width - 1 downto 0);
@@ -222,6 +236,12 @@ begin
 end structural_tdfii;
 
 
+-- *** Brief description ***
+--
+-- ** Specs **
+--
+-- Latency: 1 clk [pipeline is "registered" for reducing combinational path length]
+-- Throughoutput: 2 samples/clk [internal state must be updated in 2 different steps]
 architecture fast_structural_tdfii of filter_2nd_order_iir is
         signal o_s : std_logic_vector(width - 1 downto 0);
         signal o_reg_s : std_logic_vector(width - 1 downto 0);
@@ -231,7 +251,7 @@ architecture fast_structural_tdfii of filter_2nd_order_iir is
         signal z1_out_s, z2_out_s : std_logic_vector(width - 1 downto 0);
         signal z1_adder_out_s, z2_adder_out_s : std_logic_vector(width - 1 downto 0);
 
-        signal delayer_in_s, delayer_out_s, int_delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
+        signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
 begin
         b0_mult : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
@@ -257,7 +277,7 @@ begin
                         width => width)
                 port map (
                         clk => clk,
-                        we  => std_logic(int_delayer_out_s(0)),
+                        we  => std_logic(delayer_out_s(0)),
                         rst => rst,
                         i   => z1_adder_out_s,
                         o   => z1_out_s);
@@ -291,12 +311,16 @@ begin
                         i => o_reg_s,
                         o => a1_mult_out_s);
 
+        -- ESSENTIAL IDEA: we is the delayed run_en. That is, we can only update the delayer units
+        -- on the second element cycle, once the correct 'new' output has been buffered. Also, on
+        -- this second cycle, input value _cannot_ change. There we have the 2 cycles per sample
+        -- throughput.
         z2 : entity work.reg(alg)
                 generic map (
                         width => width)
                 port map (
                         clk => clk,
-                        we  => std_logic(int_delayer_out_s(0)),
+                        we  => std_logic(delayer_out_s(0)),
                         rst => rst,
                         i   => z2_adder_out_s,
                         o   => z2_out_s);
@@ -331,6 +355,12 @@ begin
 
         o <= o_reg_s;
 
+        -- out_reg must be updated with the new input on the first cycle.
+        -- During 2nd cycle, out_reg must keep the new value so delayer elements can be correctly updated
+        --
+        -- As run_en MUST be kept to 1 JUST ON THE 1ST CYCLE for run_passthru elements with less
+        -- than 1 sample/clk throughput, we can directly use here the run_en signal as the input for
+        -- 'we' port.
         out_reg : entity work.reg(alg)
                 generic map (
                         width => width)
@@ -347,17 +377,7 @@ begin
 		port map (
 			clk => clk, we => '1', rst => rst,
 			i => delayer_in_s,
-			o => int_delayer_out_s);
-
-        delayer_delayer : entity work.reg(alg)
-                generic map (
-                        width => delayer_width)
-                port map (
-                        clk => clk,
-                        we  => '1',
-                        rst => rst,
-                        i   => int_delayer_out_s,
-                        o   => delayer_out_s);
+			o => delayer_out_s);
 
         single_delayer_gen: if (delayer_width = 1) generate
                 delayer_in_s(0) <= run_en;
@@ -369,6 +389,5 @@ begin
         end generate broad_delayer_gen;
 
         delayer_out <= delayer_out_s;
-        run_passthru <= std_logic(delayer_out_s(0));
-        
+        run_passthru <= std_logic(delayer_out_s(0));        
 end fast_structural_tdfii;
