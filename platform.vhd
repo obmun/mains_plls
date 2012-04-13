@@ -1,21 +1,25 @@
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
+-- *** Brief description ***
 --
--- Create Date:    01:12:32 04/08/07
--- Design Name:    
--- Module Name:    platform - beh
--- Project Name:   
--- Target Device:  
--- Tool versions:  
--- Description:
--- | Xilinx Spartan 3E specific config and code goes in this file
--- Dependencies:
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
+-- Xilinx Spartan 3E and Digilent development board specific config and code
+--
+-- SOME OF THE CODE, specifically the DCM one, has been generated with Xilinx Architecture Wizard
+-- tool, part of the ISE suite
+--
+-- *** Description ***
+--
+-- Takes care of configuring Xilinx specific clock management (DCM) inside the FPGA.
+-- Conditions:
+-- 1) Input clock 50 MHz (uses default Digilent board internal clock)
+-- 2) Usa un divisor de reloj de 8, para generar un reloj interno de baja velocidad de 6.25 MHz (ver
+-- puerto CLKDV_OUT)
+--
+-- ** Port description **
+--
+-- CLKDV_OUT: Main clock / 8 -> 6.25 MHz clock
+-- CLKIN_IBUFG_OUT: raw input clock, buffered
+-- CLK0_OUT: main clock output -> 50 MHz clock
+-- CLKFX_OUT: processed (fx) clock output, that is, main clock / 5 -> 10 MHz clock
 --------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -24,18 +28,15 @@ library UNISIM;
 use UNISIM.Vcomponents.ALL;
 -- synopsys translate_on
 
----- SOME OF THE CODE, specifically the DCM one, has been generated with 
----- Xilnx Architecture Wizard tool, part of the ISE suite
-
 entity platform is
-	port (
-		CLKIN_IN : in std_logic; -- Input clock
-		RST_IN : in std_logic; -- Input RST
-		CLKDV_OUT : out std_logic; -- Main clock / 16
-		CLKIN_IBUFG_OUT : out std_logic; -- Input raw clock, buffered
-		CLK0_OUT : out std_logic; -- Main output clock
-                CLKFX_OUT : out std_logic;
-		LOCKED_OUT : out std_logic);
+     port (
+          CLKIN_IN : in std_logic; -- Input clock
+          RST_IN : in std_logic; -- Input RST
+          CLKDV_OUT : out std_logic;
+          CLKIN_IBUFG_OUT : out std_logic;
+          CLK0_OUT : out std_logic;
+          CLKFX_OUT : out std_logic;
+          LOCKED_OUT : out std_logic);
 end platform;
 
 architecture beh of platform is
@@ -136,7 +137,7 @@ begin
 			CLKFX_DIVIDE => 10,
 			CLKFX_MULTIPLY => 2,
 			CLKIN_DIVIDE_BY_2 => FALSE,
-			CLKIN_PERIOD => 20.000000,
+			CLKIN_PERIOD => 20.000000,  -- 20 ns => 50 MHz
 			CLKOUT_PHASE_SHIFT => "NONE",
 			DESKEW_ADJUST => "SYSTEM_SYNCHRONOUS",
 			DFS_FREQUENCY_MODE => "LOW",

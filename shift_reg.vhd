@@ -1,15 +1,14 @@
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
+-- *** Description ***
 --
--- Create Date:    00:51:26 06/28/06
--- Design Name:    
--- Module Name:    shift_reg - alg
--- Project Name:   
--- Target Device:  
--- Tool versions:  
--- Description:
--- | Ports:
+-- ** Ports and generics **
+--
+-- * Generics *
+--
+-- dir: the shift direction. SD_LEFT means to do a shift left (MSB is out, MSB - 1 is put on MSB).
+-- SD_RIGHT is the contrary
+--
+-- * Ports *
 -- | - Input:
 -- |   -> clk: clock input
 -- |   -> load: sync parallel load. If '1' on rising edge loads register with p_in
@@ -18,11 +17,6 @@
 -- |   ->     value is always outputted).
 -- |   -> p_in: parallel load in value
 -- |   -> s_in: serial in value (size depends on step generic)
--- Dependencies:
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
 -- 
 --------------------------------------------------------------------------------
 library IEEE;
