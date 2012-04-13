@@ -64,24 +64,36 @@
 -- Sampling freq depends on the signals sent by the FPGA (esentially last SPI SCK 
 -- rising edge). We must be carefull and get a steady SCK signal clock
 -- 
--- 
--- *** HOW TO CONTROL ME ***
+-- ** PORT DESCRIPTION **
+--
+-- * [in] clk: input clock. Entity expects a hardcoded clock freq of 12.5 MHz
+--
+-- * [out] have_sample: sube a 1 durante 1 ciclo: el siguiente a recibir el nuevo valor del adc
+--                      Justo durante ese ciclo ya está el nuevo valor de entrada en in_sample.
+--
+-- * [out] in_sample: la muestra recibida desde el canal 1 (VINA en la placa) del ADC. Permanece
+-- _estable_ (no es necesario que sea registrado fuera de este bloque)
+--
+-- * [out] need_sample: sube a 1 durante 1 ciclo, el anterior a tener q usar el nuevo valor para el DAC.
+--                      Justo en el siguiente rising edge, el valor en out_sample es leído
+--
+-- ** HOW TO CONTROL ME **
 --
 -- Tell me to run (run = 1). I have my own "internal reference" of timings, as this block takes care
 -- of maintaining a CONSTANT fs (sampling period).
 -- 
--- PORT DESCRIPTION:
--- * [out] have_sample: sube a 1 durante 1 ciclo: el siguiente a recibir el nuevo valor del adc
---                      Justo durante ese ciclo ya está el nuevo valor de entrada en in_sample.
--- * [out] need_sample: sube a 1 durante 1 ciclo, el anterior a tener q usar el nuevo valor para el DAC.
---                      Justo en el siguiente rising edge, el valor en out_sample es leído
+-- *** Todo ***
 --
--- Todo:
--- | * (DONE) Check what problems can arise if interface with internal logic is driven by the half
--- |   speed clock
--- |   THERE WAS NOT half speed interfacing with the rest of the world at all
--- | * Study fusion of dac and adc st control. They're not the same but quite similar.
--- | * Study posibility of reducing global cntr size at least by 1 by using a reduced input clock
+-- * This block should exclusively MANAGE CS signals for the DAC and ADC, not the rest of the
+-- elements in the SPI chain. Should be changed!
+--
+-- * (DONE) Check what problems can arise if interface with internal logic is driven by the half
+--   speed clock
+--   THERE WAS NOT half speed interfacing with the rest of the world at all
+--
+-- * Study fusion of dac and adc st control. They're not the same but quite similar.
+--
+-- * Study posibility of reducing global cntr size at least by 1 by using a reduced input clock
 --
 -- *** Revision ***
 --
@@ -90,7 +102,7 @@
 -- incorrect (the one on run_dac and global st DAC_LAST)
 --
 -- Revision 0.06 - Added some more asserts missing in some elses in signal generation
--- procedures. CORRECTED adc shift register WE signal genereation: it was being generating in the
+-- procedures. CORRECTED adc shift register WE signal generation: it was being generating in the
 -- first data sub state; in this substate, spi_clk is being rised, and we have to wait till it's
 -- stable, in the next substate.
 --
@@ -150,22 +162,23 @@ entity dac_adc is
 	  );
 end dac_adc;
 
+
 architecture beh of dac_adc is
-        constant TOTAL_CYCLES : natural := 624;
-        -- Cycles needed for 20 KHz sampling rate:
-        -- f_clk = 50 MHz -> calculated: 2500; measured with ModelSim: 2499
-        -- f_clk / 4 = 12.5 MHz -> 624
-        -- f_clk / 8 = 6.25 MHz -> 312
-        -- Cycles needed for 10 KHz sampling rate:
-        -- f_clk = 50 MHz -> calculated: 5000; measured with ModelSim: 4998
-        -- f_clk / 8 = 6.25 MHz -> 624
+     constant TOTAL_CYCLES : natural := 624;
+     -- Cycles needed for 20 KHz sampling rate:
+     -- f_clk = 50 MHz -> calculated: 2500; measured with ModelSim: 2499
+     -- f_clk / 4 = 12.5 MHz -> 624
+     -- f_clk / 8 = 6.25 MHz -> 312
+     -- Cycles needed for 10 KHz sampling rate:
+     -- f_clk = 50 MHz -> calculated: 5000; measured with ModelSim: 4998
+     -- f_clk / 8 = 6.25 MHz -> 624
 
      constant DAC_INS_SIZE : natural := 32;
      constant DAC_REAL_INS_SIZE : natural := 20;
      constant DAC_CMD_SIZE : natural := 4;
      constant DAC_ADDR_SIZE : natural := 4;
-        -- constant DAC_VAL_SIZE : natural := 12; -- Already defined in common,
-        -- as it's needed for some of the input port widths
+     -- constant DAC_VAL_SIZE : natural := 12; -- Already defined in common,
+     -- as it's needed for some of the input port widths
      constant DAC_PREAMBLE_SIZE : natural := 8;
      constant DAC_POSTDATA_SIZE : natural := 4;
 
@@ -190,8 +203,8 @@ architecture beh of dac_adc is
      alias dac_ins_bitstream_s : std_logic is dac_shift_reg_o(DAC_REAL_INS_SIZE - 1);
      signal dac_shift_reg_load, dac_shift_reg_we : std_logic;
 
-        -- constant ADC_VAL_SIZE : natural := 14; -- Already in common, as
-        -- it's needed by some ports to define its width
+     -- constant ADC_VAL_SIZE : natural := 14; -- Already in common, as
+     -- it's needed by some ports to define its width
      constant ADC_PREAMBLE_SIZE : natural := 2; -- # of SCK cycles to wait before reading ADC data
      constant ADC_POSTDATA_SIZE : natural := 4; -- # of cycles to wait sending SCK cycles yet after ADC data reception
 
@@ -227,59 +240,29 @@ architecture beh of dac_adc is
      signal global_cnt : std_logic_vector(GLOBAL_CNTR_SIZE - 1 downto 0);
      signal global_cntr_load : std_logic;
      signal global_cntr_d : std_logic_vector(GLOBAL_CNTR_SIZE - 1 downto 0);
-
-     component shift_reg is
-	  generic (
-	       width : natural := PIPELINE_WIDTH;
-	       dir : shift_dir_t := SD_LEFT;
-	       step_s : natural := 1
-	       );
-	  port (
-	       clk, load, we : in std_logic;
-	       s_in : in std_logic_vector(step_s - 1 downto 0);
-	       p_in : in std_logic_vector(width - 1 downto 0);
-	       o : out std_logic_vector(width - 1 downto 0)
-	       );
-     end component shift_reg;
-     
 begin
-  -- MUST BE COMMENTED OUT WHEN SYNTHESISINZ (XST doesn't like it)
---     entity_checks : process
---     begin
---	  assert width > prec
---	       report "pipeline width < prec"
---	       severity error;
---	  assert width > DAC_VAL_SIZE
---	       report "pipeline width <= DAC word size"
---	       severity error;
---	  assert width > ADC_VAL_SIZE
---	       report "pipeline width <= ADC word size !"
---	       severity error;
---	  wait;
---     end process entity_checks;
-	  
      dac_cmd_s <= "0011"; -- Always the same command: write and update
      dac_addr_s <= "0000"; -- Output thru DAC a
 
      -- Sample logic => DAC (out to the real world)
-     -- As the pipeline has an idea about prec and magnitude, some care could
-     -- be taken when converting the DAC and ADC word widths to the pipeline
-     -- (16 bis). But we don't do that here.
+     --
+     -- As the pipeline has an idea about prec and magnitude, some care could be taken when
+     -- converting the DAC and ADC word widths to the pipeline (16 bis). But we don't do that here.
+     --
      -- We DON'T HAVE width as a generic of this block.
-     -- We're not gonna do here suppositions about DAC input voltage range or how it
-     -- converts it (2s complement, sign + magnitude ...). We only have to know
-     -- that this is a 12 bits DAC, and the RAW value is passed to the block
-     -- using us. That's all.
+     --
+     -- We're not gonna do here suppositions about DAC input voltage range or how it converts it (2s
+     -- complement, sign + magnitude ...). We only have to know that this is a 12 bits DAC, and the
+     -- RAW value is passed to the block using us. That's all.
      dac_val_s <= out_sample;
 
-     -- Sample ADC => logic (in from the real world)
-     -- See comment in DAC transformation above. 
+     -- Sample ADC => logic (in from the real world). See comment in DAC transformation above.
      in_sample <= adc_val_s;
      
-     dac_shift_reg : shift_reg
+     dac_shift_reg : entity work.shift_reg(alg)
 	  generic map (
 	       width => DAC_REAL_INS_SIZE
-	   -- Rest default are OK
+           -- Rest default are OK
 	       )
 	  port map (
 	       clk => clk,
@@ -290,10 +273,10 @@ begin
 	       o => dac_shift_reg_o
 	       );
 
-     adc_shift_reg : shift_reg
+     adc_shift_reg : entity work.shift_reg(alg)
 	  generic map (
 	       width => ADC_VAL_SIZE
-	   -- Rest defaults are OK (ADC send first MSB => must shift left)
+	   -- Rest defaults are OK (ADC sends first MSB => must shift left)
 	       )
 	  port map (
 	       clk => clk,
@@ -558,6 +541,7 @@ begin
 		    dac_cntr_en <= '0';
 		    dac_cntr_load <= '-';
                     dac_cntr_d <= (others => '0');  -- Should be '-'
+                    
 	       when DAC_ST_WAKE_UP =>
 		    -- * External *
 		    dac_ncs <= '0';
@@ -572,6 +556,7 @@ begin
 		    dac_cntr_en <= '1';
 		    dac_cntr_load <= '1';
 		    dac_cntr_d <= std_logic_vector(to_unsigned(DAC_PREAMBLE_SIZE - 1, DAC_CNTR_SIZE));
+                    
 	       when DAC_ST_PREAMBLE_0 =>
                  -- STATE DESCRIPTION:
                  -- DAC_ST_PREAMBLE sends the first 8 bits block of "don't
@@ -590,6 +575,7 @@ begin
 		    dac_cntr_en <= '0';
 		    dac_cntr_load <= '-';
                     dac_cntr_d <= (others => '0');
+                    
 	       when DAC_ST_PREAMBLE_1 =>
 		    -- * External *
 		    dac_ncs <= '0';
@@ -608,6 +594,7 @@ begin
 			 dac_cntr_load <= '0';
                          dac_cntr_d <= (others => '0');
 		    end if;
+                    
 	       when DAC_ST_DATA_0 =>
                  -- STATE DESCRIPTION:
                  -- Takes care of sending the real data. DAC command is stores
@@ -623,6 +610,7 @@ begin
 		    dac_cntr_en <= '0';
 		    dac_cntr_load <= '-';
                     dac_cntr_d <= (others => '0');
+                    
 	       when DAC_ST_DATA_1 =>
 		    -- External
 		    dac_ncs <= '0';
@@ -641,6 +629,7 @@ begin
 			 dac_cntr_load <= '0';
                          dac_cntr_d <= (others => '0');  -- Should be '-'
 		    end if;
+                    
 	       when DAC_ST_POSTDATA_0 =>
                  -- STATE DESCRIPTION:
                  -- Takes care of sending the stupid "don't care" 4 least significant bits
@@ -672,6 +661,7 @@ begin
 		    dac_cntr_en <= '1';
 		    dac_cntr_load <= '0';
                     dac_cntr_d <= (others => '0');  -- Should be '-'
+                    
 	       when others =>
 		    -- External
 		    dac_ncs <= '-';
