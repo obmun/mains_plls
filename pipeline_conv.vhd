@@ -67,25 +67,44 @@ begin
                                 
         
         -- Magnitude part
-        magn_gen_0 : if (in_magn < out_magn) generate
-                magn_part_conv : process(i)
-                begin
-			-- Expansión
-			-- Sign
-			o(out_width - 1 downto out_prec + (in_width - in_prec) - 1) <= (others => i(in_width - 1));
-			-- Value
-			o(out_prec + (in_width - in_prec) - 2 downto out_prec) <= i(in_width - 2 downto in_prec);
-                end process magn_part_conv;
+
+        -- Expansión
+        magn_gen_0a : if (in_magn < out_magn) and (in_magn = 1) generate  -- VHDL 2002 does not
+                                                                          -- support nested if-generates
+             -- Any other option is impossibale. out_magn = 1 would mean in_magn <= 0 (impossible)
+             magn_part_conv : process(i)
+             begin
+                  -- Only sign on input
+                  o(out_width - 1 downto out_prec + (in_width - in_prec) - 1) <= (others => i(in_width - 1));
+             end process magn_part_conv;
+        end generate;
+        
+        magn_gen_0b: if (in_magn < out_magn) and (in_magn /= 1) generate
+             magn_part_conv : process(i)
+             begin
+                  -- Sign
+                  o(out_width - 1 downto out_prec + (in_width - in_prec) - 1) <= (others => i(in_width - 1));
+                  -- Value
+                  o(out_prec + (in_width - in_prec) - 2 downto out_prec) <= i(in_width - 2 downto in_prec);
+             end process magn_part_conv;
+        end generate;
+        
+        -- Compresión
+        magn_gen_1a : if (in_magn >= out_magn) and (out_magn = 1) generate
+             magn_part_conv : process(i)
+             begin
+                  -- Only sign
+                  o(out_width - 1) <= i(in_width - 1);
+             end process magn_part_conv;     
         end generate;
 
-        magn_gen_1 : if (in_magn >= out_magn) generate
-                magn_part_conv : process(i)
-                begin
-			-- Compresión
-			-- Signo
-			o(out_width - 1) <= i(in_width - 1);
-			-- Valor
-			o((out_width - 2) downto out_prec) <= i(in_prec + (out_width - out_prec) - 2 downto in_prec);
-                end process;
+        magn_gen_1b : if (in_magn >= out_magn) and (out_magn /= 1) generate
+             magn_part_conv : process(i)
+             begin
+                  -- Signo
+                  o(out_width - 1) <= i(in_width - 1);
+                  -- Valor
+                  o((out_width - 2) downto out_prec) <= i(in_prec + (out_width - out_prec) - 2 downto in_prec);
+             end process;
         end generate;
 end alg;
