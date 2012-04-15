@@ -1,13 +1,30 @@
 --------------------------------------------------------------------------------
--- Perfecto ...
--- En este bloque no había ni un sólo comentario acerca de la implementación.
+-- *** Brief description ***
+-- Class: sequential block
+--
+-- Bloque que implementa una estructura de filtrado IIR de orden 1 con una función de transferencia
+-- de un LPF. Los coeficientes están hardcoded.
+--
+-- NOTA: nunca usar esta entidad. Emplear siempre la entidad "filter_1st_order_iir".
+-- 
+-- *** Descripción detallada ***
+--
+-- Este filtro es utilizado exclusivamente en el bucle de amplitud del diseño "spll". Es un bloque
+-- _muy_ viejo.
+--
+-- En este bloque no había dejado comentarios acerca de la implementación.
+--
+-- No dispone de ningún registro para la aceleración de su funcionamiento. Por lo tanto, para evitar
+-- ciclos de lógica excesivamente altos, el usuario de este bloque debe utilizar registros externos.
+--
+-- ** Función de tranasferencia implementada **
 --
 -- He deducido a mano que la función de transferencia implementada es:
 -- \[
 -- H(z) = \frac{0.048 + 0.905z^{-1}}{1 - 0.905z^{-1}}
 -- \]
 --
--- Si se simula en Matlab usando freqz, se ve que efectivamente es un filtro paso bajo.  Deduzco que
+-- Si se simula en Matlab usando freqz, se ve que efectivamente es un filtro paso bajo. Deduzco que
 -- se obtuvo de los coeficientes de un filtro paso bajo diseñado en contínua (de una transformada
 -- s), pero no sé que tipo de cambio de s -> se aplicó. Probablemente bilineal. El problema es que
 -- "perdí" el modelo exacto de Matlab del que se obtuvo este elemento.
@@ -22,17 +39,12 @@
 -- Es un LPF de orden 1, con un polo en 160 Hz y el cero en unos 3.53 KHz. Sorprendentemente, tiene
 -- una ganancia de 10! en contínua, que debería haber sido reducida a ganancia unitaria.
 -- 
--- *** Brief description ***
--- Class: sequential block
---
--- *** Description ***
--- ** Ports **
--- * Inputs *
---
 -- *** Todo ***
+--
 -- > Check if alfa^(-1) and -beta / alfa values can be automatically calculated from Kp. Right now user has to precalc them.
 --
 -- *** ChangeLog ***
+-- Revision 0.04 - Add correct parametrization!!!!
 -- Revision 0.03 - Converted to new sequential block interface
 -- Revision 0.02 - Added RUN/DONE interface
 -- Revision 0.01 - File Created
@@ -52,8 +64,8 @@ entity first_order_lpf is
         -- rev 0.03
 	generic (
 		width : natural := PIPELINE_WIDTH;
-                delayer_width : natural := 1);
-        
+                prec : natural := PIPELINE_PREC;
+                delayer_width : natural := 1);        
 	port (
 		clk, rst : in std_logic;
 		i : in std_logic_vector(width - 1 downto 0);
@@ -66,79 +78,69 @@ end first_order_lpf;
 
 
 architecture alg of first_order_lpf is
-	component adder is
-		generic (
-			width : natural := PIPELINE_WIDTH
-		);
-		port (
-			a, b: in std_logic_vector(width - 1 downto 0);
-			o: out std_logic_vector(width - 1 downto 0);
-			f_ov, f_z: out std_logic
-		);
-	end component;
-
 	signal i_kcm_out, fb_adder_out, reg_adder_out, delay_out, fb_kcm_out : std_logic_vector(width - 1 downto 0);
         signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);
 begin
-	i_kcm : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
-		generic map (
-			k => 0.047619047
-		)
-		port map (
-			i => i,
-			o => i_kcm_out
-		);
+     i_kcm : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
+          generic map (
+               width => width, prec => prec,
+               k => 0.047619047)
+          port map (
+               i => i,
+               o => i_kcm_out);
+     
+     fb_kcm : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
+          generic map (
+               width => width, prec => prec,
+               k => 0.904761)
+          port map (
+               i => delay_out,
+               o => fb_kcm_out);
 
-	fb_kcm : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
-		generic map (
-			k => 0.904761
-		)
-		port map (
-			i => delay_out,
-			o => fb_kcm_out
-		);
+     fb_adder : entity work.adder(alg)
+          generic map (
+               width => width)
+          port map (
+               a => i_kcm_out, b => fb_kcm_out,
+               o => fb_adder_out,
+               f_ov => open, f_z => open);
+     
+     reg_adder : entity work.adder(alg)
+          generic map (
+               width => width)
+          port map (
+               a => fb_adder_out, b => i,
+               o => reg_adder_out,
+               f_ov => open, f_z => open);
 
-	fb_adder : adder
-		port map (
-			a => i_kcm_out, b => fb_kcm_out,
-			o => fb_adder_out,
-			f_ov => open, f_z => open);
+     delay : entity work.reg(alg)
+          generic map (
+               width => width)
+          port map (
+               clk => clk, we => run_en, rst => rst,
+               i => reg_adder_out,
+               o => delay_out);
+     
+     o <= fb_adder_out;
 
-	reg_adder : adder
-		port map (
-			a => fb_adder_out, b => i,
-			o => reg_adder_out,
-			f_ov => open, f_z => open
-		);
+     delayer : entity work.reg(alg)
+          generic map (
+               width => delayer_width)
+          port map (
+               clk => clk, we => '1', rst => rst,
+               i => delayer_in_s,
+               o => delayer_out_s);
 
-	delay : entity work.reg(alg)
-                generic map (
-                        width => width)
-		port map (
-			clk => clk, we => run_en, rst => rst,
-			i => reg_adder_out,
-			o => delay_out);
-
-	o <= fb_adder_out;
-
-        delayer : entity work.reg(alg)
-                generic map (
-                        width => delayer_width)
-		port map (
-			clk => clk, we => '1', rst => rst,
-			i => delayer_in_s,
-			o => delayer_out_s);
-
-        single_delayer_gen: if (delayer_width = 1) generate
-                delayer_in_s(0) <= run_en;
-                run_passthru <= std_logic(delayer_out_s(0));
+     single_delayer_gen: if (delayer_width = 1) generate
+          delayer_in_s(0) <= run_en;
+          run_passthru <= std_logic(delayer_out_s(0));
                 delayer_out(0) <= delayer_out_s(0);
-        end generate single_delayer_gen;
+     end generate single_delayer_gen;
         
-        broad_delayer_gen: if (delayer_width > 1) generate
-                delayer_in_s(0) <= run_en;
-                delayer_in_s(delayer_width - 1 downto 1) <= delayer_in(delayer_width - 1 downto 1);
-                run_passthru <= std_logic(delayer_out_s(0));
-                delayer_out <= delayer_out_s;
-        end generate broad_delayer_gen;
+     broad_delayer_gen: if (delayer_width > 1) generate
+          delayer_in_s(0) <= run_en;
+          delayer_in_s(delayer_width - 1 downto 1) <= delayer_in(delayer_width - 1 downto 1);
+          run_passthru <= std_logic(delayer_out_s(0));
+          delayer_out <= delayer_out_s;
+     end generate broad_delayer_gen;
 end alg;
