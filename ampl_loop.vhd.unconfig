@@ -60,15 +60,28 @@ architecture alg of ampl_loop is
      -- * DATA PATH *
      -- Extended width (FX3.18)
      signal squared_in_EXT_s, squared_alpha_EXT_s, squared_in_norm_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
-     signal error_EXT_s, int_error_EXT_s, pi_kp_out_EXT_s, filtered_error_IIR_EXT_s, filtered_error_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
+     signal error_EXT_s, int_error_EXT_s, filtered_error_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
      signal error_adder_1_out_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
      signal alpha_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
      -- Normal width (FX3.16)
+     signal in_reg_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
      signal squared_norm_s, squared_in_s, error_s, error_REG_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
      signal squared_in_norm_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
      signal pi_kp_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-     signal alpha_s, norm_in_signal_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+     signal filtered_alpha_s, norm_in_signal_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 begin
+     -- Storage for the input value. Needed for complying with run_done iface. Otherwise, we cannot
+     -- let the user change the value of this port, as norm_in_signal output is directly connected
+     -- to this input.
+     in_reg_i : entity work.reg(alg)
+          generic map ( width => PIPELINE_WIDTH )
+          port map (
+               clk => clk,
+               rst => rst,
+               we => first_run_pulsed_s,
+               i => in_signal,
+               o => in_reg_out_s);
+     
      our_square : entity work.mul(beh)
           generic map (width => PIPELINE_WIDTH, prec => PIPELINE_PREC)
           port map (our_signal, our_signal, squared_norm_s);
@@ -135,8 +148,10 @@ begin
      --
      -- ALSO, without any kind of 'wall' logic in the middle, once an XXX state enters the loop, IT
      -- NEVER GOES OUT! So, this register is BASIC for the correct operation of the filter.
+     --
      -- Remember that, since a few weeks ago, the 1st_order_lpf is a 0 latency BLOCK, so input is
-     -- directly connected to output without a register.
+     -- directly connected to output without a register. That also means that, when LPF internal
+     -- state is updated, output must have been already consumed (stored) elsewhere.
      kp_path_speed_up_reg : entity work.reg(alg)
           generic map (
                width => PIPELINE_WIDTH + 1)
@@ -153,26 +168,35 @@ begin
           generic map ( k => PI_P_CONST ) 
           port map ( i => error_REG_s, o => pi_kp_out_s );
 
-     pi_kp_out_s_conv : entity work.pipeline_conv(alg)
-          generic map (
-               PIPELINE_WIDTH, PIPELINE_PREC,
-               EXT_PIPELINE_WIDTH, EXT_IIR_FILTERS_PREC)
-          port map (pi_kp_out_s, pi_kp_out_EXT_s);
-     
-     pi_lpf : entity work.first_order_lpf(alg)
-          generic map (
-               width => EXT_PIPELINE_WIDTH,
-               prec  => EXT_IIR_FILTERS_PREC)
-          port map (
-               clk => clk, rst => rst,
-               i => pi_kp_out_EXT_s, o => filtered_error_IIR_EXT_s,
-               run_en => first_run_pulsed_REG_s, run_passthru => lpf_done_s,
-               delayer_in(0) => '-',
-               delayer_out(0) => garbage_2_s);
+     pi_lpf: block is
+          signal pi_kp_out_EXT_s, filtered_error_IIR_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
+     begin -- block pi_lpf
+          in_conv_i : entity work.pipeline_conv(alg)
+               generic map (
+                    PIPELINE_WIDTH, PIPELINE_PREC,
+                    EXT_PIPELINE_WIDTH, EXT_IIR_FILTERS_PREC)
+               port map (pi_kp_out_s, pi_kp_out_EXT_s);
 
-     filter_stage_done_i_s(0) <= lpf_done_s;
-     filter_stage_done_i_s(1) <= pi_integrator_done_s;
+          lpf_i : entity work.first_order_lpf(alg)
+               generic map (
+                    width => EXT_PIPELINE_WIDTH,
+                    prec  => EXT_IIR_FILTERS_PREC)
+               port map (
+                    clk => clk, rst => rst,
+                    i => pi_kp_out_EXT_s, o => filtered_error_IIR_EXT_s,
+                    run_en => first_run_pulsed_REG_s, run_passthru => lpf_done_s,
+                    delayer_in(0) => '-',
+                    delayer_out(0) => garbage_2_s);
+
+          out_conv_i : entity work.pipeline_conv(alg)
+               generic map (
+                    EXT_PIPELINE_WIDTH, EXT_IIR_FILTERS_PREC,
+                    EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC)
+               port map (filtered_error_IIR_EXT_s, filtered_error_EXT_s);
+     end block;
      
+     filter_stage_done_i_s(0) <= lpf_done_s;
+     filter_stage_done_i_s(1) <= pi_integrator_done_s;     
      filter_stage_done_gen_i : entity work.pulsed_done_and(beh)
           generic map (
                width => 2)
@@ -186,12 +210,6 @@ begin
      -- This is very fragile, as it works only because both stages end at the _same_ exact cycle.
      -- Let's make use of the new pulsed_done_and entity
 
-     filtered_error_irr_s_conv : entity work.pipeline_conv(alg)
-          generic map (
-               EXT_PIPELINE_WIDTH, EXT_IIR_FILTERS_PREC,
-               EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC)
-          port map (filtered_error_IIR_EXT_s, filtered_error_EXT_s);
-     
      error_adder_1 : entity work.adder(alg)
           generic map ( EXT_PIPELINE_WIDTH )
           port map (
@@ -220,32 +238,71 @@ begin
                i   => sqrt_done_s,
                o   => sqrt_done_pulsed_s);
 
-     alpha_s_conv : entity work.pipeline_conv(alg)
+     -- Applies a 50 Hz syntonized MVA to the alpha signal
+     --
+     -- Remember that FA is a 0 clk latency block. That means that I have to register the block
+     -- myself due to the _direct_ connection with apml_loop output, which must follow run_done rules
+     fa_filtering: block is
+          -- Normal IIR prec is 15, but we're filtering the inverse of the input amplitud. So, for
+          -- example, if we see a dip of 0.3333 * p.u., 1/ampl = 3. With 14 prec bits, we're left
+          -- with 4 magn bits, which includes 1 sign bit. That means we have 3 magn bits, which
+          -- allows us to have a value of up to 7.9999999, which should be enough.
+          --
+          -- As we know, we cannot ALLOW the filter to OVERFLOW!!
+          constant FA_PREC : natural := 14;
+          signal alpha_FA_EXT_s, filtered_alpha_FA_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
+          signal out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+          signal int_fa_done_s : std_logic;
+     begin
+          alpha_s_conv : entity work.pipeline_conv(alg)
           generic map (
                EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC,
-               PIPELINE_WIDTH, PIPELINE_PREC)
-          port map ( alpha_EXT_s, alpha_s );
+               EXT_PIPELINE_WIDTH, FA_PREC)
+          port map ( alpha_EXT_s, alpha_FA_EXT_s );
+
+          fa_i : entity work.fa(beh)
+               generic map (
+                    width => EXT_PIPELINE_WIDTH,
+                    prec => FA_PREC,
+                    delay => 200, -- fs / 50 Hz = 10000 / 50 = 200
+                    delayer_width => 1)
+               port map (
+                    clk => clk, rst => rst,
+                    i => alpha_FA_EXT_s, o => filtered_alpha_FA_EXT_s,
+                    run_en => sqrt_done_pulsed_s, 
+                    run_passthru => int_fa_done_s,
+                    delayer_in(0) => '-',
+                    delayer_out(0) => garbage_1_s);
      
-     -- alpha_s <= alpha_EXT_s(15 downto 0);
+          filtered_alpha_s_conv : entity work.pipeline_conv(alg)
+          generic map (
+               EXT_PIPELINE_WIDTH, FA_PREC,
+               PIPELINE_WIDTH, PIPELINE_PREC)
+          port map ( filtered_alpha_FA_EXT_s, out_s );
+
+          fa_out_reg_i : entity work.reg(alg)
+               generic map (
+                    width => PIPELINE_WIDTH)
+               port map (
+                    clk => clk, rst => rst,
+                    we => int_fa_done_s,
+                    i => out_s, o => filtered_alpha_s);
+
+          done_delayer_i : entity work.reg(alg)
+               generic map (
+                    width => 1)
+               port map (
+                    clk => clk,
+                    rst => rst,
+                    we => '1',
+                    i(0) => int_fa_done_s,
+                    o(0) => fa_delayed_done_s);
+     end block;
 
      norm_mul : entity work.mul(beh)
           generic map (width => PIPELINE_WIDTH, prec => PIPELINE_PREC)
-          port map (alpha_s, in_signal, norm_in_signal_s);
-
-     -- TODO !!! This should converted to extended precision
-     fa_i : entity work.fa(beh)
-          generic map (
-               width => PIPELINE_WIDTH,
-               prec => PIPELINE_PREC,
-               delay => 200, -- fs / 50 Hz = 10000 / 50 = 200
-               delayer_width => 1)
-          port map (
-               clk => clk, rst => rst,
-               i => norm_in_signal_s, o => norm_in_signal,
-               run_en => sqrt_done_pulsed_s, 
-               run_passthru => fa_delayed_done_s,
-               delayer_in(0) => '-',
-               delayer_out(0) => garbage_1_s);
+          port map (filtered_alpha_s, in_reg_out_s, norm_in_signal_s);
+     norm_in_signal <= norm_in_signal_s;
      
      done_state_ctrl : process(clk, rst, filter_stage_done_s, fa_delayed_done_s, sqrt_done_s)
      begin
