@@ -21,10 +21,15 @@
 --
 -- ** The prog amp interface **
 --
+-- Cuando nCS = 0, en los rising edge del SCK (clock del SPI), el amp carga el bit a la entrada.
+--
 -- Se carga MSB first con 8 bits de datos:
 -- [Q7 | Q6 | Q5 | Q4 | Q3 | Q2 | Q1 | Q0]
 -- Q7 a Q4 (nibble superior) son la ganancia del canal B
 -- Q3 a Q0 (nibble inferior) son la ganancia del canal A
+--
+-- En el flanco ascendente de nCS, el valor en el shift reg cargado se pasa a un latch, lo que
+-- configura de manera efectiva el amp.
 --
 -- ** Ports description **
 --
@@ -73,7 +78,7 @@ architecture beh of prog_amp is
 
      -- Gain programming state
      type gain_prog_state_t is (
-	  GP_ST_STOPPED, GP_ST_RUNNING, GP_ST_LAST);
+	  GP_ST_STOPPED, GP_ST_RUNNING_0, GP_ST_RUNNING_1, GP_ST_LAST);
      
      signal gp_st : gain_prog_state_t;
 
@@ -83,18 +88,18 @@ architecture beh of prog_amp is
      -- Gain programming signals
      signal run_gain_prog_s, gain_prog_done_s : std_logic;
      
-     signal gp_cnt : std_logic_vector(GP_CTR_SIZE - 1 downto 0); -- 3 bit counter
-     signal gp_ctr_reset_s : std_logic;
+     signal gp_cnt_s : std_logic_vector(GP_CTR_SIZE - 1 downto 0); -- 3 bit counter
+     signal gp_ctr_reset_s, gp_ctr_en_s : std_logic;
 
-     signal gain_data_reg_load_s, gp_data_MSB_s : std_logic;
+     signal gain_data_reg_load_s, gain_data_reg_we_s, gp_data_MSB_s : std_logic;
 
      signal amp_ncs_GP_s, spi_mosi_GP_s : std_logic;
-     signal enable_spi_clk_GP_s, force_high_spi_clk_GP_s : std_logic;
+     signal spi_sck_GP_s : std_logic;
 
      signal garbage_s : std_logic_vector(GAIN_DATA_SIZE - 2 downto 0);
 begin
      
-     global_state_ctrl : process(clk, rst, set_gain, gain_prog_done_s)
+     global_state_ctrl : process(clk, rst, global_st, set_gain, gain_prog_done_s)
      begin
 	  if (rst = '1') then
 	       global_st <= GLOBAL_ST_IDLE;
@@ -146,10 +151,7 @@ begin
                     run_gain_prog_s <= '0';
 	       when others =>
                     spi_owned_out <= '0';
-
                     done <= '1';
-
-                    -- Internal
                     run_gain_prog_s <= '0';
 
                     report "Unknown global state!!! Should not happen!!!"
@@ -158,7 +160,7 @@ begin
      end process;
 
      -- Gain programming state control
-     gp_state_ctrl : process(clk, rst, run_gain_prog_s)
+     gp_state_ctrl : process(clk, gp_st, rst, run_gain_prog_s, gp_cnt_s)
      begin
 	  if (rst = '1') then
 	       gp_st <= GP_ST_STOPPED;
@@ -167,19 +169,17 @@ begin
 		    case gp_st is
 			 when GP_ST_STOPPED =>
 			      if (run_gain_prog_s = '1') then
-				   gp_st <= GP_ST_RUNNING;
+				   gp_st <= GP_ST_RUNNING_0;
 			      else
 				   gp_st <= GP_ST_STOPPED;
 			      end if;
-			 when GP_ST_RUNNING =>
-                              -- This is already the _LAST_ bit, but ...
-                              -- On _current_ cycle, I set the current data bit, but bit is not
-                              -- stored by the amp until rising edge of beggining of next cycle.
-                              -- So, I need a LAST cycle just for the final rising edge, nothing more.
-                              if (to_integer(unsigned(gp_cnt)) = 7) then
+                         when GP_ST_RUNNING_0 =>
+                              gp_st <= GP_ST_RUNNING_1;
+			 when GP_ST_RUNNING_1 =>
+                              if (to_integer(unsigned(gp_cnt_s)) = 7) then
                                    gp_st <= GP_ST_LAST;
                               else
-                                   gp_st <= GP_ST_RUNNING;
+                                   gp_st <= GP_ST_RUNNING_0;
                               end if;
                          when GP_ST_LAST =>
                               gp_st <= GP_ST_STOPPED;
@@ -199,42 +199,83 @@ begin
 	       when GP_ST_STOPPED =>
                     gain_prog_done_s <= '1';
 
-                    -- Internal signals
+                    -- ** Internal signals
                     gp_ctr_reset_s <= '1';
+                    gp_ctr_en_s <= '0';
                     gain_data_reg_load_s <= run_gain_prog_s;
+                    gain_data_reg_we_s <= run_gain_prog_s;
 
-                    enable_spi_clk_GP_s <= '0';
-                    force_high_spi_clk_GP_s <= '0';
-                    
-                    -- External signals
+                    -- ** External signals
+                    -- While stopped, keep the amp disabled (nCS = 1)
                     amp_ncs_GP_s <= '1';
-	       when GP_ST_RUNNING =>
+                    -- Make sure the clock value is at 0
+                    spi_sck_GP_s <= '0';
+                    
+	       when GP_ST_RUNNING_0 =>
+                    -- First half of the data cycle. Clk is at 0, and we have the new bit settled.
+                    -- Counter does not move; no shift on the shift reg.
+                    
+                    gain_prog_done_s <= '0';
+
+                    -- ** Internal signals
+                    gp_ctr_reset_s <= '0';
+                    gp_ctr_en_s <= '0';
+                    gain_data_reg_load_s <= '0';
+                    gain_data_reg_we_s <= '0';
+
+                    -- ** External signals
+                    amp_ncs_GP_s <= '0'; -- Keep me enabled. We have not issued yet the rising edge,
+                                         -- so this "semi cycle" (1 full clk cycle), is margin for
+                                         -- nCS to fall down.
+                    -- Make sure the clock value is at 0
+                    spi_sck_GP_s <= '0';
+
+
+               when GP_ST_RUNNING_1 =>
+                    -- Second half of the data cycle. We set clk at 1, once we know the data bit is
+                    -- stabilized. We hold (the shift reg) the output bit stable
                     gain_prog_done_s <= '0';
 
                     -- Internal signals
                     gp_ctr_reset_s <= '0';
+                    gp_ctr_en_s <= '1';
                     gain_data_reg_load_s <= '0';
+                    gain_data_reg_we_s <= '1';
 
-                    enable_spi_clk_GP_s <= '1';
-                    force_high_spi_clk_GP_s <= '0';
+                    -- ** External signals
+                    amp_ncs_GP_s <= '0';  -- Keep the amp selected
+                    -- Create the clock rising edge
+                    spi_sck_GP_s <= '1';
 
-                    -- External signals
-                    amp_ncs_GP_s <= '0';  -- Enable the device
+               -- We stop the clock, but keep the nCS signal for this cycle, just to make sure
                when GP_ST_LAST =>
                     gain_prog_done_s <= '1';
 
                     -- Internal signals
                     gp_ctr_reset_s <= '0';
+                    gp_ctr_en_s <= '0';
                     gain_data_reg_load_s <= '0';
+                    gain_data_reg_we_s <= '0';
 
-                    enable_spi_clk_GP_s <= '1';
-                    force_high_spi_clk_GP_s <= '1';
-
-                    -- External signals
-                    amp_ncs_GP_s <= '0';  -- We must make sure the last rising edge (the one at the
-                                          -- begging of this cycle) goes in
+                    -- ** External signals
+                    -- Keep the nCS this additional cycle down. It will return to '1' once we stop.
+                    amp_ncs_GP_s <= '0';
+                    -- Create the last falling edge, so AMP throws the last previous value bit
+                    spi_sck_GP_s <= '0';
 
 	       when others =>
+                    gain_prog_done_s <= '0';
+                                        
+                    -- Internal signals
+                    gp_ctr_reset_s <= '0';
+                    gp_ctr_en_s <= '0';
+                    gain_data_reg_load_s <= '0';
+                    gain_data_reg_we_s <= '0';
+
+                    -- External signals
+                    amp_ncs_GP_s <= '0';
+                    spi_sck_GP_s <= '0';
+
                     report "Unknown gain programming state! Should not happen!"
 			 severity error;
 	  end case;
@@ -248,22 +289,25 @@ begin
      -- Every functionality is sync.
      -- Has:
      -- * Reset (sets counter to 0)
-     -- Doesn't have:
-     -- * Enable. If clocked, 
+     -- * Enable. If '1', counts. If '0', does not count.
      -- Outputs: dac_cnt
      gp_ctr : process(clk, gp_ctr_reset_s)
+          variable gp_cnt : std_logic_vector(GP_CTR_SIZE - 1 downto 0); -- 3 bit counter
      begin
 	  if (rising_edge(clk)) then
                if (gp_ctr_reset_s = '1') then
-                    gp_cnt <= std_logic_vector(to_unsigned(0, GP_CTR_SIZE));
+                    gp_cnt := std_logic_vector(to_unsigned(0, GP_CTR_SIZE));
                else
-                    if (to_integer(unsigned(gp_cnt)) = (2**GP_CTR_SIZE - 1)) then
-                         gp_cnt <= std_logic_vector(to_unsigned(0, GP_CTR_SIZE));
-                    else
-                         gp_cnt <= std_logic_vector(to_unsigned(to_integer(unsigned(gp_cnt)) + 1, GP_CTR_SIZE));
+                    if (gp_ctr_en_s = '1') then
+                         if (to_integer(unsigned(gp_cnt)) = (2**GP_CTR_SIZE - 1)) then
+                              gp_cnt := std_logic_vector(to_unsigned(0, GP_CTR_SIZE));
+                         else
+                              gp_cnt := std_logic_vector(to_unsigned(to_integer(unsigned(gp_cnt)) + 1, GP_CTR_SIZE));
+                         end if;
                     end if;
                end if;
 	  end if;
+          gp_cnt_s <= gp_cnt;
      end process;
 
      gain_data_reg : entity work.shift_reg(alg)
@@ -274,7 +318,7 @@ begin
           port map (
                clk => clk,
                load => gain_data_reg_load_s,
-               we => '1',
+               we => gain_data_reg_we_s,
                s_in => (others => '0'),             -- It doesn't mind the real value
                p_in(3 downto 0) => a_gain,
                p_in(GAIN_DATA_SIZE - 1 downto 4) => b_gain,
@@ -284,5 +328,5 @@ begin
 
      amp_ncs <= amp_ncs_GP_s;
      spi_mosi <= spi_mosi_GP_s;
-     spi_sck <= (clk and enable_spi_clk_GP_s) or force_high_spi_clk_GP_s;
-end architecture beh;
+     spi_sck <= spi_sck_GP_s;
+end architecture;
