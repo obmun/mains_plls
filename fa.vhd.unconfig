@@ -1,25 +1,14 @@
--- -*- Mode: vhdl -*-
-
 --------------------------------------------------------------------------------
--- Company: UVigo
--- Engineer: Jacobo Cabaleiro
---
--- Create Date:    
--- Design Name:    
--- Module Name:    fa - beh
--- Project Name:  
--- Target Device:  
--- Tool versions: 
---
 -- *** SPECS ***
--- Latency: 1 clk [when waken up] / 0 clks
--- Troughoutput: 1 sample / cycle
+-- Latency: 0 clks [value for new input is inmediate]
+-- Troughoutput: 1 sample / cycle [internal state must be updated]
 -- 
 -- *** BRIEF DESCRIPTION ***
 --
 -- Class: sequential
 --
--- Moving Average Filter, recursive implementation, with configurable delay (rejected harmonic frequencies thru generic ports.
+-- Moving Average Filter, recursive implementation, with configurable delay (rejected harmonic
+-- frequencies thru generic ports.
 --
 -- Works on clock's rising edge and has synchronous reset.
 -- 
@@ -27,25 +16,39 @@
 --
 -- Includes a synchronous reset.
 --
--- It's an IIR, so you should be using a LOT OF PRECISION!!! when implementing this thing. You have
+-- It's an "IIR", so you should be using extended precision! when instancing this thing. You have
 -- been warned.
+--
+-- ** 0 latency **
+--
+-- A 0 latency means that, once you UPDATE THE INTERNAL STATE for a given input x[n], the new value at the
+-- output is no longer y[n], but y`[n + 1] (we say y` because it's the output at n+1 for an input
+-- x[n+1] = x[n]). You must register the output or make sure you use the output before updating the
+-- internal state.
 -- 
 -- == PORT DESCRIPTION ==
+--
 -- = Generics =
+--
 -- * width: ports and internal pipeline width
+--
 -- * prec: ports and internal pipeline precision
+--
 -- * delay: # of clocks of delay (at least 1)
+--
+-- * gain: an optional gain. Input signal is scaled by 1/delay. If you set a big delay, you're going
+-- to run into precision problems. We recommend trying to use a gain > 1.0, so total input gain is a
+-- value as close as possible to 0.1 - 1.0
 -- 
 -- *** Changelog ***
 --
--- Revision 0.05 - Stop fucking, please. CHANGED the implementation. This is the REAL ONE. Check PFC
--- notes.
+-- Revision 0.05 - CHANGED the implementation. This is the REAL ONE. Check PFC doc notes.
 --
 -- Revision 0.04 - With change of kcm, no input multiplying constant is real and user must not scale
 -- it by SAMPLING_PERIOD as its done inside the kcm_integrator.
 --
--- Revision 0.03 - Implement new seq. control iface. REALLY create the generic
--- for freq. and k control, instead of just advertising it in the brief description
+-- Revision 0.03 - Implement new seq. control iface. REALLY create the generic for freq. and k
+-- control, instead of just advertising it in the brief description
 --
 -- Revision 0.02 - Added run / done style PORTS for syncronization with other sequential algorithms.
 --
@@ -70,7 +73,8 @@ entity fa is
         generic (
                 width : natural := PIPELINE_WIDTH;
                 prec : natural := PIPELINE_PREC;
-                delay : natural; 
+                delay : natural;
+                gain : real := 1.0;
                 -- Seq. block iface
                 delayer_width : natural := 1);
 	port (
@@ -86,13 +90,12 @@ end fa;
 architecture beh of fa is
         constant d_inv : real := 1.0 / real(delay);
 	signal kcm_out_s, fifo_out_s, reg_out_s, sub_out_s, o_s : std_logic_vector(width - 1 downto 0);
-        signal delayer_in_s, delayer_out_s : std_logic_vector(delayer_width - 1 downto 0);        
 begin
         kcm_i : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
                         prec  => prec,
-                        k     => d_inv)
+                        k     => gain * d_inv)
                 port map (
                         i => i,
                         o => kcm_out_s);
@@ -139,24 +142,23 @@ begin
 
         o <= o_s;
 
-        delayer : entity work.reg(alg)
-                generic map (
-                        width => delayer_width)
-		port map (
-			clk => clk, we => '1', rst => rst,
-			i => delayer_in_s,
-			o => delayer_out_s);
-
-        single_delayer_gen: if (delayer_width = 1) generate
-                delayer_in_s(0) <= run_en;
-                run_passthru <= std_logic(delayer_out_s(0));
-                delayer_out(0) <= delayer_out_s(0);
-        end generate single_delayer_gen;
         
-        broad_delayer_gen: if (delayer_width > 1) generate
-                delayer_in_s(0) <= run_en;
-                delayer_in_s(delayer_width - 1 downto 1) <= delayer_in(delayer_width - 1 downto 1);
-                run_passthru <= std_logic(delayer_out_s(0));
-                delayer_out <= delayer_out_s;
-        end generate broad_delayer_gen;
+        -- No need for a 'delayer', as this is a 0 clk latency block
+        delayer_gen_0: if (delayer_width = 1) generate
+        begin
+             delayer: block is
+             begin
+                  run_passthru <= run_en;
+             end block;
+        end generate;
+        
+        delayer_gen_1: if (delayer_width > 1) generate
+        begin
+             delayer: block is
+             begin
+                  run_passthru <= run_en;
+                  delayer_out(0) <= run_en;
+                  delayer_out(delayer_width - 1 downto 1) <= delayer_in(delayer_width - 1 downto 1);
+             end block;
+        end generate;       
 end beh;
