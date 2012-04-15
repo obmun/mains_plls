@@ -11,7 +11,13 @@
 -- valor como valor de ancho de pipeline extendido.
 --
 -- *** Revisions ***
+--
+-- NO MORE REVISIONS - Check project Mercurial history
 -- Revision 0.01 - File Created
+--
+-- *** TODO ***
+--
+-- 1) Change the name of the architecture. It's not an 'algorithmic' one, but structural
 --------------------------------------------------------------------------------
 #include "configuration.inc"
 
@@ -33,27 +39,34 @@ end ampl_loop;
 
 
 architecture alg of ampl_loop is
+     -- Types
+     type state_t is (ST_DONE, ST_RUNNING, ST_RUNNING_LAST_STAGES);
+
      -- Gain constants
      constant PI_I_CONST : real := 10.0;
      constant PI_P_CONST : real := 2.0;
 
      -- * Internal elements control *
+     signal st : state_t;
+     
      signal sqrt_error_s : std_logic;
      signal sqrt_done_s, sqrt_done_pulsed_s, fa_delayed_done_s, pi_integrator_done_s, lpf_done_s, filter_stage_done_s : std_logic;
-     signal first_run_s, first_run_pulsed_s : std_logic;
+     signal filter_stage_done_i_s : std_logic_vector(1 downto 0);
+     signal first_run_s, first_run_pulsed_s, first_run_pulsed_REG_s : std_logic;
+     signal done_s : std_logic;
 
      signal garbage_1_s, garbage_2_s, garbage_3_s : std_logic;
 
      -- * DATA PATH *
      -- Extended width (FX3.18)
      signal squared_in_EXT_s, squared_alpha_EXT_s, squared_in_norm_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
-     signal error_EXT_s, int_error_EXT_s, filtered_error_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
+     signal error_EXT_s, int_error_EXT_s, pi_kp_out_EXT_s, filtered_error_IIR_EXT_s, filtered_error_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
      signal error_adder_1_out_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
      signal alpha_EXT_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
      -- Normal width (FX3.16)
-     signal squared_norm_s, squared_in_s, error_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+     signal squared_norm_s, squared_in_s, error_s, error_REG_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
      signal squared_in_norm_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
-     signal pi_kp_out_s, filtered_error_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+     signal pi_kp_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
      signal alpha_s, norm_in_signal_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 begin
      our_square : entity work.mul(beh)
@@ -108,7 +121,7 @@ begin
                delayer_in(0) => '-',
                delayer_out(0) => garbage_3_s);
 
-     first_run_s <= fa_delayed_done_s and run;
+     first_run_s <= done_s and run;
      first_run_pulser : entity work.done_pulser(beh)
           port map (
                clk => clk,
@@ -116,27 +129,69 @@ begin
                rst => rst,
                i   => first_run_s,
                o   => first_run_pulsed_s);
+
+     -- There is an amazingly large combinational path on the Kp + LPF + input loop
+     -- It must be broken for speed reasons
+     --
+     -- ALSO, without any kind of 'wall' logic in the middle, once an XXX state enters the loop, IT
+     -- NEVER GOES OUT! So, this register is BASIC for the correct operation of the filter.
+     -- Remember that, since a few weeks ago, the 1st_order_lpf is a 0 latency BLOCK, so input is
+     -- directly connected to output without a register.
+     kp_path_speed_up_reg : entity work.reg(alg)
+          generic map (
+               width => PIPELINE_WIDTH + 1)
+          port map (
+               clk => clk,
+               rst => rst,
+               we  => '1',
+               i(PIPELINE_WIDTH - 1 downto 0) => error_s,
+               i(PIPELINE_WIDTH) => first_run_pulsed_s,
+               o(PIPELINE_WIDTH - 1 downto 0) => error_REG_s,
+               o(PIPELINE_WIDTH) => first_run_pulsed_REG_s);
      
      pi_kp_mul : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
           generic map ( k => PI_P_CONST ) 
-          port map ( i => error_s, o => pi_kp_out_s );
+          port map ( i => error_REG_s, o => pi_kp_out_s );
 
+     pi_kp_out_s_conv : entity work.pipeline_conv(alg)
+          generic map (
+               PIPELINE_WIDTH, PIPELINE_PREC,
+               EXT_PIPELINE_WIDTH, EXT_IIR_FILTERS_PREC)
+          port map (pi_kp_out_s, pi_kp_out_EXT_s);
+     
      pi_lpf : entity work.first_order_lpf(alg)
+          generic map (
+               width => EXT_PIPELINE_WIDTH,
+               prec  => EXT_IIR_FILTERS_PREC)
           port map (
                clk => clk, rst => rst,
-               i => pi_kp_out_s, o => filtered_error_s,
-               run_en => first_run_pulsed_s, run_passthru => lpf_done_s,
+               i => pi_kp_out_EXT_s, o => filtered_error_IIR_EXT_s,
+               run_en => first_run_pulsed_REG_s, run_passthru => lpf_done_s,
                delayer_in(0) => '-',
                delayer_out(0) => garbage_2_s);
 
-     filter_stage_done_s <= lpf_done_s and pi_integrator_done_s;
+     filter_stage_done_i_s(0) <= lpf_done_s;
+     filter_stage_done_i_s(1) <= pi_integrator_done_s;
      
-     filtered_error_s_conv : entity work.pipeline_conv(alg)
+     filter_stage_done_gen_i : entity work.pulsed_done_and(beh)
           generic map (
-               PIPELINE_WIDTH, PIPELINE_PREC,
-               EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC)
-          port map (filtered_error_s, filtered_error_EXT_s);
+               width => 2)
+          port map (
+               clk => clk,
+               rst => rst,
+               i   => filter_stage_done_i_s,
+               o   => filter_stage_done_s);
+     -- The previous way of generating first_stage_done_s was:
+     -- filter_stage_done_s <= lpf_done_s and pi_integrator_done_s;
+     -- This is very fragile, as it works only because both stages end at the _same_ exact cycle.
+     -- Let's make use of the new pulsed_done_and entity
 
+     filtered_error_irr_s_conv : entity work.pipeline_conv(alg)
+          generic map (
+               EXT_PIPELINE_WIDTH, EXT_IIR_FILTERS_PREC,
+               EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC)
+          port map (filtered_error_IIR_EXT_s, filtered_error_EXT_s);
+     
      error_adder_1 : entity work.adder(alg)
           generic map ( EXT_PIPELINE_WIDTH )
           port map (
@@ -146,7 +201,7 @@ begin
      error_adder_2 : entity work.adder(alg)
           generic map ( EXT_PIPELINE_WIDTH )
           port map (
-               a => error_adder_1_out_EXT_s, b => std_logic_vector(to_signed(1*8192, EXT_PIPELINE_WIDTH)),
+               a => error_adder_1_out_EXT_s, b => to_vector(1.0, EXT_PIPELINE_WIDTH, EXT_PIPELINE_PREC),
                o => squared_alpha_EXT_s);
 
      sqrt_i : entity work.sqrt(alg)
@@ -154,6 +209,8 @@ begin
                clk => clk, rst => rst, run => filter_stage_done_s,
                i => squared_alpha_EXT_s, o => alpha_EXT_s,
                done => sqrt_done_s , error_p => sqrt_error_s);
+
+     -- assert sqrt_error_s = '0' report "ERROR in SQRT calculation!" severity failure;
 
      sqrt_done_pulser : entity work.done_pulser(beh)
           port map (
@@ -175,21 +232,67 @@ begin
           generic map (width => PIPELINE_WIDTH, prec => PIPELINE_PREC)
           port map (alpha_s, in_signal, norm_in_signal_s);
 
+     -- TODO !!! This should converted to extended precision
      fa_i : entity work.fa(beh)
           generic map (
                width => PIPELINE_WIDTH,
                prec => PIPELINE_PREC,
-               delay => 200,   -- fs / 50 Hz = 10000 / 50 = 200
-               delayer_width => 2)
+               delay => 200, -- fs / 50 Hz = 10000 / 50 = 200
+               delayer_width => 1)
           port map (
                clk => clk, rst => rst,
                i => norm_in_signal_s, o => norm_in_signal,
                run_en => sqrt_done_pulsed_s, 
-               run_passthru => open,
+               run_passthru => fa_delayed_done_s,
                delayer_in(0) => '-',
-               delayer_in(1) => sqrt_done_s,
-               delayer_out(0) => garbage_1_s,
-               delayer_out(1) => fa_delayed_done_s);
-
-     done <= fa_delayed_done_s;
+               delayer_out(0) => garbage_1_s);
+     
+     done_state_ctrl : process(clk, rst, filter_stage_done_s, fa_delayed_done_s, sqrt_done_s)
+     begin
+          if (rising_edge(clk)) then
+               if (rst = '1') then
+                    st <= ST_DONE;
+               else
+                    case st is
+                         when ST_DONE =>
+                              if (run = '1') then
+                                   st <= ST_RUNNING;
+                              else
+                                   st <= ST_DONE;
+                              end if;
+                         when ST_RUNNING =>
+                              if (filter_stage_done_s = '1') then
+                                   st <= ST_RUNNING_LAST_STAGES;
+                              else
+                                   st <= ST_RUNNING;
+                              end if;
+                         when ST_RUNNING_LAST_STAGES =>
+                              if (fa_delayed_done_s = '1' and sqrt_done_s = '1') then
+                                   st <= ST_DONE;
+                              else
+                                   st <= ST_RUNNING_LAST_STAGES;
+                              end if;
+                         when others =>
+                              report "Unkown Cordic state! Should not happen!"
+                                   severity failure;
+                              st <= st;
+                    end case;
+               end if;
+          end if;
+     end process;
+     
+     done_signal_gen : process(st, fa_delayed_done_s, sqrt_done_s)
+     begin
+          case st is
+               when ST_DONE =>
+                    done_s <= '1';
+               when ST_RUNNING =>
+                    done_s <= '0';
+               when ST_RUNNING_LAST_STAGES =>
+                    done_s <= fa_delayed_done_s and sqrt_done_s;
+               when others =>
+                    done_s <= '0';
+          end case;
+     end process;
+     done <= done_s;
 end alg;
