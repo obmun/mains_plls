@@ -1,50 +1,53 @@
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
+-- *** Brief description ***
 --
--- Create Date:    
--- Design Name:    
--- Module Name:    sqrt - alg
--- Project Name:   
--- Target Device:  
--- Tool versions:
--- 
--- *** Description ***
 -- Non restoring iterative SQRT implementation.
--- Achieves low precision (just 9 bits => 9 + 1 cycles, taking into
--- account precision + magnitude bits) but an analysis of the app
--- (input signal normalization) shows that 7 precision bits are more
--- than enough.
+--
+-- Achieves low precision (just 9 bits => 9 + 1 cycles, taking into account precision + magnitude
+-- bits) but an analysis of the app (input signal normalization) shows that 7 precision bits are
+-- more than enough.
 --
 -- ** Ports **
--- RST -> synchronous reset
+--
+-- rst -> synchronous reset
+-- i -> input value. Partially hardcoded format: signed, 2s complement, 18 bits. Fraction length: configurable
 --
 -- Dependencies:
 -- 
 -- *** Changelog ***
+--
+-- Revision 0.04 - Even if pipeline width is hardcoded, we need to adjust to fraction length
+-- changes. Added prec generic.
+--
 -- Revision 0.03 - RST is now synchronous, as with the rest of the components
 -- of the design
+--
 -- MARK -> revision 0.02 has been tested. Works OK. Noise and precision not
 -- clearly obtained. Co-simulation should be run
+--
 -- Revision 0.02 - Some corrections (one bit negated) were making tests results fail. Test is passed now
+--
 -- Revision 0.01 - Original implementation
--- Additional Comments:
--- 
 --------------------------------------------------------------------------------
-library IEEE;
 library WORK;
+use WORK.COMMON.all;
+library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
-use WORK.COMMON.all;
+use IEEE.MATH_REAL.all;
+
 
 entity sqrt is
-        -- rev 0.02
-	port (
-		clk, rst, run : in std_logic;
-		i : in std_logic_vector(18 - 1 downto 0); -- In RADIANS!
-		o : out std_logic_vector(18 - 1 downto 0);
-		done, error_p : out std_logic);
+     -- rev 0.04
+     generic (
+          prec : natural := PIPELINE_PREC);
+     port (
+          clk, rst, run : in std_logic;
+          i : in std_logic_vector(18 - 1 downto 0);
+          o : out std_logic_vector(18 - 1 downto 0);
+          done, error_p : out std_logic);
 end sqrt;
+
 
 architecture alg of sqrt is
 	-- Types
@@ -53,58 +56,8 @@ architecture alg of sqrt is
 	);
 
 	-- Constants
-	constant width : natural := 18; -- Hardcoded extended pipeline width
-
-	-- Component declaration
-	component shift_reg is
-		generic (
-			width : natural := PIPELINE_WIDTH;
-			dir : shift_dir_t := SD_LEFT;
-			step_s : natural := 1
-		);
-		port (
-			clk, load, we : in std_logic;
-			s_in : in std_logic_vector(step_s - 1 downto 0);
-			p_in : in std_logic_vector(width - 1 downto 0);
-			o : out std_logic_vector(width - 1 downto 0)
-		);
-	end component;
-
-	-- **** WORKAROUND FOR XILINX XST PROBLEM (7.1i) **** --
-	component d_shift_reg is
-		generic (
-			width : natural := PIPELINE_WIDTH;
-			dir : shift_dir_t := SD_LEFT
-		);
-		port (
-			clk, load, we : in std_logic;
-			p_in : in std_logic_vector(width - 1 downto 0);
-			o : out std_logic_vector(width - 1 downto 0)
-		);
-	end component;
-
-	component reg is
-		generic (
-			width : natural := PIPELINE_WIDTH
-		);
-		port (
-			clk, we, rst : in std_logic;
-			i : in std_logic_vector (width - 1 downto 0);
-			o : out std_logic_vector (width - 1 downto 0)
-		);
-	end component;
-
-	component add_sub is
-		generic (
-			width : natural := PIPELINE_WIDTH
-		);
-		port (
-			a, b: in std_logic_vector(width - 1 downto 0);
-			add_nsub : in std_logic;
-			o: out std_logic_vector(width - 1 downto 0);
-			f_ov, f_z: out std_logic
-		);
-	end component;
+	constant WIDTH : natural := 18; -- Hardcoded extended pipeline width
+        constant HALF_WIDTH : natural := 9;
 
 	-- Internal control signals
 	signal step : std_logic_vector(3 downto 0);
@@ -124,34 +77,51 @@ architecture alg of sqrt is
 	signal garbage_16 : std_logic_vector(15 downto 0);
 	
 	-- Other
-	alias i_msb : std_logic is i(18 - 1);
+	alias i_msb : std_logic is i(WIDTH - 1);
 begin
-	q_reg : shift_reg
+	q_reg : entity work.shift_reg(alg)
 		generic map (
-			width => 9,
+			width => HALF_WIDTH,
 			dir => SD_LEFT, step_s => 1)
 		port map (
 			clk => clk, load => init, we => '1',
 			s_in(0) => n_adder_msb,
 			-- Xilinx does not accept THIS: p_in => (others => '0'),
-			p_in => std_logic_vector(to_unsigned(0, 9)),
+			p_in => std_logic_vector(to_unsigned(0, HALF_WIDTH)),
 			o => q_reg_out);
 
-	d_reg : shift_reg
-		generic map (
-			width => width,
-			dir => SD_LEFT, step_s => 2)
-		port map (
-			clk => clk, load => init, we => '1',
-			s_in => B"00",
-                        -- We ignore input magnitude bit. Obviously, sqrt NEEDS positive inputs.
-                        -- This way, we can achieve precision "faster" by reducing the input size by
-                        -- one bit
-			p_in(17 downto 1) => i(16 downto 0), p_in(0) => '0',
-			-- o(width - 1 downto width - 2) => d_reg_out_hi, o(width - 3 downto 0) => open || Incorrect LRM section 1.1.1.2
-			o(width - 1 downto width - 2) => d_reg_out_hi, o(width - 3 downto 0) => garbage_16);
+        -- We ignore input magnitude bit (obviously, sqrt NEEDS positive inputs).
+        -- But we MUST keep input bits even. Otherwise, output value does not
+        -- CORRECTLY align (sqrt reduces input bits to a half)
+        -- So ... we may need an additional 0 MSB bit
+        d_reg_even_magn: if ((WIDTH - prec - 1) mod 2 = 0) generate
+             -- CASO PAR: ignorando el bit de signo, no hace falta alinear la entrada
+             d_reg : entity work.shift_reg(alg)
+                  generic map (
+                       width => WIDTH, dir => SD_LEFT, step_s => 2)
+                  port map (
+                       clk => clk, load => init, we => '1',
+                       s_in => B"00",
+                       p_in(17 downto 1) => i(16 downto 0), p_in(0) => '0',
+                       -- o(width - 1 downto width - 2) => d_reg_out_hi, o(width - 3 downto 0) => open || Incorrect LRM section 1.1.1.2
+                       o(WIDTH - 1 downto WIDTH - 2) => d_reg_out_hi, o(WIDTH - 3 downto 0) => garbage_16);
+        end generate;
+        d_reg_odd_magn: if ((WIDTH - prec - 1) mod 2 = 1) generate
+             -- CASO IMPAR: ignorando el bit de signo, tenemos un número impar de bits de magnitud
+             -- => hay que añadir un cero para mantenerlo alineado
+             d_reg : entity work.shift_reg(alg)
+                  generic map (
+                       width => WIDTH, dir => SD_LEFT, step_s => 2)
+                  port map (
+                       clk => clk, load => init, we => '1',
+                       s_in => B"00",
+                       p_in(17) => '0', p_in(16 downto 0) => i(16 downto 0),
+                       o(WIDTH - 1 downto WIDTH - 2) => d_reg_out_hi, o(WIDTH - 3 downto 0) => garbage_16);
+        end generate;
 
-	adder : add_sub
+
+        
+	adder : entity work.add_sub(alg)
 		generic map (
 			width => 11)
 		port map (
@@ -161,7 +131,7 @@ begin
 			o => adder_out,
 			f_ov => open, f_z => open);
 			
-	r_reg : reg
+	r_reg : entity work.reg(alg)
 		generic map (
 			width => 11
 		)
@@ -171,9 +141,9 @@ begin
 			o => r_reg_out
 		);
 
-	res_reg : reg
+	res_reg : entity work.reg(alg)
 		generic map (
-			width => 9
+			width => HALF_WIDTH
 		)
 		port map (
 			clk => clk, we => save, rst => rst,
@@ -181,7 +151,7 @@ begin
 			o => res_reg_out
 		);
 
-	state_ctrl : process(clk)
+	state_ctrl : process(clk, rst, run, i_msb, step)
 	begin
                 if (rising_edge(clk)) then
                         if (rst = '1') then
@@ -207,11 +177,7 @@ begin
 							st <= ST_RUNNING;
 						end if;
 					when ST_LAST =>
-						if (run = '1') then
-							st <= ST_INIT;
-						else
-							st <= ST_DONE;
-						end if;
+                                             st <= ST_DONE;
 					when ST_ERROR =>
 						if (run = '1') then
 							st <= ST_INIT;
@@ -267,7 +233,7 @@ begin
 			when ST_LAST =>
 				save <= '1';
 				init <= '0';
-				done <= '1';
+				done <= '0';
 				error_p <= '0';
 			when ST_ERROR =>
 				save <= '0';
@@ -280,7 +246,18 @@ begin
     r_reg_rst <= rst or init;
     n_adder_msb <= not adder_msb;
 
-	o(17 downto 15) <= (others => '0');
-	o(14 downto 6) <= res_reg_out;
-	o(5 downto 0) <= (others => '0');
+        output_gen: block is
+             constant HALF_MAGN : integer := integer(ceil(real(WIDTH - prec - 1) / 2.0));
+        begin
+             o(WIDTH - 1) <= '0'; -- Sign bit
+             no_magn_input_o: if (WIDTH - prec - 1 = 0) generate
+                  o(WIDTH - 2 downto HALF_WIDTH - 1) <= res_reg_out;
+                  o(HALF_WIDTH - 2 downto 0) <= (others => '0');
+             end generate;
+             normal_o: if (WIDTH - prec - 1 > 0) generate
+                  o(WIDTH - 2 downto HALF_MAGN - 1 + prec + 1) <= (others => '0');
+                  o(HALF_MAGN - 1 + prec downto HALF_MAGN - 1 + prec - HALF_WIDTH + 1) <= res_reg_out;
+                  o(HALF_MAGN - 1 + prec - HALF_WIDTH downto 0) <= (others => '0');
+             end generate;
+        end block output_gen;
 end alg;
