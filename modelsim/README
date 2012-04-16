@@ -1,0 +1,5 @@
+This folder contains all the related ModelSim project files.
+
+Most of the ModelSim projects are used for cosimulation of blocks / full controller designs using Mathworks Matlab or Simulink.
+
+Also, ModelSim was used as the main compiler / initial debugger tool. Xilinx ISE compiler was only used for FPGA synthesis, not for behaviour simulation / debugging purposes.
