@@ -14,7 +14,8 @@
 -- 
 -- *** DESCRIPTION ***
 --
--- Includes a synchronous reset.
+-- Includes a synchronous reset port, which implements a reset on SOME OF THE INTERNAL MEMORY
+-- ELEMENTS. See the reset subsection for instructions of how to CORRECTLY reset this element.
 --
 -- It's an "IIR", so you should be using extended precision! when instancing this thing. You have
 -- been warned.
@@ -25,6 +26,21 @@
 -- output is no longer y[n], but y`[n + 1] (we say y` because it's the output at n+1 for an input
 -- x[n+1] = x[n]). You must register the output or make sure you use the output before updating the
 -- internal state.
+--
+-- ** Proper resetting this entity **
+--
+-- A proper reset is ESSENTIAL for this filter. Being an IIR structure, you must reset it correctly.
+-- The 'rst' port is NOT ENOUGH, as the big internal memory storage is not cleaned. You must do it
+-- by yourself!
+--
+-- Steps:
+-- 1) Give, as input, as many 0s as delay size was configured in the generic.
+-- 2) After all the 0s have been consumed, and no other input has been given, do a reset.
+--
+-- * Why me? Why don't doing it inside the unit? *
+--
+-- This entity does not need a FSM. Usually, the block inmediately above using this is implemting
+-- one.
 -- 
 -- == PORT DESCRIPTION ==
 --
@@ -107,7 +123,7 @@ begin
 		port map (
 			i => kcm_out_s,
 			o => fifo_out_s,
-			clk => clk, we => run_en);
+			clk => clk, we => run_en, rst => rst);
 
 	sub_i : entity work.subsor(alg)
 		generic map (
