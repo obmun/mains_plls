@@ -249,7 +249,9 @@ begin
 
                -- We stop the clock, but keep the nCS signal for this cycle, just to make sure
                when GP_ST_LAST =>
-                    gain_prog_done_s <= '1';
+                    gain_prog_done_s <= '0';  -- We cannot set the 'done' signal to 1, as we have to
+                                              -- wait for the final nCS rising edge, where the PGA
+                                              -- latches the gain values onto the amps
 
                     -- Internal signals
                     gp_ctr_reset_s <= '0';
