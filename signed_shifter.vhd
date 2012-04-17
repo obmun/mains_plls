@@ -1,22 +1,12 @@
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
+-- *** Brief description ***
 --
--- Create Date:    20:52:31 06/15/06
--- Design Name:    
--- Module Name:    signer_shifter - beh
--- Project Name:   
--- Target Device:  
--- Tool versions:  
--- Description:
---
--- Dependencies:
--- 
 -- *** ChangeLog ***
+--
 -- Revision 0.02 - Let the synthesizer do more work :) Shift displacement is
 -- now a natural :) (forget the pipeline_width_dir_bits)
+--
 -- Revision 0.01 - File Created
--- Additional Comments:
 -- 
 --------------------------------------------------------------------------------
 library IEEE;
