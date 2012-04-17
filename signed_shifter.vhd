@@ -13,7 +13,7 @@ library IEEE;
 use WORK.COMMON.ALL;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
-use IEEE.MATH_REAL.ALL;
+
 
 entity signed_r_shifter is
 	generic (
@@ -23,6 +23,7 @@ entity signed_r_shifter is
 		n : in natural;
 		o : out std_logic_vector(width - 1 downto 0));
 end signed_r_shifter;
+
 
 architecture beh of signed_r_shifter is
 begin
