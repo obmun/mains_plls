@@ -5,58 +5,13 @@
 --
 -- We capture the ADC input signal on 1st channel and put it identical on the 1st DAC channel
 --
+-- PGA (pre-ADC programmable amp) has to be programmed TWICE! I don't understand why, but otherwise
+-- it does NOT work
+--
 -- *** CHANGELOG ***
 --
 -- Revision 0.01
 -----------------------------------------------------------------------------------
-
--- **** DEBUG DE ESTA ENTIDAD ****
---
--- 1) Verifico la frecuencia del reloj clk_div_16_s, sacándolo por debug_d7
---    MIDO unos 6.25 MHz
---    La frecuencia es distinta de la que se esperaba dentro del bloque dac_adc, que tenía los contadores configurados para generar los timings correctos para un reloj de 12.5 Mhz. Por ahora no cambio nada.
---    ---
---    El reloj está correcto, más o menos. El hecho de tener una frecuencia mitad _no_ debería ser un problema, ya que el propio reloj del SPI se genera dentro de esta entidad.
--- 2) Vamos a intentar observar las señales de salida del SPI, utilizando los puertos de debug (debug_d7, debug_c7, ...)
---    Más específicamente:
---    d7 <= spi_miso
---    c7 <= spi_sck_s
---    f8 <= adc_conv_s
---    e8 <= dac_ncs_s
---
---   Veo efectivamente una orden de muestreo, utilizando adc_conv_s. Un poco antes, deshabilitamos el DAC, haciendo dac_ncs_s = '1'
---   Por supuesto, mientras se da la orden , se genera el reloj de driving del SPI correctamente.
---
---   En el flanco ascendente (comienzo de ciclo de reloj) en el que el ADC coge la orden, correctamente esperamos 2 ciclos y a partir de ahí, viendo la señal de MISO, observamos como efectivamente el ADC comienza a enviar datos.
---   Pasados los 14 bits del primer valor, espera 2 ciclos y vemos como comienza la transferencia del segundo canal. Todo parece estar correcto!
---   Para finalizar, esperamos dos o 3 ciclos.
---
---   Los valores que veo en el MOSI parecen indicar que efectivamente los bits están mayoritariamente a 1, indicando un valor negativo.
---
---   La transferencia a través del SPI parece ser correcta. ¿Qué puede fallar?
---
------
---
--- Una inspección eléctrica mediante el osciloscopio muestra que el PGA previo al ADC no está
--- funcionando correctamente. Su salida parece estar en 3er estado! El único posible motivo es que
--- el PGA está en modo shutdown o deshabilitado.
---
--- Una lectura del datasheet del PGA muestra que efectivamente, tras un reseteo, éste entra en un
--- modo de soft-shutdown en el que sus salidas están en tercer estado. ES NECESARIO PROGRAMAR EL
--- PGA, algo que no estaba implementado hasta el momento.
--- 
--- 3) PREPARO programación del PGA.
---    1) Se prepara una primera versión del prog_amp.
---    2) Se testea en ModelSim. Parece funcionar.
---    3) Tendo dudas de que el funcionamiento sea correcto: estaba usando un esquema sin control a semi ciclo (el reloj SPI para el PGA era el mismo reloj que el que uso para la entidad prog_amp).
---       El DAC_ADC no seguía este esquema, si no que en la máquina de estados, tenía ciertos estados duplicados, para que cada semi ciclo del SPI_SCK fuese realmente un ciclo del reloj de entrada del bloque y tener un control completo sobre el estado del reloj de salida.
---    4) Modifico para asegurarme de que la carga y configuración del PGA es correcta.
---    5) COMPRUEBO que efectivamente la configuración del PGA está funcionando bien
---       * La comprobación la hice de la siguiente manera
---         - Integré el prog_amp en el test del dac_adc para la FPGA
---         - Mantuve el test global del DAC_ADC en el estado que se encarga de configurar el PGA,
---         PERO LO TUVE QUE PONER EN BUCLE!
---         - Verifiqué que la tensión a la entrada del ADC cambiaba y que el valor era correcto.
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -232,6 +187,7 @@ begin
                f_z => open);
      
      state_ctrl : process(clk_10_s, locked_out_s, gain_done_s, pga_wait_cnt_s)
+          variable first_pga_prog : std_logic;
      begin
           if (rising_edge(clk_10_s)) then
                if (locked_out_s = '0') then
@@ -245,11 +201,12 @@ begin
                                    st <= ST_WARMING;
                               end if;
                          when ST_RST =>
+                              first_pga_prog := '1';
                               st <= ST_START_AMP_PROG;
                          when ST_START_AMP_PROG =>
                               -- prog_amp_i uses a different clock. We must be careful, as we can be
                               -- _too_ fast and the signal requesting the amp programming be kept
-                              -- not enough time. We must wait until the prog_amp instance tells us
+                              -- not enough time. We should wait until the prog_amp instance tells us
                               -- that it's programming
                               if (gain_done_s = '0') then
                                    st <= ST_AMP_PROG;
@@ -263,10 +220,16 @@ begin
                                    st <= ST_AMP_PROG;
                               end if;
                          when ST_WAIT_AFTER_AMP_PROG =>
-                              -- This is just a 1 clk cycle for the AMP nCS signal to stabilize at
-                              -- high value before disturbing once more the SPI bus
+                              -- This is just a small delay for waiting for the AMP nCS signal to
+                              -- stabilize at high value before disturbing once more the SPI bus
+
                               if (pga_wait_ctr_last_s = '1') then
-                                   st <= ST_START_AMP_PROG;
+                                   if (first_pga_prog = '1') then
+                                        st <= ST_START_AMP_PROG;
+                                        first_pga_prog := '0';
+                                   else
+                                        st <= ST_RUNNING;
+                                   end if;
                               else
                                    st <= ST_WAIT_AFTER_AMP_PROG;
                               end if;
@@ -303,7 +266,7 @@ begin
                     set_gain_s <= '0';
                     pga_wait_ctr_rst_s <= '0';
                     spi_prog_amp_owned_s <= '0';
-                    
+
                     led(0) <= '0';
                     led(1) <= '1';
                     led(2) <= '0';
@@ -332,12 +295,6 @@ begin
                     led(1) <= '0';
                     led(2) <= '1';
 
-               -- HASTA AQUÍ SÉ QUE ESTÁ FUNCIONANDO!!!
-                    -- Más o menos. Lo estoy poniendo en bucle desde el comienzo de la programación
-                    -- hasta este punto y ...por lo menos veo que el PGA comienza a funcinoar. Sin
-                    -- embargo, los niveles de salida NO SON CORRECTOS! Parece que puede haber algo
-                    -- mal!!
-                    -- Vamos a probar a DEJARLO QUIETO
                when ST_WAIT_AFTER_AMP_PROG =>
                     rst_s <= '0';
                     dac_adc_run_s <= '0';
@@ -352,7 +309,7 @@ begin
                     
                when ST_RUNNING =>
                     rst_s <= '0';
-                    dac_adc_run_s <= '0';
+                    dac_adc_run_s <= '1';
                     
                     set_gain_s <= '0';
                     pga_wait_ctr_rst_s <= '0';
@@ -415,13 +372,9 @@ begin
           spi_sck_s <= dac_adc_spi_sck_s or prog_amp_spi_sck_s;
           spi_owned_s <= spi_dac_adc_owned_s or spi_prog_amp_owned_s;
 
-          -- spi_mosi <= spi_mosi_s;
-          -- spi_mosi <= 'Z' when (spi_owned_s = '0') else spi_mosi_s;
-          -- spi_sck <= 'Z' when (spi_owned_s = '0') else spi_sck_s;
+          spi_mosi <= 'Z' when (spi_owned_s = '0') else spi_mosi_s;
+          spi_sck <= 'Z' when (spi_owned_s = '0') else spi_sck_s;
      end block;
-     spi_mosi <= spi_mosi_s;
-     spi_sck <= spi_sck_s;
-     
 
      led(3) <= in_sample_s(13);
 
