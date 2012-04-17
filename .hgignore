@@ -3,8 +3,12 @@ syntax: glob
 # Generated after configuration
 1st_order_iir_filter.vhd
 1st_order_iir_filter.vhd.backup
+1st_order_lpf.vhd
+1st_order_lpf.vhd.backup
 2nd_order_iir_filter.vhd
 2nd_order_iir_filter.vhd.backup
+ampl_loop.vhd
+ampl_loop.vhd.backup
 cordic_atan.vhd
 cordic_atan.vhd.backup
 fa.vhd
@@ -103,6 +107,9 @@ __ISE*
 _ngo*
 *.cfg
 *.wlf
+
+# Matlab files
+*.mexw64
 
 # Other things ...
 
