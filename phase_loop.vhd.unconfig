@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- *** Short desc ***
+-- *** Brief desc ***
 -- Class: sequential iterative
 -- A PLL phase loop. Follows Cordic signals interface (RUN/DONE iface)
 --
