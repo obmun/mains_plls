@@ -4,6 +4,10 @@ function cordic_tb(hdli_obj)
 %    Implements a test of the Cordic sin/cos seq element on the PLL code
 %    (defined on cordic.vhd)
 %
+% This is a Simulink simulation callback which gets executed on Matlab and
+% takes care of generating all block inputs and storing and processing all
+% block outputs.
+%
 % For more information on the Cordic entity, take a look at the
 % corresponding .vhd file
 %
@@ -15,6 +19,14 @@ function cordic_tb(hdli_obj)
 %
 % This function makes use of an instance object, so make sure to instruct
 % the EDA software to make use of it
+%
+% == Execution ==
+% Make use of the launch_cordic_tb script for automation of ModelSim
+% launch and project loading.
+%
+% Once ModelSim has been launched, issue a "run -all" command and wait (go for a walk or drink a few coffees; it takes time).
+% This callback takes care of ending the simulation once all input values
+% have been tested.
 %
 % == TODO ==
 % * Implement the 2nd part (the random part). Really necesary?
@@ -33,6 +45,8 @@ done = false;
 %%
 % if exist('portinfo', 'var') == 1
 if (strcmp(hdli_obj.simstatus, 'Init'))
+     disp('cordic_tb | Initializing');
+     
      % == Initialization of TEST BENCH METHOD == %
      ud = struct('width', -1, 'prec', -1, 'clock_freq', DEFAULT_CLOCK_FREQ, ...
           'angles_v', zeros(1, 3), 'cos_v', zeros(1, 3), 'sin_v', zeros(1, 3), ...
@@ -78,6 +92,8 @@ if (strcmp(hdli_obj.simstatus, 'Init'))
      gen_clock_val();
      
      hdli_obj.userdata = ud;
+     
+     disp('cordic_tb | Simulating input angles on [0, pi] and [-pi, 0) ranges ...');
 end
 
 %%

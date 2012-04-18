@@ -1,56 +1,57 @@
 --------------------------------------------------------------------------------
--- Company: UVigo
--- Engineer: Jacobo Cabaleiro
---
--- Create Date:    
--- Design Name:    
--- Module Name:    cordic - beh
--- Project Name:   
--- Target Device:  
--- Tool versions:  
---
 -- === SPECS ===
 -- Latency: VARIABLE (depends on pipeline precision)
 -- Throughoutput: VARIABLE (depends on pipeline precision)
 -- 
 -- === Brief DESCRIPTION ===
--- Cordic based sequential engine for generating sin and cosine values from radian 
--- angles.
+--
+-- Cordic based sequential engine for generating sin and cosine values from radian angles.
 -- 
 -- === Description ===
--- Sequential iterative cordic based sin / cos calculator. Works on clock
--- rising edge and includes a synchronous reset signal so it can be put on a known
--- state (done state).
+--
+-- Sequential iterative cordic based sin / cos calculator. Works on clock rising edge and includes a
+-- synchronous reset signal so it can be put on a known state (done state).
 --
 -- == # of iterations ==
--- Iterations are runned till max prec on remainder angle or cos / sin value is achieved.
+--
+-- Iterations are runned till _max possible precision_ on remainder angle or cos / sin value is achieved.
+--
 -- What is this limit?
--- We know on each iteration we have to possible limiting prec operations:
--- * Multiplicacion of x / y register by the correct angle (SHIFT operation),
--- for its later addition / substraction.
+--
+-- We know on each iteration we has two possible limiting prec operations:
+--
+-- * Multiplicacion of x / y register by the correct angle (SHIFT operation), for its later addition
+-- / substraction.
+--
 -- * Addition / substraction of the correspondent angle to the z register
 -- (remainder angle).
--- When ANY of the previous operations reaches a precision limit, Cordic
+--
+-- When ANY of the previous operations reaches the selected pipeline precision limit, Cordic
 -- algorithm must be stopped.
 --
 -- = Precision on shift operation =
+--
 -- On step n, precision for shift operation is n.
+--
 -- First angle (45º) starts with a tan value of 1. Consecutive angles need 1
 -- more bit precsion (2^-n).
+--
 -- The problem IS ... multiplication operation!!!! COMPLETE ME!!
+--
 -- Precision on the add operation is the same: prec. on the pipeline.
 -- Therefore, on the cos / sin calc, **for n prec bits, n max steps are possible**.
 -- 
 -- = Precision on remainder angle calc =
--- The prec on this operation is impossed by the angle values for the given
--- step / atan value, stored in the LUT. From an study of the angle values, it
--- can be clearly seen that:
--- * Every used angle is < 1 (45 º in rads is < 1) => we need a least 1 bit prec
--- even for the 1st step
--- * In the complete table, each angle requires at least 1 more prec bit than
--- previous value. THERE is one exception to this rule: rounding makes that 7th
--- and 8th angles msb is the same. Ignoring this anomality, we can MAKE THE FOLLOWING RULE: for each
--- step, angle needs 1 more bit of prec.
+--
+-- The prec on this operation is impossed by the angle values for the given step / atan value,
+-- stored in the LUT. From an study of the angle values, it can be clearly seen that:
+--
+-- * Every used angle is < 1 (45 º in rads is < 1) => we need a least 1 bit prec even for the 1st
+-- step
+--
+-- * In the complete table, each angle requires at least 1 more prec bit than previous value. THERE
+-- is one exception to this rule: rounding makes that 7th and 8th angles msb is the same. Ignoring
+-- this anomality, we can MAKE THE FOLLOWING RULE: for each step, angle needs 1 more bit of prec.
 --
 -- Therefore, **if we have n bits prec, at most n different angles can be added / subs
 -- from z**.
@@ -59,11 +60,18 @@
 -- precision on remainder angle] => *for n prec bits, max n steps can be run*.
 -- 
 -- == Ports ==
--- * Inputs *
--- -> CLK
+--
+-- = Inputs =
+--
+-- -> CLK: self explanatory
+--
 -- -> RST: synchronous reset
--- -> RUN: run/done iface run signal. See below for description
--- -> ANGLE: input angle, in radians
+--
+-- -> RUN: run/done iface run signal. See run/done iface on PFC documentation for description.
+--
+-- -> ANGLE: input angle, in radians. Valid range is [-pi, pi]. ANY ANGLE OUTSIDE THIS RANGE WON'T
+-- BE CORRECTLY CALCULATED
+--
 -- * Outputs *
 -- -> SIN: sin value for given input angle
 -- -> COS: cos value for given input angle

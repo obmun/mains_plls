@@ -1,4 +1,4 @@
-function [iport, tnext] = cordic_tb(oport, tnow, portinfo)
+function [iport, tnext] = cordic_tb_v0(oport, tnow, portinfo)
 % CORDIC_TB  Test bench for Cordic entity
 %  [IPORT,TNEXT] = MANCHESTER_DECODER(OPORT,TNOW,PORTINFO) -
 %    Implements a test of the Cordic sin/cos seq element on the PLL code
