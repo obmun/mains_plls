@@ -1,7 +1,9 @@
 --------------------------------------------------------------------------------
 -- *** Brief desc ***
+--
 -- Class: sequential iterative
--- A PLL phase loop. Follows Cordic signals interface (RUN/DONE iface)
+--
+-- A PLL phase loop. Follows run_done interface.
 --
 -- *** Description ***
 --
@@ -55,8 +57,8 @@ architecture alg of phase_loop is
      --  * Kp = 100
      --  * Ki = 1000
      -- El Ki se podía usar directamente, ya que es una constante acoplada en un integrador.
-     -- Kp, tal y como está, es inutiilizable, ya que satura el pipeline de magnitud reducida.
-     -- La solución está por distribuir la ganancia del Kp al "integrador" del NCO
+     -- Kp, tal y como está, es inutilizable, ya que satura el pipeline de magnitud reducida.
+     -- La solución está en distribuir la ganancia del Kp al "integrador" del NCO (entidad freq2phase).
      -- Así, haremos:
      --  * G = 25
      --  * Kp' = Kp / G = 4
@@ -66,30 +68,6 @@ architecture alg of phase_loop is
      constant PHASE_LOOP_PI_P_CONST : real := 4.0;
      constant PHASE_LOOP_G : real := 25.0;
      
-     -- Component declaration
-     component fva is
-          -- rev 0.02
-          generic (
-               width : natural := PIPELINE_WIDTH);
-          port (
-               en, clk, rst : in std_logic;
-               i : in std_logic_vector (width - 1 downto 0);
-               o : out std_logic_vector (width - 1 downto 0);
-               run : in std_logic;
-               done : out std_logic);                
-     end component;
-
-     component adder is
-          generic (
-               width : natural := PIPELINE_WIDTH
-               );
-          port (
-               a, b: in std_logic_vector(width - 1 downto 0);
-               o: out std_logic_vector(width - 1 downto 0);
-               f_ov, f_z: out std_logic
-               );
-     end component;
-
      -- Internal signals
      signal phase_s, phase_det_out_s, fa_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
      signal phase_det_done_s, phase_det_done_pulsed_s, fva_done_s, pi_done_s, pi_done_REG_s : std_logic;
@@ -166,7 +144,7 @@ begin
                                                -- doesn't like this
                delayer_out(1) => pi_delayed_done_s);
 
-     pi_adder : adder
+     pi_adder : entity work.adder(alg)
           port map (
                a => pi_int_out_s,
                b => p_kcm_out_s,
