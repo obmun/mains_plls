@@ -1,5 +1,7 @@
 === Short description ===
 
-Modelsim project for Cordic co-simulation
+Modelsim project for Cordic (cordic.vhd) co-simulation
 
-Stupid Modelsim project holding all required .vhds for compiling Cordic entity.
+=== Description ===
+
+Stupid Modelsim project holding all required .vhdls for compiling Cordic entity.
