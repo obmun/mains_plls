@@ -1,0 +1,1 @@
+ModelSim project for holding all the _simple_ VHDL only based test benches for the less complex entities (as, for exapmle, the 'absolute' entity)
