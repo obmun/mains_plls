@@ -1,20 +1,13 @@
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
---
--- Create Date:    
--- Design Name:    
--- Module Name:    phase_det - alg
--- Project Name:   
--- Target Device:  
--- Tool versions:  
---
 -- *** BRIEF DESCRIPTION ***
+--
 -- Class: Sequential iterative.
+--
 -- Phase detector based on Cordic seq engine. Control interface is identical to
--- the Cordic engine one. See Cordic doc.
+-- the Cordic engine one (run\_done iface). See iface doc.
 -- 
 -- *** DESCRIPTION ***
+--
 -- This phase detector multiplies input signal by a cos with current internal
 -- detected phase to identify phase jumps. But due to the used method, a second
 -- order harmonic in normal situation is generated and must be removed.
@@ -136,6 +129,7 @@ begin
                         i => curr_phase,
                         o => angle_doubler_out_s);
 
+        -- Speedup register... MMM... is this really needed?
         doubler_reg_i : entity work.reg(alg)
                 generic map (
                         width => PIPELINE_WIDTH + 1)
