@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
 -- *** BRIEF DESCRIPTION ***
 --
--- Class: Sequential iterative.
+-- Class: sequential iterative.
 --
 -- Phase detector based on Cordic seq engine. Control interface is identical to
 -- the Cordic engine one (run\_done iface). See iface doc.
@@ -22,16 +22,16 @@
 -- combinational glue logic. Therefore no internal "state" machine apart of
 -- the one from the Cordic engine is needed.
 -- 
--- Dependencies:
--- 
--- Revision:
--- Revision 0.03 - An analisys of timing paths shows that the level of logic
--- due to the introduction of the new combinational angle_doubler at the entry
--- point of Cordic, creates a really LONG LONG combinational only path (delay
--- of 20 ns => max work freq. 50 MHz). To solve this, a register is introduced
--- in the middle of the street :)
+-- *** Changelog ***
+--
+-- Revision 0.03 - An analisys of timing paths shows that the level of logic due to the introduction
+-- of the new combinational angle_doubler at the entry point of Cordic, creates a really LONG LONG
+-- combinational only path (delay of 20 ns => max work freq. 50 MHz). To solve this, a register is
+-- introduced in the middle of the street :)
+--
 -- Revision 0.02 - Added correct angle doubling procedure :). No-error tests
 -- are correctly passed.
+--
 -- Revision 0.01 - File Created
 -- 
 --------------------------------------------------------------------------------

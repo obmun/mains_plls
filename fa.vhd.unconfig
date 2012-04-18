@@ -1,6 +1,7 @@
 --------------------------------------------------------------------------------
 -- *** SPECS ***
--- Latency: 0 clks [value for new input is inmediate]
+-- Latency: 0 clks [output value for new input is instantaneous; combinational path exists between
+-- input and output]
 -- Troughoutput: 1 sample / cycle [internal state must be updated]
 -- 
 -- *** BRIEF DESCRIPTION ***

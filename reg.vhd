@@ -1,6 +1,7 @@
 --------------------------------------------------------------------------------
 -- *** Brief description ***
--- | Register with synchronous reset
+--
+-- Register with synchronous reset
 -- 
 -- *** Changelog ***
 -- | - Version bump (0.02)
