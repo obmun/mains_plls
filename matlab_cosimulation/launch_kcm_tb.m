@@ -3,6 +3,9 @@ function launch_kcm_tb()
 %  LAUNCH_KCM_TB() -
 %    Implements a "complex" launch of the KCM Matlab testbench (defined on kcm.vhd)
 %
+% MAKE SURE 'kcm_cosim_tb' entity is compiled and available inside the
+% ModelSim work _library_, as we don't automatically load it.
+%
 % ==== Why do we say this is a complex launch? ====
 %
 % The other testbench 'launch's are really no more than a small script for
@@ -87,7 +90,7 @@ if (~exist('freq', 'var'))
      freq = 10e6;
 end
 delay = 1/freq;
-disp(['Using a delay before output read of ', num2str(delay)]);
+disp(['launch_kcm_tb | Using a delay before output read of ', num2str(delay)]);
 
 %% Save into _interchange_file_ those big vars that the CB function needs
 save(interchange_fpath, ...

@@ -62,7 +62,7 @@ if (strcmp(hdli_obj.simstatus, 'Init'))
                'Bad constructor arg to kcm_cosim_tb_cb callback. Expecting ''out_signal_name=value''.');
      else
           ud.out_signal_name = out_signal_name;
-          disp(['kcm_cosim_tb_cb | out_signal_name = ', num2str(prec)]);
+          disp(['kcm_cosim_tb_cb | out_signal_name = ', out_signal_name]);
      end
      
      if (~exist('iteration', 'var'))
