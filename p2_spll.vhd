@@ -1,4 +1,8 @@
 --------------------------------------------------------------------------------
+-- *** Brief description ***
+--
+-- Top level p2-spll (Notch-PLL) entity, integrating the phase-loop and the amplitude loop.
+--
 -- === Revision ===
 --
 -- Revision 0.02 - 2nd paper simple SPLL (this one) doesn't really have a
@@ -10,7 +14,6 @@
 library IEEE;
 library WORK;
 use IEEE.STD_LOGIC_1164.all;
-use IEEE.NUMERIC_STD.all;
 use WORK.COMMON.all;
 
 entity p2_spll is
@@ -24,9 +27,13 @@ end p2_spll;
 
 architecture structural of p2_spll is
         constant FA_PREC : natural := EXT_IIR_FILTERS_PREC;
+        
 	signal first_run_s, first_run_pulsed_s : std_logic;
+        
         signal phase_done_s, phase_done_pulsed_s, fa_delayed_done_s : std_logic;
-	signal in_signal_reg_out_s, our_signal_s, ampl_mul_out_s, ampl_fa_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+        signal fa_REG_delayed_done_s, fa_done_pulsed_s : std_logic;
+       
+	signal in_signal_reg_out_s, our_signal_s, ampl_mul_out_s, ampl_fa_out_s, ampl_kcm_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         signal ampl_mul_out_E_s, ampl_fa_out_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
         signal garbage_1_s : std_logic;
 begin
@@ -84,7 +91,9 @@ begin
                 port map (
                         i => ampl_mul_out_s,
                         o => ampl_mul_out_E_s);
-        
+
+        -- Latency: 0 clks
+        -- Throughput: 1 clk/value
         ampl_fa : entity work.fa(beh)
                 generic map (
                         width         => EXT_PIPELINE_WIDTH,
@@ -97,7 +106,7 @@ begin
                         i              => ampl_mul_out_E_s,
                         o              => ampl_fa_out_E_s,
                         run_en         => phase_done_pulsed_s,
-                        run_passthru   => open,
+                        run_passthru   => fa_done_pulsed_s,
                         delayer_in(0)  => '-',
                         delayer_in(1)  => phase_done_s,
                         delayer_out(0) => garbage_1_s,
@@ -116,8 +125,35 @@ begin
         ampl_kcm : entity work.k_2_mul(alg)
                 port map (
                         i => ampl_fa_out_s,
-                        o => ampl);
+                        o => ampl_kcm_out_s);
 
-	done <= fa_delayed_done_s;
+        -- Output from the MVA (MAF) + kcm _must be registered_, as once clk is given to FA, this
+        -- element is going to update its internal state and output value is no longer going to be correct
+
+        fa_delayed_done_delayer : entity work.reg(alg)
+             generic map (
+                  width => 1)
+             port map (
+                  clk  => clk,
+                  rst  => rst,
+                  we   => '1',
+                  i(0) => fa_delayed_done_s,
+                  o(0) => fa_REG_delayed_done_s);
+        
+        amp_reg_i : entity work.reg(alg)
+             generic map (
+                  width => PIPELINE_WIDTH)
+             port map (
+                  clk => clk,
+                  rst => rst,
+                  we => fa_done_pulsed_s,
+                  i => ampl_kcm_out_s,
+                  o => ampl);
+
+	done <= phase_done_s and fa_REG_delayed_done_s;  -- fa_delayed_done_s is not enough, as when
+                                                         -- receiving a run order, fa_delayed_done is
+                                                         -- going to receive the falling edge on done
+                                                         -- from the phase detector a few cycles after
+                                                         -- the actual edge happened.
         out_signal <= our_signal_s;
 end structural;
