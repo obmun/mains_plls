@@ -26,11 +26,9 @@
 --
 -- Input value: signal whose phase deviation we want to detect (ideally a sinusoidal). It's up to
 -- you to pass it normalized to us. If not, as you can verify observing the stupid structure, that
--- phase error is going to be multiplied by the input amplitude. Standard pipeline with and
+-- phase error is going to be multiplied by the input amplitude. Standard pipeline width and
 -- prec easily allow for values up to 7.9999
 --
--- Dependencies:
--- 
 -- *** Revision ***
 --
 -- Revision 0.01 - File Created, based on Fran Simulink model
@@ -55,49 +53,15 @@ entity p2_phase_det is
         done : out std_logic);
 end p2_phase_det;
 
-architecture beh of p2_phase_det is
-     component subsor is
-          generic (
-               width : natural := PIPELINE_WIDTH
-               );
-          port (
-               a, b: in std_logic_vector(width - 1 downto 0);
-               o: out std_logic_vector(width - 1 downto 0);
-               f_ov, f_z: out std_logic
-               );
-     end component;
-
-     component k_2_div is
-          generic (
-               width : natural := PIPELINE_WIDTH
-               );
-          port (
-               i : in std_logic_vector(width - 1 downto 0);
-               o : out std_logic_vector(width - 1 downto 0)
-               );
-	end component;
-
-	component k_2_mul is
-             generic (
-                  width : natural := PIPELINE_WIDTH
-                  );
-             port (
-                  i : in std_logic_vector(width - 1 downto 0);
-                  o : out std_logic_vector(width - 1 downto 0)
-                  );
-	end component;
-
+architecture structural of p2_phase_det is
 	signal cos_out : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 	signal c_done : std_logic;
         signal input_reg_we_s : std_logic;
         signal input_reg_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 begin
-
-	-- INSTANTIATIONS
         input_reg_i : entity work.reg(alg)
                 generic map (
                         width => PIPELINE_WIDTH)
-                
                 port map (
                         clk => clk,
                         rst => rst,
@@ -128,4 +92,4 @@ begin
 			o => phase_error);
 
 	done <= c_done;
-end beh;
+end structural;
