@@ -26,6 +26,7 @@ library IEEE;
 library WORK;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
+use IEEE.MATH_REAL.all;
 use WORK.COMMON.ALL;
 
 entity phase_loop_fpga is	
@@ -60,6 +61,7 @@ end phase_loop_fpga;
 
 
 architecture beh of phase_loop_fpga is
+     constant ADC_WAIT_TIME_S : real := 6.0;
      type state_t is (
           ST_WARMING, -- The FPGA is warming up, stabilizing clocks and similar. We should not do anything on this state
           ST_RST, -- Once the FPGA is ready to work, we reset the design during one cycle
@@ -67,6 +69,9 @@ architecture beh of phase_loop_fpga is
           ST_AMP_PROG, -- ADC pre-amp programming
           ST_WAIT_AFTER_AMP_PROG, -- Special state for waiting for PGA stabilization (I think the
                                   -- necessity for this state is due to SPI bus timing)
+          ST_ADC_WARM_UP, -- During ADC tests we detected that for the first 5 or 6 seconds we had
+                          -- random input values. During this state, we inhibit the processing of
+                          -- samples inside the PLL
           ST_RUNNING); -- Normal running state
      signal st : state_t;
 
@@ -104,6 +109,11 @@ architecture beh of phase_loop_fpga is
      
      signal spi_prog_amp_owned_s : std_logic;
      signal prog_amp_spi_mosi_s, prog_amp_spi_sck_s : std_logic;
+
+     --- Other ---
+     signal adc_wait_ctr_last_s, adc_wait_ctr_rst_s, adc_wait_ctr_ce_s : std_logic;
+     signal run_pll_s : std_logic;
+
 begin
      platform_i : entity work.platform(beh)
           port map (
@@ -156,15 +166,20 @@ begin
                spi_miso => '0',
                amp_ncs => amp_ncs_s);
 
-     phase_loop_i : entity phase_loop(alg)
-          port map (
-               clk => clk_div_8_s,
-               run => have_sample_s,
-               rst => '0',
-               norm_input => in_signal_s,
-               phase => open,
-               norm_sin => out_signal_s,
-               done => open);
+     phase_loop: block is
+          signal run_s : std_logic;
+     begin
+          run_s <= run_pll_s and have_sample_s;
+          i : entity phase_loop(alg)
+               port map (
+                    clk => clk_div_8_s,
+                    run => run_s,
+                    rst => '0',
+                    norm_input => in_signal_s,
+                    phase => open,
+                    norm_sin => out_signal_s,
+                    done => open);
+     end block;
      
      -- Remember:
      -- 1) ADC input
@@ -218,7 +233,7 @@ begin
 
 
      -- **** **** **** Finite State Machine **** **** ****
-     state_ctrl : process(clk_div_8_s, locked_out_s, gain_done_s, pga_wait_cnt_s)
+     state_ctrl : process(clk_div_8_s, locked_out_s, gain_done_s, pga_wait_cnt_s, adc_wait_ctr_last_s)
           variable first_pga_prog : std_logic;
      begin
           if (rising_edge(clk_div_8_s)) then
@@ -252,10 +267,16 @@ begin
                                         st <= ST_START_AMP_PROG;
                                         first_pga_prog := '0';
                                    else
-                                        st <= ST_RUNNING;
+                                        st <= ST_ADC_WARM_UP;
                                    end if;
                               else
                                    st <= ST_WAIT_AFTER_AMP_PROG;
+                              end if;
+                         when ST_ADC_WARM_UP =>
+                              if (adc_wait_ctr_last_s = '1') then
+                                   st <= ST_RUNNING;
+                              else
+                                   st <= ST_ADC_WARM_UP;
                               end if;
                          when ST_RUNNING =>
                               st <= ST_RUNNING;
@@ -268,7 +289,7 @@ begin
           end if;
      end process state_ctrl;
 
-     state_signals_gen : process(st)
+     state_signals_gen : process(st, have_sample_s)
      begin
           case st is
                when ST_WARMING =>
@@ -278,6 +299,10 @@ begin
                     set_gain_s <= '0';
                     pga_wait_ctr_rst_s <= '0';
                     spi_prog_amp_owned_s <= '0';
+
+                    adc_wait_ctr_rst_s <= '0';
+                    adc_wait_ctr_ce_s <= '0';
+                    run_pll_s <= '0';
                     
                     led(0) <= '1';
                     led(1) <= '0';
@@ -291,6 +316,10 @@ begin
                     pga_wait_ctr_rst_s <= '0';
                     spi_prog_amp_owned_s <= '0';
 
+                    adc_wait_ctr_rst_s <= '0';
+                    adc_wait_ctr_ce_s <= '0';
+                    run_pll_s <= '0';
+
                     led(0) <= '0';
                     led(1) <= '1';
                     led(2) <= '0';
@@ -302,6 +331,10 @@ begin
                     set_gain_s <= '1';
                     pga_wait_ctr_rst_s <= '0';
                     spi_prog_amp_owned_s <= '1';
+
+                    adc_wait_ctr_rst_s <= '0';
+                    adc_wait_ctr_ce_s <= '0';
+                    run_pll_s <= '0';
                     
                     led(0) <= '1';
                     led(1) <= '1';
@@ -314,6 +347,9 @@ begin
                     set_gain_s <= '0';
                     pga_wait_ctr_rst_s <= '1';
                     spi_prog_amp_owned_s <= '1';
+
+                    adc_wait_ctr_rst_s <= '0';
+                    run_pll_s <= '0';
                     
                     led(0) <= '0';
                     led(1) <= '0';
@@ -326,11 +362,31 @@ begin
                     set_gain_s <= '0';
                     pga_wait_ctr_rst_s <= '0';
                     spi_prog_amp_owned_s <= '1';
+
+                    adc_wait_ctr_rst_s <= '1';
+                    adc_wait_ctr_ce_s <= '1';
+                    run_pll_s <= '0';
                     
                     led(0) <= '1';
                     led(1) <= '0';
                     led(2) <= '1';
                     
+               when ST_ADC_WARM_UP =>
+                    rst_s <= '0';
+                    dac_adc_run_s <= '1';
+                    
+                    set_gain_s <= '0';
+                    pga_wait_ctr_rst_s <= '0';
+                    spi_prog_amp_owned_s <= '0';
+
+                    adc_wait_ctr_rst_s <= '0';
+                    adc_wait_ctr_ce_s <= have_sample_s;
+                    run_pll_s <= '0';
+                    
+                    led(0) <= '0';
+                    led(1) <= '1';
+                    led(2) <= '1';
+
                when ST_RUNNING =>
                     rst_s <= '0';
                     dac_adc_run_s <= '1';
@@ -338,8 +394,12 @@ begin
                     set_gain_s <= '0';
                     pga_wait_ctr_rst_s <= '0';
                     spi_prog_amp_owned_s <= '0';
+
+                    adc_wait_ctr_rst_s <= '0';
+                    adc_wait_ctr_ce_s <= '0';
+                    run_pll_s <= '1';
                     
-                    led(0) <= '0';
+                    led(0) <= '1';
                     led(1) <= '1';
                     led(2) <= '1';
                     
@@ -350,6 +410,10 @@ begin
                     set_gain_s <= '0';
                     pga_wait_ctr_rst_s <= '0';
                     spi_prog_amp_owned_s <= '0';
+
+                    adc_wait_ctr_rst_s <= '0';
+                    adc_wait_ctr_ce_s <= '0';
+                    run_pll_s <= '0';
                     
                     led(0) <= '0';
                     led(1) <= '0';
@@ -363,7 +427,7 @@ begin
           constant WIDTH : natural := 3;
           constant ONES : std_logic_vector(WIDTH - 1 downto 0) := std_logic_vector(to_unsigned(2**WIDTH - 1, WIDTH));
      begin
-          cnt : process(clk_div_8_s)
+          cnt : process(clk_div_8_s, pga_wait_ctr_rst_s)
                variable val : natural;
           begin
                if (rising_edge(clk_div_8_s)) then
@@ -382,7 +446,37 @@ begin
           
           pga_wait_ctr_last_s <= '1' when (pga_wait_cnt_s = ONES) else '0';
      end block;
-     
+
+
+     -- Counter for waiting the required ADC stabilization time
+     mierda_mierda_adc_wait_ctr : block is
+          constant N_SAMPLES : natural := natural(ceil(ADC_WAIT_TIME_S * SAMPLING_FREQ));
+          constant WIDTH : natural := natural(ceil(log2(real(N_SAMPLES))));
+
+          signal val_s : std_logic_vector(WIDTH - 1 downto 0);
+     begin
+          mierda_mierda_cnt : process(clk_div_8_s, adc_wait_ctr_ce_s, adc_wait_ctr_rst_s)
+               variable val : natural;
+          begin
+               report "COUNTER WIDTH = " & natural'image(WIDTH) severity note;
+               report "N_SAMPLES = " & natural'image(N_SAMPLES) severity note;
+               if ((adc_wait_ctr_ce_s = '1') and rising_edge(clk_div_8_s)) then
+                    if (adc_wait_ctr_rst_s = '1') then
+                         val := 0;
+                    else
+                         if (val = (2**WIDTH - 1)) then
+                              val := 0;
+                         else
+                              val := val + 1;
+                         end if;
+                    end if;
+                    val_s <= std_logic_vector(to_unsigned(val, WIDTH));
+               end if;
+          end process;
+
+          adc_wait_ctr_last_s <= '1' when (val_s = std_logic_vector(to_unsigned(N_SAMPLES, WIDTH))) else '0';
+     end block;
+
 
      -- Keep the ADC pre-amp ON (shutdown = '0')
      amp_shdn <= '0';
