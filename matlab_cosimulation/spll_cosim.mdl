@@ -6,28 +6,28 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.105"
+    ComputedModelVersion    "1.107"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
-  Description		  "Complex Simulink model for PROPER ampl_loop entity cosimulation\n\nCorrectly samples and filter inpu"
-  "t signal:\n- Configure sampling process on the \"Sampler\" block\n\nGenerates all clocks and signals for the simulat"
-  "ed block following a run/done interface:\n- Configure digital clk generation on this model workspace\n  * Change Dig"
-  "italFreq model workspace variable\n- run, rst and clk signals are generated using the model block\n\nCorrectly sets "
-  "sampling frequencies for all signals.\n\nGenerates, on Matlab workspace, once simulation is finished or stopd, 2 var"
-  "iables:\n1) phase_loop_cosim_in\n    Vector with the INPUT values to the phase_loop\n    Each row is a SAMPLE.\n    "
-  "Has 4 columns:\n    <initial columns> -> output values (check model)\n    before last -> output sample time\n       "
-  "That is, this is not the simulation time of the input sample which resulted in this output value (a value which woul"
-  "d be a little earlier in time).\n       This is the EXACT time at which the done signal went up and the output was s"
-  "apmled\n    last -> Sample 3 (corresponding input sample #)\n2) phase_loop_cosim_out\n    Format is identical to pha"
-  "se_loop_cosim_in vector, but this time sampled values are the input block values\n\n=== Usage ===\n1) Launch Modelsi"
-  "m from Matlab for Simulink cosimulation.\n    Choose the mode in function of the \"Connection\" mode set on the EDA "
-  "co-simulation block on this simulink model:\n      a) For socket connection\n          >> vsim('socketsimulink', 444"
-  "9)\n      b) For shared memory (recommended)\n          >> vsim();\n2) Open the 'phase_loop' project, for easy compi"
-  "lation of spll design phase loop\n     Location: spll/modelsim/ampl_loop.mpf\n3) Compile project inside ModelSim\n4)"
-  " Launch simulation using special simulation command for connecting VSIM with Matlab\n    ModelSim> vsimulink work.ph"
-  "ase_loop\n\nRemember that most of the time, with this complex Simulink models, the simulation bottleneck LIES on Sim"
-  "ulink, not on the Modelsim.\nRecommendations:\n* Use \"accelerator\" mode for faster simulation."
+  Description		  "Complex Simulink model for PROPER spll entity (ALL-PLL design) cosimulation\n\nCorrectly samples and"
+  " filter input signal:\n- Configure sampling process on the \"Sampler\" block\n\nGenerates all clocks and signals for"
+  " the simulated block following a run/done interface:\n- Configure digital clk generation on this model workspace\n  "
+  "* Change DigitalFreq model workspace variable\n- run, rst and clk signals are generated using the model block\n\nCor"
+  "rectly sets sampling frequencies for all signals.\n\nGenerates, on Matlab workspace, once simulation is finished or "
+  "stoped, 2 variables:\n1) spll_cosim_in\n    Vector with the INPUT values to the phase_loop\n    Each row is a SAMPLE"
+  ".\n    Has 4 columns:\n    <initial columns> -> output values (check model)\n    before last -> output sample time\n"
+  "       That is, this is not the simulation time of the input sample which resulted in this output value (a value whi"
+  "ch would be a little earlier in time).\n       This is the EXACT time at which the done signal went up and the outpu"
+  "t was sapmled\n    last -> Sample 3 (corresponding input sample #)\n2) spll_cosim_out\n    Format is identical to sp"
+  "ll_cosim_in vector, but this time sampled values are the input block values\n\n=== Usage ===\n1) Launch Modelsim fro"
+  "m Matlab for Simulink cosimulation.\n    Choose the mode in function of the \"Connection\" mode set on the EDA co-si"
+  "mulation block on this simulink model:\n      a) For socket connection\n          >> vsim('socketsimulink', 4449)\n "
+  "     b) For shared memory (recommended)\n          >> vsim();\n2) Open the 'spll' project, for easy compilation of s"
+  "pll design phase loop\n     Location: spll/modelsim/spll.mpf\n3) Compile project inside ModelSim\n4) Launch simulati"
+  "on using special simulation command for connecting VSIM with Matlab\n    ModelSim> vsimulink work.spll\n\nRemember t"
+  "hat most of the time, with this complex Simulink models, the simulation bottleneck LIES on Simulink, not on the Mode"
+  "lsim.\nRecommendations:\n* Use \"accelerator\" mode for faster simulation."
   SavedCharacterEncoding  "windows-1252"
   slprops.hdlmdlprops {
     $PropName		    "HDLParams"
@@ -56,9 +56,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "obmun"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Wed Apr 18 14:22:55 2012"
-  RTWModifiedTimeStamp	  256652603
-  ModelVersionFormat	  "1.%<AutoIncrement:105>"
+  LastModifiedDate	  "Thu Apr 19 18:40:34 2012"
+  RTWModifiedTimeStamp	  256761610
+  ModelVersionFormat	  "1.%<AutoIncrement:107>"
   ConfigurationManager	  "None"
   SampleTimeColors	  on
   SampleTimeAnnotations	  on
@@ -83,7 +83,7 @@ Model {
   StatusBar		  on
   BrowserShowLibraryLinks off
   BrowserLookUnderMasks	  off
-  SimulationMode	  "normal"
+  SimulationMode	  "accelerator"
   LinearizationMsg	  "none"
   Profile		  off
   ParamWorkspaceSource	  "MATLABWorkspace"
@@ -1061,7 +1061,7 @@ Model {
   }
   System {
     Name		    "spll_cosim"
-    Location		    [970, 82, 1910, 1034]
+    Location		    [10, 82, 950, 1034]
     Open		    on
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
@@ -2382,7 +2382,7 @@ Model {
 	  System {
 	    Name		    "Amp"
 	    Location		    [970, 82, 1910, 1051]
-	    Open		    on
+	    Open		    off
 	    ModelBrowserVisibility  off
 	    ModelBrowserWidth	    200
 	    ScreenColor		    "white"
@@ -3747,37 +3747,6 @@ Model {
       }
     }
     Block {
-      BlockType		      Reference
-      Name		      "ampl_loop"
-      SID		      "34"
-      Ports		      [4, 3]
-      Position		      [440, 197, 625, 353]
-      LibraryVersion	      "1.236"
-      SourceBlock	      "modelsimlib/HDL Cosimulation"
-      SourceType	      "Simulink and ModelSim Cosimulation"
-      PortPaths		      "/spll/clk;/spll/rst;/spll/sample;/spll/in_signal;/spll/phase;/spll/out_signal;/spll/done"
-      PortModes		      "[1 1 1 1 2 2 2 ]"
-      PortTimes		      "[-1,-1,-1,-1,1/(2*DigitalFreq),1/(2*DigitalFreq),1/(2*DigitalFreq)]"
-      PortSigns		      "[-1 -1 -1 -1 1 1 -1 ]"
-      PortFracLengths	      "[0,0,0,0,12,12,0]"
-      CommLocal		      on
-      CommSharedMemory	      on
-      CommPortNumber	      "4449"
-      CommShowInfo	      on
-      ClockModes	      "[]"
-      ClockTimes	      "[]"
-      TclPreSimCommand	      "puts \"Running Simulink Cosimulation block.\""
-      TclPostSimCommand	      "puts \"done\""
-      TimingMode	      "s"
-      TimingScaleFactor	      "1"
-      idxCellArray	      "{'UNUSED_VAR'}"
-      CosimBypass	      "Full Simulation"
-      AllowDirectFeedthrough  off
-      ProductName	      "EDA Simulator Link MQ"
-      RunAutoTimescale	      off
-      HdlClocks		      "0"
-    }
-    Block {
       BlockType		      SubSystem
       Name		      "en_filter"
       SID		      "335"
@@ -4476,6 +4445,37 @@ Model {
       RndMeth		      "Nearest"
     }
     Block {
+      BlockType		      Reference
+      Name		      "spll"
+      SID		      "34"
+      Ports		      [4, 3]
+      Position		      [440, 197, 625, 353]
+      LibraryVersion	      "1.236"
+      SourceBlock	      "modelsimlib/HDL Cosimulation"
+      SourceType	      "Simulink and ModelSim Cosimulation"
+      PortPaths		      "/spll/clk;/spll/rst;/spll/sample;/spll/in_signal;/spll/phase;/spll/out_signal;/spll/done"
+      PortModes		      "[1 1 1 1 2 2 2 ]"
+      PortTimes		      "[-1,-1,-1,-1,1/(2*DigitalFreq),1/(2*DigitalFreq),1/(2*DigitalFreq)]"
+      PortSigns		      "[-1 -1 -1 -1 1 1 -1 ]"
+      PortFracLengths	      "[0,0,0,0,12,12,0]"
+      CommLocal		      on
+      CommSharedMemory	      on
+      CommPortNumber	      "4449"
+      CommShowInfo	      on
+      ClockModes	      "[]"
+      ClockTimes	      "[]"
+      TclPreSimCommand	      "puts \"Running Simulink Cosimulation block.\""
+      TclPostSimCommand	      "puts \"done\""
+      TimingMode	      "s"
+      TimingScaleFactor	      "1"
+      idxCellArray	      "{'UNUSED_VAR'}"
+      CosimBypass	      "Full Simulation"
+      AllowDirectFeedthrough  off
+      ProductName	      "EDA Simulator Link MQ"
+      RunAutoTimescale	      off
+      HdlClocks		      "0"
+    }
+    Block {
       BlockType		      DataTypeConversion
       Name		      "to bool 1"
       SID		      "86"
@@ -4593,7 +4593,7 @@ Model {
 	DstPort			3
       }
       Branch {
-	DstBlock		"ampl_loop"
+	DstBlock		"spll"
 	DstPort			2
       }
     }
@@ -4717,7 +4717,7 @@ Model {
     Line {
       SrcBlock		      "to bool 3"
       SrcPort		      1
-      DstBlock		      "ampl_loop"
+      DstBlock		      "spll"
       DstPort		      1
     }
     Line {
@@ -4804,7 +4804,7 @@ Model {
       DstPort		      1
     }
     Line {
-      SrcBlock		      "ampl_loop"
+      SrcBlock		      "spll"
       SrcPort		      1
       Points		      [15, 0; 0, -15]
       DstBlock		      "to double"
@@ -4817,7 +4817,7 @@ Model {
       DstPort		      3
     }
     Line {
-      SrcBlock		      "ampl_loop"
+      SrcBlock		      "spll"
       SrcPort		      3
       Points		      [10, 0; 0, 25]
       DstBlock		      "to bool 4"
@@ -4826,11 +4826,11 @@ Model {
     Line {
       SrcBlock		      "sine to fx4.16"
       SrcPort		      1
-      DstBlock		      "ampl_loop"
+      DstBlock		      "spll"
       DstPort		      4
     }
     Line {
-      SrcBlock		      "ampl_loop"
+      SrcBlock		      "spll"
       SrcPort		      2
       Points		      [15, 0; 0, -25]
       DstBlock		      "to double1"
@@ -4845,7 +4845,7 @@ Model {
     Line {
       SrcBlock		      "to bool 1"
       SrcPort		      1
-      DstBlock		      "ampl_loop"
+      DstBlock		      "spll"
       DstPort		      3
     }
     Annotation {

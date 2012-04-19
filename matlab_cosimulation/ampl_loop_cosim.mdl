@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.98"
+    ComputedModelVersion    "1.100"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -56,9 +56,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "obmun"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Mon Apr 16 12:33:07 2012"
-  RTWModifiedTimeStamp	  256417513
-  ModelVersionFormat	  "1.%<AutoIncrement:98>"
+  LastModifiedDate	  "Wed Apr 18 17:12:56 2012"
+  RTWModifiedTimeStamp	  256669970
+  ModelVersionFormat	  "1.%<AutoIncrement:100>"
   ConfigurationManager	  "None"
   SampleTimeColors	  on
   SampleTimeAnnotations	  on
@@ -83,7 +83,7 @@ Model {
   StatusBar		  on
   BrowserShowLibraryLinks off
   BrowserLookUnderMasks	  off
-  SimulationMode	  "normal"
+  SimulationMode	  "accelerator"
   LinearizationMsg	  "none"
   Profile		  off
   ParamWorkspaceSource	  "MATLABWorkspace"
@@ -1061,7 +1061,7 @@ Model {
   }
   System {
     Name		    "ampl_loop_cosim"
-    Location		    [970, 82, 1910, 1039]
+    Location		    [970, 82, 1910, 1034]
     Open		    on
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
@@ -2449,7 +2449,7 @@ Model {
 	      Position		      [110, 220, 140, 250]
 	      ZOrder		      -5
 	      ShowName		      off
-	      Value		      "0.9"
+	      Value		      "0.7"
 	    }
 	    Block {
 	      BlockType		      FromWorkspace
@@ -3835,7 +3835,279 @@ Model {
     }
     Block {
       BlockType		      SubSystem
-      Name		      "clk_rst generation"
+      Name		      "en_filter"
+      SID		      "335"
+      Ports		      [3, 1]
+      Position		      [820, 179, 920, 221]
+      ZOrder		      -17
+      MinAlgLoopOccurrences   off
+      PropExecContextOutsideSubsystem off
+      RTWSystemCode	      "Auto"
+      FunctionWithSeparateData off
+      Opaque		      off
+      RequestExecContextInheritance off
+      MaskHideContents	      off
+      Port {
+	PortNumber		1
+	Name			"out_en"
+	RTWStorageClass		"Auto"
+	DataLoggingNameMode	"SignalName"
+      }
+      System {
+	Name			"en_filter"
+	Location		[970, 82, 1910, 1051]
+	Open			off
+	ModelBrowserVisibility	off
+	ModelBrowserWidth	200
+	ScreenColor		"white"
+	PaperOrientation	"landscape"
+	PaperPositionMode	"auto"
+	PaperType		"A4"
+	PaperUnits		"centimeters"
+	TiledPaperMargins	[1.270000, 1.270000, 1.270000, 1.270000]
+	TiledPageScale		1
+	ShowPageBoundaries	off
+	ZoomFactor		"100"
+	Block {
+	  BlockType		  Inport
+	  Name			  "curr_sample_n"
+	  SID			  "331"
+	  Position		  [110, 213, 140, 227]
+	  ZOrder		  -1
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  Inport
+	  Name			  "last_sample_n"
+	  SID			  "332"
+	  Position		  [115, 248, 145, 262]
+	  ZOrder		  -1
+	  Port			  "2"
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  Inport
+	  Name			  "en_in"
+	  SID			  "333"
+	  Position		  [150, 98, 180, 112]
+	  ZOrder		  -1
+	  Port			  "3"
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  Constant
+	  Name			  "Constant"
+	  SID			  "351"
+	  Position		  [505, 245, 535, 275]
+	  ZOrder		  -4
+	  Value			  "0"
+	}
+	Block {
+	  BlockType		  Constant
+	  Name			  "Constant1"
+	  SID			  "352"
+	  Position		  [460, 170, 490, 200]
+	  ZOrder		  -4
+	  BlockRotation		  270
+	  Value			  "0"
+	}
+	Block {
+	  BlockType		  Constant
+	  Name			  "Constant2"
+	  SID			  "353"
+	  Position		  [415, 45, 445, 75]
+	  ZOrder		  -4
+	}
+	Block {
+	  BlockType		  Reference
+	  Name			  "Detect\nIncrease"
+	  SID			  "345"
+	  Ports			  [1, 1]
+	  Position		  [220, 89, 280, 121]
+	  ZOrder		  -9
+	  LibraryVersion	  "1.256"
+	  SourceBlock		  "simulink/Logic and Bit\nOperations/Detect\nIncrease"
+	  SourceType		  "Detect Increase"
+	  vinit			  "0.0"
+	  InputProcessing	  "Inherited"
+	  OutDataTypeStr	  "boolean"
+	}
+	Block {
+	  BlockType		  DiscreteIntegrator
+	  Name			  "Discrete-Time\nIntegrator"
+	  SID			  "348"
+	  Ports			  [2, 1]
+	  Position		  [325, 96, 410, 129]
+	  ZOrder		  -7
+	  IntegratorMethod	  "Integration: Forward Euler"
+	  ExternalReset		  "level"
+	  InitialConditionSource  "internal"
+	  SampleTime		  "-1"
+	  OutDataTypeStr	  "double"
+	  LimitOutput		  on
+	  UpperSaturationLimit	  "1"
+	  LowerSaturationLimit	  "0"
+	  ICPrevOutput		  "DiscIntNeverNeededParam"
+	  ICPrevScaledInput	  "DiscIntNeverNeededParam"
+	}
+	Block {
+	  BlockType		  Logic
+	  Name			  "Logical\nOperator1"
+	  SID			  "350"
+	  Ports			  [1, 1]
+	  Position		  [279, 160, 311, 190]
+	  ZOrder		  -11
+	  BlockRotation		  270
+	  Operator		  "NOT"
+	  AllPortsSameDT	  off
+	  OutDataTypeStr	  "boolean"
+	}
+	Block {
+	  BlockType		  RelationalOperator
+	  Name			  "Relational\nOperator"
+	  SID			  "329"
+	  Ports			  [2, 1]
+	  Position		  [200, 210, 245, 245]
+	  ZOrder		  -18
+	  Operator		  ">"
+	  InputSameDT		  off
+	  OutDataTypeStr	  "boolean"
+	}
+	Block {
+	  BlockType		  Switch
+	  Name			  "Switch"
+	  SID			  "343"
+	  Position		  [595, 210, 645, 250]
+	  ZOrder		  -19
+	  Criteria		  "u2 > Threshold"
+	  InputSameDT		  off
+	  SaturateOnIntegerOverflow off
+	}
+	Block {
+	  BlockType		  Switch
+	  Name			  "Switch1"
+	  SID			  "347"
+	  Position		  [495, 95, 545, 135]
+	  ZOrder		  -19
+	  Criteria		  "u2 > Threshold"
+	  InputSameDT		  off
+	  SaturateOnIntegerOverflow off
+	}
+	Block {
+	  BlockType		  Outport
+	  Name			  "en_out"
+	  SID			  "334"
+	  Position		  [690, 223, 720, 237]
+	  ZOrder		  -23
+	  IconDisplay		  "Port number"
+	}
+	Line {
+	  SrcBlock		  "Relational\nOperator"
+	  SrcPort		  1
+	  Points		  [45, 0]
+	  Branch {
+	    DstBlock		    "Switch"
+	    DstPort		    2
+	  }
+	  Branch {
+	    DstBlock		    "Logical\nOperator1"
+	    DstPort		    1
+	  }
+	}
+	Line {
+	  SrcBlock		  "curr_sample_n"
+	  SrcPort		  1
+	  DstBlock		  "Relational\nOperator"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "last_sample_n"
+	  SrcPort		  1
+	  Points		  [15, 0; 0, -20]
+	  DstBlock		  "Relational\nOperator"
+	  DstPort		  2
+	}
+	Line {
+	  SrcBlock		  "Detect\nIncrease"
+	  SrcPort		  1
+	  DstBlock		  "Discrete-Time\nIntegrator"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "en_in"
+	  SrcPort		  1
+	  DstBlock		  "Detect\nIncrease"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "Discrete-Time\nIntegrator"
+	  SrcPort		  1
+	  DstBlock		  "Switch1"
+	  DstPort		  2
+	}
+	Line {
+	  SrcBlock		  "Switch1"
+	  SrcPort		  1
+	  Points		  [10, 0; 0, 100]
+	  DstBlock		  "Switch"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "Constant2"
+	  SrcPort		  1
+	  Points		  [15, 0; 0, 40]
+	  DstBlock		  "Switch1"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "Constant1"
+	  SrcPort		  1
+	  Points		  [0, -35]
+	  DstBlock		  "Switch1"
+	  DstPort		  3
+	}
+	Line {
+	  SrcBlock		  "Constant"
+	  SrcPort		  1
+	  Points		  [15, 0; 0, -15]
+	  DstBlock		  "Switch"
+	  DstPort		  3
+	}
+	Line {
+	  SrcBlock		  "Switch"
+	  SrcPort		  1
+	  DstBlock		  "en_out"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "Logical\nOperator1"
+	  SrcPort		  1
+	  Points		  [0, -35]
+	  DstBlock		  "Discrete-Time\nIntegrator"
+	  DstPort		  2
+	}
+	Annotation {
+	  Position		  [394, 114]
+	}
+	Annotation {
+	  Position		  [404, 114]
+	}
+	Annotation {
+	  Position		  [346, 108]
+	}
+      }
+    }
+    Block {
+      BlockType		      DataTypeConversion
+      Name		      "norm. sine to fx4.16"
+      SID		      "373"
+      Position		      [320, 367, 370, 393]
+      OutDataTypeStr	      "fixdt(1,16,12)"
+      RndMeth		      "Nearest"
+    }
+    Block {
+      BlockType		      SubSystem
+      Name		      "run_done\nclk/rst generation"
       SID		      "133"
       Ports		      [1, 3]
       Position		      [490, 119, 575, 161]
@@ -3884,7 +4156,7 @@ Model {
 	DataLoggingNameMode	"SignalName"
       }
       System {
-	Name			"clk_rst generation"
+	Name			"run_done\nclk/rst generation"
 	Location		[151, 241, 1091, 1210]
 	Open			off
 	ModelBrowserVisibility	off
@@ -4260,278 +4532,6 @@ Model {
       }
     }
     Block {
-      BlockType		      SubSystem
-      Name		      "en_filter"
-      SID		      "335"
-      Ports		      [3, 1]
-      Position		      [820, 179, 920, 221]
-      ZOrder		      -17
-      MinAlgLoopOccurrences   off
-      PropExecContextOutsideSubsystem off
-      RTWSystemCode	      "Auto"
-      FunctionWithSeparateData off
-      Opaque		      off
-      RequestExecContextInheritance off
-      MaskHideContents	      off
-      Port {
-	PortNumber		1
-	Name			"out_en"
-	RTWStorageClass		"Auto"
-	DataLoggingNameMode	"SignalName"
-      }
-      System {
-	Name			"en_filter"
-	Location		[970, 82, 1910, 1051]
-	Open			off
-	ModelBrowserVisibility	off
-	ModelBrowserWidth	200
-	ScreenColor		"white"
-	PaperOrientation	"landscape"
-	PaperPositionMode	"auto"
-	PaperType		"A4"
-	PaperUnits		"centimeters"
-	TiledPaperMargins	[1.270000, 1.270000, 1.270000, 1.270000]
-	TiledPageScale		1
-	ShowPageBoundaries	off
-	ZoomFactor		"100"
-	Block {
-	  BlockType		  Inport
-	  Name			  "curr_sample_n"
-	  SID			  "331"
-	  Position		  [110, 213, 140, 227]
-	  ZOrder		  -1
-	  IconDisplay		  "Port number"
-	}
-	Block {
-	  BlockType		  Inport
-	  Name			  "last_sample_n"
-	  SID			  "332"
-	  Position		  [115, 248, 145, 262]
-	  ZOrder		  -1
-	  Port			  "2"
-	  IconDisplay		  "Port number"
-	}
-	Block {
-	  BlockType		  Inport
-	  Name			  "en_in"
-	  SID			  "333"
-	  Position		  [150, 98, 180, 112]
-	  ZOrder		  -1
-	  Port			  "3"
-	  IconDisplay		  "Port number"
-	}
-	Block {
-	  BlockType		  Constant
-	  Name			  "Constant"
-	  SID			  "351"
-	  Position		  [505, 245, 535, 275]
-	  ZOrder		  -4
-	  Value			  "0"
-	}
-	Block {
-	  BlockType		  Constant
-	  Name			  "Constant1"
-	  SID			  "352"
-	  Position		  [460, 170, 490, 200]
-	  ZOrder		  -4
-	  BlockRotation		  270
-	  Value			  "0"
-	}
-	Block {
-	  BlockType		  Constant
-	  Name			  "Constant2"
-	  SID			  "353"
-	  Position		  [415, 45, 445, 75]
-	  ZOrder		  -4
-	}
-	Block {
-	  BlockType		  Reference
-	  Name			  "Detect\nIncrease"
-	  SID			  "345"
-	  Ports			  [1, 1]
-	  Position		  [220, 89, 280, 121]
-	  ZOrder		  -9
-	  LibraryVersion	  "1.256"
-	  SourceBlock		  "simulink/Logic and Bit\nOperations/Detect\nIncrease"
-	  SourceType		  "Detect Increase"
-	  vinit			  "0.0"
-	  InputProcessing	  "Inherited"
-	  OutDataTypeStr	  "boolean"
-	}
-	Block {
-	  BlockType		  DiscreteIntegrator
-	  Name			  "Discrete-Time\nIntegrator"
-	  SID			  "348"
-	  Ports			  [2, 1]
-	  Position		  [325, 96, 410, 129]
-	  ZOrder		  -7
-	  IntegratorMethod	  "Integration: Forward Euler"
-	  ExternalReset		  "level"
-	  InitialConditionSource  "internal"
-	  SampleTime		  "-1"
-	  OutDataTypeStr	  "double"
-	  LimitOutput		  on
-	  UpperSaturationLimit	  "1"
-	  LowerSaturationLimit	  "0"
-	  ICPrevOutput		  "DiscIntNeverNeededParam"
-	  ICPrevScaledInput	  "DiscIntNeverNeededParam"
-	}
-	Block {
-	  BlockType		  Logic
-	  Name			  "Logical\nOperator1"
-	  SID			  "350"
-	  Ports			  [1, 1]
-	  Position		  [279, 160, 311, 190]
-	  ZOrder		  -11
-	  BlockRotation		  270
-	  Operator		  "NOT"
-	  AllPortsSameDT	  off
-	  OutDataTypeStr	  "boolean"
-	}
-	Block {
-	  BlockType		  RelationalOperator
-	  Name			  "Relational\nOperator"
-	  SID			  "329"
-	  Ports			  [2, 1]
-	  Position		  [200, 210, 245, 245]
-	  ZOrder		  -18
-	  Operator		  ">"
-	  InputSameDT		  off
-	  OutDataTypeStr	  "boolean"
-	}
-	Block {
-	  BlockType		  Switch
-	  Name			  "Switch"
-	  SID			  "343"
-	  Position		  [595, 210, 645, 250]
-	  ZOrder		  -19
-	  Criteria		  "u2 > Threshold"
-	  InputSameDT		  off
-	  SaturateOnIntegerOverflow off
-	}
-	Block {
-	  BlockType		  Switch
-	  Name			  "Switch1"
-	  SID			  "347"
-	  Position		  [495, 95, 545, 135]
-	  ZOrder		  -19
-	  Criteria		  "u2 > Threshold"
-	  InputSameDT		  off
-	  SaturateOnIntegerOverflow off
-	}
-	Block {
-	  BlockType		  Outport
-	  Name			  "en_out"
-	  SID			  "334"
-	  Position		  [690, 223, 720, 237]
-	  ZOrder		  -23
-	  IconDisplay		  "Port number"
-	}
-	Line {
-	  SrcBlock		  "Relational\nOperator"
-	  SrcPort		  1
-	  Points		  [45, 0]
-	  Branch {
-	    DstBlock		    "Switch"
-	    DstPort		    2
-	  }
-	  Branch {
-	    DstBlock		    "Logical\nOperator1"
-	    DstPort		    1
-	  }
-	}
-	Line {
-	  SrcBlock		  "curr_sample_n"
-	  SrcPort		  1
-	  DstBlock		  "Relational\nOperator"
-	  DstPort		  1
-	}
-	Line {
-	  SrcBlock		  "last_sample_n"
-	  SrcPort		  1
-	  Points		  [15, 0; 0, -20]
-	  DstBlock		  "Relational\nOperator"
-	  DstPort		  2
-	}
-	Line {
-	  SrcBlock		  "Detect\nIncrease"
-	  SrcPort		  1
-	  DstBlock		  "Discrete-Time\nIntegrator"
-	  DstPort		  1
-	}
-	Line {
-	  SrcBlock		  "en_in"
-	  SrcPort		  1
-	  DstBlock		  "Detect\nIncrease"
-	  DstPort		  1
-	}
-	Line {
-	  SrcBlock		  "Discrete-Time\nIntegrator"
-	  SrcPort		  1
-	  DstBlock		  "Switch1"
-	  DstPort		  2
-	}
-	Line {
-	  SrcBlock		  "Switch1"
-	  SrcPort		  1
-	  Points		  [10, 0; 0, 100]
-	  DstBlock		  "Switch"
-	  DstPort		  1
-	}
-	Line {
-	  SrcBlock		  "Constant2"
-	  SrcPort		  1
-	  Points		  [15, 0; 0, 40]
-	  DstBlock		  "Switch1"
-	  DstPort		  1
-	}
-	Line {
-	  SrcBlock		  "Constant1"
-	  SrcPort		  1
-	  Points		  [0, -35]
-	  DstBlock		  "Switch1"
-	  DstPort		  3
-	}
-	Line {
-	  SrcBlock		  "Constant"
-	  SrcPort		  1
-	  Points		  [15, 0; 0, -15]
-	  DstBlock		  "Switch"
-	  DstPort		  3
-	}
-	Line {
-	  SrcBlock		  "Switch"
-	  SrcPort		  1
-	  DstBlock		  "en_out"
-	  DstPort		  1
-	}
-	Line {
-	  SrcBlock		  "Logical\nOperator1"
-	  SrcPort		  1
-	  Points		  [0, -35]
-	  DstBlock		  "Discrete-Time\nIntegrator"
-	  DstPort		  2
-	}
-	Annotation {
-	  Position		  [394, 114]
-	}
-	Annotation {
-	  Position		  [404, 114]
-	}
-	Annotation {
-	  Position		  [346, 108]
-	}
-      }
-    }
-    Block {
-      BlockType		      DataTypeConversion
-      Name		      "norm. sine to fx4.16"
-      SID		      "373"
-      Position		      [320, 367, 370, 393]
-      OutDataTypeStr	      "fixdt(1,16,12)"
-      RndMeth		      "Nearest"
-    }
-    Block {
       BlockType		      DataTypeConversion
       Name		      "sine to fx4.16"
       SID		      "35"
@@ -4623,7 +4623,7 @@ Model {
     Line {
       Name		      "clk"
       Labels		      [0, 0]
-      SrcBlock		      "clk_rst generation"
+      SrcBlock		      "run_done\nclk/rst generation"
       SrcPort		      1
       Points		      [-235, 0; 0, 90; 30, 0]
       Branch {
@@ -4885,7 +4885,7 @@ Model {
     Line {
       Name		      "rst"
       Labels		      [2, 0]
-      SrcBlock		      "clk_rst generation"
+      SrcBlock		      "run_done\nclk/rst generation"
       SrcPort		      2
       Points		      [-245, 0; 0, 85; 30, 0; 0, 30]
       DstBlock		      "to bool 2"
@@ -4894,11 +4894,11 @@ Model {
     Line {
       SrcBlock		      "From11"
       SrcPort		      1
-      DstBlock		      "clk_rst generation"
+      DstBlock		      "run_done\nclk/rst generation"
       DstPort		      1
     }
     Line {
-      SrcBlock		      "clk_rst generation"
+      SrcBlock		      "run_done\nclk/rst generation"
       SrcPort		      3
       Points		      [-255, 0; 0, 425; 310, 0]
       Branch {
