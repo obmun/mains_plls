@@ -116,8 +116,9 @@ architecture alg of ampl_loop is
 
      -- * Internal elements control *
      signal st : state_t;
-     
-     signal sqrt_error_s : std_logic;
+
+     signal sqrt_neg_input_s : std_logic;
+     -- signal sqrt_error_s : std_logic;
      signal sqrt_done_s, sqrt_done_pulsed_s, fa_delayed_done_s, pi_integrator_done_s, lpf_done_s, filter_stage_done_s : std_logic;
      signal filter_stage_done_i_s : std_logic_vector(1 downto 0);
      signal first_run_s, first_run_pulsed_s, first_run_pulsed_REG_s : std_logic;
@@ -278,13 +279,13 @@ begin
 
      
      -- Element with HARDCODED EXTENDED PIPELINE
-     sqrt_i : entity work.sqrt(alg)
+     sqrt_i : entity work.signed_sqrt(structural)
           generic map ( AMPL_LOOP_EXT_PREC )
           port map (
                clk => clk, rst => rst_s, run => filter_stage_done_s,
                i => squared_alpha_EXT_s, o => alpha_EXT_s,
-               done => sqrt_done_s , error_p => sqrt_error_s);
-
+               done => sqrt_done_s , neg_input => sqrt_neg_input_s);
+               -- error_p => sqrt_error_s);
      -- assert sqrt_error_s = '0' report "ERROR in SQRT calculation!" severity failure;
 
      sqrt_done_pulser : entity work.done_pulser(beh)
