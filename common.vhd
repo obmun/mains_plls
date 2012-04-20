@@ -38,7 +38,7 @@ package common is
                             'm' -- minus -> Input must be substracted
                             );
         type csd_logic_vector is array (integer range <>) of csd_logic;
-        
+
         -- *
         -- * Constantes básicas del DAC / ADC necesarias por otros módulos.
         -- *
@@ -50,6 +50,8 @@ package common is
         -- *
 	-- CURRENT CONFIG:
 	-- >> SAMPLE RATE: 10 KHz
+        -- Be careful: changing this value does NOT automatically change the ADC sampling freq. That
+        -- freq is _hardcoded_ inside dac_adc entity.
         constant SAMPLING_FREQ : real := 10000.0;
         constant SAMPLING_PERIOD : real := 1.0 / SAMPLING_FREQ;
 
@@ -68,9 +70,19 @@ package common is
         constant TWO_PI : real := 6.28318530717959;
         constant MINUS_TWO_PI : real := -6.28318530717959;
 
+        -- @brief Transforms a given real value into the nearest integer for the fixed point format
+        -- defined by prec and width. Uses 2s complement binary representation
         pure function to_integer ( val : real; width : natural; prec : natural ) return integer;
+        -- @brief Wrapper around to_integer function which returns directly a std_logic_vector
         pure function to_vector ( val : real; width : natural; prec : natural ) return std_logic_vector;
+
+        -- @brief 'high like attribute in function form for unsigned type
+        pure function high ( u : unsigned ) return natural;
+        -- pure function high ( s : signed ) return integer;
         
+        -- pure function low ( u : unsigned ) return natural;
+        -- pure function low ( s : signed ) return integer;
+
         pure function to_pipeline_integer ( val : real ) return integer;
         pure function to_pipeline_vector ( val : real ) return pipeline_vector;
         pure function to_ext_pipeline_integer ( val : real ) return integer;
@@ -109,7 +121,12 @@ package body common is
         begin
                 return std_logic_vector(to_signed(to_integer(val, width, prec), width));
         end;
-                
+
+        pure function high ( u : unsigned ) return natural is
+        begin
+             return 2**u'length - 1;
+        end;        
+        
         pure function to_pipeline_integer ( val : real ) return integer is
         begin
                 return to_integer(val, PIPELINE_WIDTH, PIPELINE_PREC);

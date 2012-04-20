@@ -1,8 +1,8 @@
 --------------------------------------------------------------------------------
--- === IMPORTANT NOTES ===
--- MUST BE PREPROCESSED
--- 
 -- === Brief DESCRIPTION ===
+--
+-- !MUST BE PREPROCESSED!
+--
 -- Class: sequential
 -- Latency: 1 clk [see each architecture notes]
 -- Throughoutput: depends on architecture
@@ -241,7 +241,7 @@ end structural_tdfii;
 -- ** Specs **
 --
 -- Latency: 1 clk [pipeline is "registered" for reducing combinational path length]
--- Throughoutput: 2 samples/clk [internal state must be updated in 2 different steps]
+-- Throughoutput: 2 clks/sample [internal state must be updated in 2 different steps]
 architecture fast_structural_tdfii of filter_2nd_order_iir is
         signal o_s : std_logic_vector(width - 1 downto 0);
         signal o_reg_s : std_logic_vector(width - 1 downto 0);
@@ -311,7 +311,7 @@ begin
                         i => o_reg_s,
                         o => a1_mult_out_s);
 
-        -- ESSENTIAL IDEA: we is the delayed run_en. That is, we can only update the delayer units
+        -- ESSENTIAL IDEA: 'we' is the delayed run_en. That is, we can only update the delayer units
         -- on the second element cycle, once the correct 'new' output has been buffered. Also, on
         -- this second cycle, input value _cannot_ change. There we have the 2 cycles per sample
         -- throughput.
