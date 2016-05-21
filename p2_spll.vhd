@@ -1,21 +1,29 @@
---------------------------------------------------------------------------------
--- *** Brief description ***
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- Top level p2-spll (Notch-PLL) entity, integrating the phase-loop and the amplitude loop.
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
--- === Revision ===
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
 --
--- Revision 0.02 - 2nd paper simple SPLL (this one) doesn't really have a
--- complex Ampl loop. Removed and added necesary logic right here.
---
--- Revision 0.01 - File Created
--- 
---------------------------------------------------------------------------------
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+
 library IEEE;
 library WORK;
 use IEEE.STD_LOGIC_1164.all;
 use WORK.COMMON.all;
 
+--! @brief p2-spll (Notch-PLL) entity, integrating the phase-loop and the amplitude loop.
 entity p2_spll is
         -- rev 0.01
 	port (
@@ -27,12 +35,12 @@ end p2_spll;
 
 architecture structural of p2_spll is
         constant FA_PREC : natural := EXT_IIR_FILTERS_PREC;
-        
+
 	signal first_run_s, first_run_pulsed_s : std_logic;
-        
+
         signal phase_done_s, phase_done_pulsed_s, fa_delayed_done_s : std_logic;
         signal fa_REG_delayed_done_s, fa_done_pulsed_s : std_logic;
-       
+
 	signal in_signal_reg_out_s, our_signal_s, ampl_mul_out_s, ampl_fa_out_s, ampl_kcm_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         signal ampl_mul_out_E_s, ampl_fa_out_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
         signal garbage_1_s : std_logic;

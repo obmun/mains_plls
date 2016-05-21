@@ -1,28 +1,22 @@
---------------------------------------------------------------------------------
--- *** Brief desc ***
--- Class: combinational
--- Implements the Park transform, converting positive sequence ABC inputs into
--- dq values
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- *** Description ***
--- abc -> dq transform is given by the equations:
--- d = \[a \cdot cos \theta + b \cdot cos(\theta - {2 \cdot \pi} \over 3) + c
--- \cdot cos(\theta + {2 \cdot \ò} \over 3) \] \cdot 2/3
--- q = [a \cdot sin \theta + b \cdot sin(\theta - {2 \cdot \pi} \over 3) + c
--- \cdot sin(\theta + {2 \cdot \ò} \over 3)] * 2/3
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
--- cos(\theta + 2*pi/3), cos(\theta - 2*pi/3) and equivalent sines are expanded
--- thru the angle summation trigonometric equivalents. That way those values
--- can be easily implemented already 2/3 prescaled by means of 4 kcms
--- (cos(theta) and sin(theta) multiplied by alfa and beta) and 4 add / subs
--- (combinations of two of the previous values)
--- 
--- ** PORT DESCRIPTION **
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
 --
--- *** Changelog ***
--- Revision 0.01 - File Created
--- 
---------------------------------------------------------------------------------
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
 
 #include "configuration.inc"
 
@@ -31,6 +25,25 @@ use WORK.COMMON.all;
 library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 
+--! @brief Implements the Park transform, converting positive sequence ABC inputs into
+--! dq values
+--!
+--! Class: combinational
+--!
+--! *** Description ***
+--! abc -> dq transform is given by the equations:
+--! d = \[a \cdot cos \theta + b \cdot cos(\theta - {2 \cdot \pi} \over 3) + c
+--! \cdot cos(\theta + {2 \cdot \ò} \over 3) \] \cdot 2/3
+--! q = [a \cdot sin \theta + b \cdot sin(\theta - {2 \cdot \pi} \over 3) + c
+--! \cdot sin(\theta + {2 \cdot \ò} \over 3)] * 2/3
+--!
+--! cos(\theta + 2*pi/3), cos(\theta - 2*pi/3) and equivalent sines are expanded
+--! thru the angle summation trigonometric equivalents. That way those values
+--! can be easily implemented already 2/3 prescaled by means of 4 kcms
+--! (cos(theta) and sin(theta) multiplied by alfa and beta) and 4 add / subs
+--! (combinations of two of the previous values)
+--!
+--! ** PORT DESCRIPTION **
 entity park_transform is
         generic (
                 width : natural := PIPELINE_WIDTH;
@@ -51,7 +64,7 @@ architecture structural of park_transform is
         signal sin_p_2pi_3_s, sin_m_2pi_3_s, cos_p_2pi_3_s, cos_m_2pi_3_s : std_logic_vector(width - 1 downto 0);
         signal scaled_cos_s, scaled_sin_s : std_logic_vector(width - 1 downto 0);
         signal d_comp_1_s, d_comp_2_s, d_comp_3_s, q_comp_1_s, q_comp_2_s, q_comp_3_s : std_logic_vector(width - 1 downto 0);
-        
+
 begin  -- structural
         kcm_1_i : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
@@ -124,7 +137,7 @@ begin  -- structural
                         b => alfa_sin_s,
                         o => cos_m_2pi_3_s,
                         f_ov => open, f_z => open);
-        
+
         kcm_5_i : entity work.kcm(CONF_KCM_ARCHITECTURE_STR)
                 generic map (
                         width => width,
@@ -151,7 +164,7 @@ begin  -- structural
                         a => a,
                         b => scaled_cos_s,
                         o => q_comp_1_s);
-        
+
         q_mul_2_i : entity work.mul(beh)
                 generic map (
                         width => width,
@@ -189,7 +202,7 @@ begin  -- structural
                         a => a,
                         b => scaled_sin_s,
                         o => d_comp_1_s);
-        
+
         d_mul_2_i : entity work.mul(beh)
                 generic map (
                         width => width,

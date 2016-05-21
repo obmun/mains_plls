@@ -1,79 +1,22 @@
---------------------------------------------------------------------------------
--- *** BRIEF DESCRIPTION ***
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- Class: sequential.
--- Latency: 0 cycles [each time the a new value is given, the ouput value is updated]
--- Throughoutput: 1 sample / cycle [the internal state must be updated]
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
--- Entity that transforms freq + phase error info to instant phase for
--- normalized signal generation. Return angle is in range - PI < angle <= PI
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
 --
--- Works on rising clock edge and has synchronous reset.
--- 
--- *** DESCRIPTION ***
--- 
--- Internally this element is a modified integrator that cannot "get"
--- due to the "PI module" limited cycled output, so a RST signal is not
--- needed. It's still implemented in case user wants to set the element in a
--- known state.
---
--- ** REQUIRED PIPELINE **
---
--- 1) _Minimum_ magnitude size is 2 (3 with sign bit).
---   See the "implementation" details below, but we need at least to output (-3.1415, 3.1415), and 2
---   magn bits max value is 3.99999, just enough.
---
--- 2) _Minimum_ # of prec bits must be high enough, unless you use set high gain using this entity
--- generic.
---
---   _Input_ value gets scaled by the sampling period, which is a very low value. Of course, if you
---   have 0 input, there is no problem with precision.
--- 
--- ** PORT DESCRIPTION **
---
--- gain -> input port gain. Input values are pre-multiplied by this value
--- rst -> synchronous reset signal
--- 
--- ** IMPLEMENTATION **
---
--- Why return between (-PI, PI] and not [0, 2PI)? It must be done this way and
--- not with a normal integrator for two reasons:
--- -> Output angle abs value must be limited to 0 < abs < PI. Other-
---    wise, some small magnitude pipeline paths can get saturated (PI = 3.14!!, 2*PI > 6, we're
---    magnitude limited)
--- -> We require central freq. offset to be sumed and later integrated.
---    But central freq = 50 * 2 * PI >> max available magnitude!!!!
---    2*pi*50 = 314.16
---    Solution (lets supose Fs = 10 Khz): 2*pi*50 * SAMPLE_PERIOD = 0.031416!!!!
--- 
--- ** SPEED **
---
--- There is a big combinational depth in the path fa -> pi_kp -> freq2phase.
--- Must be corrected outside this element.
---
--- *** Revision ***
---
--- Revision 0.07 - Added optional input gain (we can afford it, as we scale
--- down the input for its integration)
---
--- Revision 0.06 - Generic controllable pipeline width
---
--- Revision 0.05 - Added new seq. block control iface. Removed the speed up register.
---
--- Revision 0.04 - Added run / done style ports
---
--- Revision 0.03 - Integrated extra register to achieve better peformance (this had a hot path with
---                 to much logic levels).
---
--- Revision 0.02 - Integrated central freq., mixed with Tp mul to avoid overflow of data path
---
--- Revision 0.01 - First version
---
--- *** TODO ***
---
--- 1) Implement as assertions checks for the minimum required pipeline magnitude size
---
---------------------------------------------------------------------------------
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
 
 #include "configuration.inc"
 
@@ -84,6 +27,57 @@ use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
 
 
+--! @brief Entity that transforms freq + phase error info to instant phase for
+--! normalized signal generation. Return angle is in range - PI < angle <= PI
+--!
+--! Class: sequential.
+--! Latency: 0 cycles [each time the a new value is given, the ouput value is updated]
+--! Throughoutput: 1 sample / cycle [the internal state must be updated]
+--!
+--! Works on rising clock edge and has synchronous reset.
+--!
+--! *** DESCRIPTION ***
+--!
+--! Internally this element is a modified integrator that cannot "get"
+--! due to the "PI module" limited cycled output, so a RST signal is not
+--! needed. It's still implemented in case user wants to set the element in a
+--! known state.
+--!
+--! ** REQUIRED PIPELINE **
+--!
+--! 1) _Minimum_ magnitude size is 2 (3 with sign bit).
+--!   See the "implementation" details below, but we need at least to output (-3.1415, 3.1415), and 2
+--!   magn bits max value is 3.99999, just enough.
+--!
+--! 2) _Minimum_ # of prec bits must be high enough, unless you use set high gain using this entity
+--! generic.
+--!
+--!   _Input_ value gets scaled by the sampling period, which is a very low value. Of course, if you
+--!   have 0 input, there is no problem with precision.
+--!
+--! ** PORT DESCRIPTION **
+--!
+--! gain -> input port gain. Input values are pre-multiplied by this value
+--! rst -> synchronous reset signal
+--!
+--! ** IMPLEMENTATION **
+--!
+--! Why return between (-PI, PI] and not [0, 2PI)? It must be done this way and
+--! not with a normal integrator for two reasons:
+--! -> Output angle abs value must be limited to 0 < abs < PI. Other-
+--!    wise, some small magnitude pipeline paths can get saturated (PI = 3.14!!, 2*PI > 6, we're
+--!    magnitude limited)
+--! -> We require central freq. offset to be sumed and later integrated.
+--!    But central freq = 50 * 2 * PI >> max available magnitude!!!!
+--!    2*pi*50 = 314.16
+--!    Solution (lets supose Fs = 10 Khz): 2*pi*50 * SAMPLE_PERIOD = 0.031416!!!!
+--!
+--! ** SPEED **
+--!
+--! There is a big combinational depth in the path fa -> pi_kp -> freq2phase.
+--! Must be corrected outside this element.
+--!
+--! @todo Implement as assertions checks for the minimum required pipeline magnitude size
 entity freq2phase is
      -- rev 0.07
      generic (
@@ -92,7 +86,7 @@ entity freq2phase is
           gain: real := 1.0;
           -- Seq. block iface
           delayer_width : natural := 1);
-     
+
      port (
           clk, rst : in std_logic;
           f : in std_logic_vector(width - 1 downto 0);
@@ -107,7 +101,7 @@ end freq2phase;
 architecture beh of freq2phase is
      -- Intermediate constants
      constant ac_freq_val : std_logic_vector(width - 1 downto 0) := to_vector(AC_FREQ_SAMPLE_SCALED, width, prec);
-     
+
      -- Signals
      signal gt_pi : std_logic;
      signal reg_out, kcm_out, fb_adder_out, in_adder_out, pi_limit_out : std_logic_vector(width - 1 downto 0);
@@ -170,6 +164,6 @@ begin
           run_passthru <= run_en;
           delayer_out(delayer_width - 1 downto 1) <= delayer_in(delayer_width - 1 downto 1);
      end generate broad_delayer_gen;
-     
+
      p <= reg_out;
 end beh;

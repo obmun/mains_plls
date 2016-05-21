@@ -1,6 +1,31 @@
--- *** Description ***
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- This is the WRAPPER around spll entity (full ALL-PLL design) for implementation on the Digilent
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
+--
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+
+library IEEE;
+library WORK;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+use IEEE.MATH_REAL.all;
+use WORK.COMMON.ALL;
+
+-- @brief [TOP LEVEL] Wrapper around `spll` entity (full ALL-PLL design) for implementation on the Digilent
 -- board
 --
 -- Idea and sample implementation were originally developed for the dac_adc test. That's when the
@@ -16,20 +41,7 @@
 -- ** Clocks **
 --
 -- Internally, all clock signals are derived from the OSC clk / 8, that is, a 6.25 MHz clk
---
--- === CHANGELOG ===
---
--- Revision 0.xx: CHECK REVISION INFORMATION on Mercurial project repo
--- Revision 0.01: first version, created from the original dac_adc implementation
-
-library IEEE;
-library WORK;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.ALL;
-use IEEE.MATH_REAL.all;
-use WORK.COMMON.ALL;
-
-entity spll_fpga is	
+entity spll_fpga is
      generic (
           width : natural := PIPELINE_WIDTH;
           prec : natural := PIPELINE_PREC);
@@ -103,10 +115,10 @@ architecture beh of spll_fpga is
      --- Progammable Amp signals ---
      signal pga_wait_cnt_s : std_logic_vector(2 downto 0);
      signal pga_wait_ctr_last_s, pga_wait_ctr_rst_s : std_logic;
-     
+
      signal amp_ncs_s : std_logic;
      signal set_gain_s, gain_done_s : std_logic;
-     
+
      signal spi_prog_amp_owned_s : std_logic;
      signal prog_amp_spi_mosi_s, prog_amp_spi_sck_s : std_logic;
 
@@ -124,7 +136,7 @@ begin
                CLK0_OUT => open,
                CLKFX_OUT => open,
                LOCKED_OUT => locked_out_s);
-     
+
      dac_adc_i : entity work.dac_adc(beh)
           port map(
                spi_mosi => dac_adc_spi_mosi_s,
@@ -139,7 +151,7 @@ begin
                stsf_b => stsf_b,
                dac_clr => dac_clr,
 
--- Interface with internal logic
+               -- Interface with internal logic
                in_sample => in_sample_s, -- Sample received from ADC
                have_sample => have_sample_s,
                out_sample => out_sample_s,
@@ -180,7 +192,7 @@ begin
                     out_signal => out_signal_s,
                     done => open);
      end block;
-     
+
      -- Remember:
      -- 1) ADC input
      --    1.65 v -> 0
@@ -191,7 +203,7 @@ begin
      -- 2) DAC ouput
      --    Non binary value, 14 bits.
      --    Range: 0 - 3.3V (or 2.5 V)
-     
+
      -- Converts the ADC input value into a PIPELINE format in the range (-1, 1).
      --
      in_sample_pipeline_conv : entity work.pipeline_conv(alg)
@@ -209,7 +221,7 @@ begin
      --
      -- We need to convert the desired input (from -2 to +2) to the (0, 1) range, and keep only the
      -- prec bits.
-     
+
      -- Scale the output signal by 0.5*0.5 = 0.25
      --   That is: (-2, 2) input signal range is converted into (-0.5, 0.5).
      out_signal_scaler : entity work.k_4_div(structural)
@@ -303,11 +315,11 @@ begin
                     adc_wait_ctr_rst_s <= '0';
                     adc_wait_ctr_ce_s <= '0';
                     run_pll_s <= '0';
-                    
+
                     led(0) <= '1';
                     led(1) <= '0';
                     led(2) <= '0';
-                    
+
                when ST_RST =>
                     rst_s <= '1';
                     dac_adc_run_s <= '0';
@@ -323,11 +335,11 @@ begin
                     led(0) <= '0';
                     led(1) <= '1';
                     led(2) <= '0';
-                    
+
                when ST_START_AMP_PROG =>
                     rst_s <= '0';
                     dac_adc_run_s <= '0';
-                    
+
                     set_gain_s <= '1';
                     pga_wait_ctr_rst_s <= '0';
                     spi_prog_amp_owned_s <= '1';
@@ -335,22 +347,22 @@ begin
                     adc_wait_ctr_rst_s <= '0';
                     adc_wait_ctr_ce_s <= '0';
                     run_pll_s <= '0';
-                    
+
                     led(0) <= '1';
                     led(1) <= '1';
                     led(2) <= '0';
-                    
+
                when ST_AMP_PROG =>
                     rst_s <= '0';
                     dac_adc_run_s <= '0';
-                    
+
                     set_gain_s <= '0';
                     pga_wait_ctr_rst_s <= '1';
                     spi_prog_amp_owned_s <= '1';
 
                     adc_wait_ctr_rst_s <= '0';
                     run_pll_s <= '0';
-                    
+
                     led(0) <= '0';
                     led(1) <= '0';
                     led(2) <= '1';
@@ -358,7 +370,7 @@ begin
                when ST_WAIT_AFTER_AMP_PROG =>
                     rst_s <= '0';
                     dac_adc_run_s <= '0';
-                    
+
                     set_gain_s <= '0';
                     pga_wait_ctr_rst_s <= '0';
                     spi_prog_amp_owned_s <= '1';
@@ -366,15 +378,15 @@ begin
                     adc_wait_ctr_rst_s <= '1';
                     adc_wait_ctr_ce_s <= '1';
                     run_pll_s <= '0';
-                    
+
                     led(0) <= '1';
                     led(1) <= '0';
                     led(2) <= '1';
-                    
+
                when ST_ADC_WARM_UP =>
                     rst_s <= '0';
                     dac_adc_run_s <= '1';
-                    
+
                     set_gain_s <= '0';
                     pga_wait_ctr_rst_s <= '0';
                     spi_prog_amp_owned_s <= '0';
@@ -414,7 +426,7 @@ begin
                     adc_wait_ctr_rst_s <= '0';
                     adc_wait_ctr_ce_s <= '0';
                     run_pll_s <= '0';
-                    
+
                     led(0) <= '0';
                     led(1) <= '0';
                     led(2) <= '0';
@@ -481,7 +493,7 @@ begin
      -- Keep the ADC pre-amp ON (shutdown = '0')
      amp_shdn <= '0';
      amp_ncs <= amp_ncs_s;
-     
+
      spi_owned_in_s <= '0';
 
      spi_signals_gen: block is
@@ -498,12 +510,12 @@ begin
 
      -- Convert out_signal_s to the correct DAC format
      assert PIPELINE_PREC = DAC_VAL_SIZE report "OOOPS. You have changed PIPELINE_PREC. Update this code, please" severity failure;
-     out_sample_s <= out_signal_dac_ready_s(PIPELINE_PREC - 1 downto 0);     
-     
+     out_sample_s <= out_signal_dac_ready_s(PIPELINE_PREC - 1 downto 0);
+
      -- Other debug signals unused
      led(7 downto 4) <= (others => '0');
      debug_d7 <= spi_mosi_s;
-     debug_c7 <= spi_sck_s; 
+     debug_c7 <= spi_sck_s;
      debug_f8 <= amp_ncs_s;
      debug_e8 <= '0';
 end architecture beh;

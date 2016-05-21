@@ -1,31 +1,23 @@
---------------------------------------------------------------------------------
--- *** Brief description ***
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- FIFO based on memory blocks.
--- While you waiting for writing x[n] on next clk rising edge, you're reading x[n - size].
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
--- *** Description ***
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
 --
--- This FIFO has no facility for FULL RESET of internal storage. You must implement it yourself BY HAND
---
--- ** Ports **
---
--- rst: sync "partial" reset. Partial in the sense that it DOES NOT CLEAR internal memory positions;
--- it only resets the position pointers
--- resets position poi
--- 
--- *** Revisions ***
---
--- Revision 0.03 - Added partial reset
---
--- Revision 0.02 - Revised implementation. Now executes faster (15 MHz :)), compiler doesn't throw
--- warnings and consumes less FPGA resources!!!!
---
--- Revision 0.01 - First implementation
---
--- *** TODO ***
--- >> Intentar comprender exactamente la razón de la síntesis. < DONE
---------------------------------------------------------------------------------
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+
 library IEEE;
 library WORK;
 use WORK.COMMON.all;
@@ -47,12 +39,25 @@ entity fifo is
 end fifo;
 
 
+--! @brief FIFO based on memory blocks.
+--!
+--! While you waiting for writing x[n] on next clk rising edge, you're reading x[n - size].
+--!
+--! *** Description ***
+--!
+--! This FIFO has no facility for FULL RESET of internal storage. You must implement it yourself BY HAND
+--!
+--! ** Ports **
+--!
+--! rst: sync "partial" reset. Partial in the sense that it DOES NOT CLEAR internal memory positions;
+--! it only resets the position pointers
+--! resets position poi
 architecture alg of fifo is
      type ram_t is array(size - 1 downto 0) of std_logic_vector(width - 1 downto 0);
      subtype mem_addr_t is natural range 0 to size - 1;
-     
+
      signal w_addr_s, r_addr_s : mem_addr_t;
-     
+
      signal ram : ram_t := (others => STD_LOGIC_VECTOR(TO_UNSIGNED(0, width)));
 begin
      ctrl : process(clk, rst, we)

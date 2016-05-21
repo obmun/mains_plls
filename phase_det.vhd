@@ -1,46 +1,50 @@
---------------------------------------------------------------------------------
--- *** BRIEF DESCRIPTION ***
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- Class: sequential iterative.
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
--- Phase detector based on Cordic seq engine. Control interface is identical to
--- the Cordic engine one (run\_done iface). See iface doc.
--- 
--- *** DESCRIPTION ***
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
 --
--- This phase detector multiplies input signal by a cos with current internal
--- detected phase to identify phase jumps. But due to the used method, a second
--- order harmonic in normal situation is generated and must be removed.
---
--- sin(theta_input) * cos(theta_internal) = sin(theta_input - theta_internal) *
--- 1/2 + sin(theta_input + theta_internal) * 1/2 <<-- (this second term is a
--- 2nd harmonic).
---
--- Therefore second harmonic substraction is also implemented inside this block.
---
--- This is just a wrapper around Cordic based cos / sin engine + some extra
--- combinational glue logic. Therefore no internal "state" machine apart of
--- the one from the Cordic engine is needed.
--- 
--- *** Changelog ***
---
--- Revision 0.03 - An analisys of timing paths shows that the level of logic due to the introduction
--- of the new combinational angle_doubler at the entry point of Cordic, creates a really LONG LONG
--- combinational only path (delay of 20 ns => max work freq. 50 MHz). To solve this, a register is
--- introduced in the middle of the street :)
---
--- Revision 0.02 - Added correct angle doubling procedure :). No-error tests
--- are correctly passed.
---
--- Revision 0.01 - File Created
--- 
---------------------------------------------------------------------------------
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+
 library IEEE;
 use WORK.COMMON.ALL;
 use IEEE.STD_LOGIC_1164.ALL;
 
+
+--! @brief Phase detector based on Cordic seq engine.
+--!
+--! Control interface is identical to the Cordic engine one (run\_done iface). See iface doc.
+--!
+--! Class: sequential iterative.
+--!
+--! *** DESCRIPTION ***
+--!
+--! This phase detector multiplies input signal by a cos with current internal
+--! detected phase to identify phase jumps. But due to the used method, a second
+--! order harmonic in normal situation is generated and must be removed.
+--!
+--! sin(theta_input) * cos(theta_internal) = sin(theta_input - theta_internal) *
+--! 1/2 + sin(theta_input + theta_internal) * 1/2 <<-- (this second term is a
+--! 2nd harmonic).
+--!
+--! Therefore second harmonic substraction is also implemented inside this block.
+--!
+--! This is just a wrapper around Cordic based cos / sin engine + some extra
+--! combinational glue logic. Therefore no internal "state" machine apart of
+--! the one from the Cordic engine is needed.
 entity phase_det is
-    -- rev 0.02
     port (
         -- Input value signals
         norm_input, curr_phase : in std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
@@ -66,7 +70,7 @@ begin
         norm_input_reg_i : entity work.reg(alg)
                 generic map (
                         width => PIPELINE_WIDTH)
-                
+
                 port map (
                         clk => clk,
                         rst => rst,

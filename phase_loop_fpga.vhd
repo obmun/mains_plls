@@ -1,26 +1,22 @@
--- *** Description ***
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- This is the WRAPPER around phase_loop entity (phase loop for spll design) for implementation on
--- the Digilent board
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
--- Idea and sample implementation were originally developed for the dac_adc test. That's when the
--- idea of full FPGA separation appeared.
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
 --
--- * Internally, phase_loop uses only 1/0 logic. This file adds the 3rd state output pins wherever
--- necessary.
---
--- * Allows for usage of a DCM, without messing with Xilinx details inside ampl_loop.vhd file
---
--- * Allows the definition of debug lines, which duplicate the ouput of internal or input signals
---
--- ** Clocks **
---
--- Internally, all clock signals are derived from the OSC clk / 8, that is, a 6.25 MHz clk
---
--- === CHANGELOG ===
---
--- Revision 0.xx: CHECK REVISION INFORMATION on Mercurial project repo
--- Revision 0.01: first version, created from the original dac_adc implementation
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
 
 library IEEE;
 library WORK;
@@ -29,7 +25,23 @@ use IEEE.NUMERIC_STD.ALL;
 use IEEE.MATH_REAL.all;
 use WORK.COMMON.ALL;
 
-entity phase_loop_fpga is	
+--! @brief Wrapper around `phase_loop` entity (phase loop for spll design) for implementation on
+--! the Digilent board
+--!
+--! Idea and sample implementation were originally developed for the dac_adc test. That's when the
+--! idea of full FPGA separation appeared.
+--!
+--! * Internally, phase_loop uses only 1/0 logic. This file adds the 3rd state output pins wherever
+--! necessary.
+--!
+--! * Allows for usage of a DCM, without messing with Xilinx details inside ampl_loop.vhd file
+--!
+--! * Allows the definition of debug lines, which duplicate the ouput of internal or input signals
+--!
+--! ** Clocks **
+--!
+--! Internally, all clock signals are derived from the OSC clk / 8, that is, a 6.25 MHz clk
+entity phase_loop_fpga is
      generic (
           width : natural := PIPELINE_WIDTH;
           prec : natural := PIPELINE_PREC);

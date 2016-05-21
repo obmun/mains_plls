@@ -1,26 +1,23 @@
---------------------------------------------------------------------------------
--- *** Brief description ***
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- Xilinx Spartan 3E and Digilent development board specific config and code
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
--- SOME OF THE CODE, specifically the DCM one, has been generated with Xilinx Architecture Wizard
--- tool, part of the ISE suite
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
 --
--- *** Description ***
---
--- Takes care of configuring Xilinx specific clock management (DCM) inside the FPGA.
--- Conditions:
--- 1) Input clock 50 MHz (uses default Digilent board internal clock)
--- 2) Usa un divisor de reloj de 8, para generar un reloj interno de baja velocidad de 6.25 MHz (ver
--- puerto CLKDV_OUT)
---
--- ** Port description **
---
--- CLKDV_OUT: Main clock / 8 -> 6.25 MHz clock
--- CLKIN_IBUFG_OUT: raw input clock, buffered
--- CLK0_OUT: main clock output -> 50 MHz clock
--- CLKFX_OUT: processed (fx) clock output, that is, main clock / 5 -> 10 MHz clock
---------------------------------------------------------------------------------
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 -- synopsys translate_off
@@ -28,6 +25,23 @@ library UNISIM;
 use UNISIM.Vcomponents.ALL;
 -- synopsys translate_on
 
+--! @brief Xilinx Spartan 3E and Digilent development board specific config and code
+--!
+--! Takes care of configuring Xilinx specific clock management (DCM) inside the FPGA.
+--! Conditions:
+--! 1) Input clock 50 MHz (uses default Digilent board internal clock)
+--! 2) Usa un divisor de reloj de 8, para generar un reloj interno de baja velocidad de 6.25 MHz (ver
+--! puerto CLKDV_OUT)
+--!
+--! SOME OF THE CODE, specifically the DCM one, has been generated with Xilinx Architecture Wizard
+--! tool, part of the ISE suite
+--!
+--! @par Port description
+--!
+--! * CLKDV_OUT: Main clock / 8 -> 6.25 MHz clock
+--! * CLKIN_IBUFG_OUT: raw input clock, buffered
+--! * CLK0_OUT: main clock output -> 50 MHz clock
+--! * CLKFX_OUT: processed (fx) clock output, that is, main clock / 5 -> 10 MHz clock
 entity platform is
      port (
           CLKIN_IN : in std_logic; -- Input clock

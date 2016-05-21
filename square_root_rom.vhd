@@ -1,38 +1,36 @@
---------------------------------------------------------------------------------
--- Company: Universidad de Vigo
--- Engineer: Jacobo Cabaleiro
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- Create Date:    
--- Design Name:    
--- Module Name:    square_root_rom - alg
--- Project Name:   
--- Target Device:  ANY
--- Tool versions:  
--- Description:
--- | ROM for initial seed in Newton Raphson square root algorithm.
--- | Resulting values must be, of course, shifted so they get the decimal
--- | point in the correct bit (given the pipeline fixed point format)
--- |
--- | USES XILINX SPECIFIC ATTRIBUTE so even being a ROM gets sinthesized 
--- | as a preinitialized block RAM (in our design we have a lot of them 
--- | :) For other FPGA, just delete the attribute line and this should get
--- | sinthesized just as well.
--- Dependencies:
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
---------------------------------------------------------------------------------
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
+--
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
----- Uncomment the following library declaration if instantiating
----- any Xilinx primitives in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-
+--! @brief ROM for initial seed in Newton Raphson square root algorithm.
+--!
+--! Resulting values must be, of course, shifted so they get the decimal
+--! point in the correct bit (given the pipeline fixed point format).
+--!
+--! USES XILINX SPECIFIC ATTRIBUTE so even being a ROM gets sinthesized
+--! as a preinitialized block RAM (in our design we have a lot of them
+--! :). For other FPGAs, just delete the attribute line and this should get
+--! sinthesized just as well.
 entity square_root_rom is
 	port (
 		clk : in std_logic;

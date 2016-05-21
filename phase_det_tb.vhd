@@ -1,3 +1,23 @@
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
+--
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
+--
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+
 library IEEE;
 use WORK.COMMON.ALL;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -7,7 +27,7 @@ end phase_det_tb;
 
 architecture beh of phase_det_tb is
         constant CLOCK_PERIOD : time := 20 ns;
-        
+
         signal clk_s, rst_s, run_s, done_s : std_logic;
         signal norm_input_s, curr_phase_s, phase_error_s, norm_output_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 
@@ -35,7 +55,7 @@ begin
                 run_s <= '0';
                 curr_phase_s <= (others => '0');
                 norm_input_s <= (others => '0');
-                                
+
                 wait on clk_s until rising_edge(clk_s);
                 wait on clk_s until falling_edge(clk_s);
                 rst_s <= '0';
@@ -111,7 +131,7 @@ begin
                 -- ------------------------
                 -- REAL error CHECKING
                 -- First round: pi/32 error in phase
-                
+
                 -- Input: theta_internal = 0; input_theta = pi/32 =>
                 -- curr_phase_s <= 0
                 -- norm_input_s <= sin(pi/32) = X"0323"

@@ -1,34 +1,23 @@
---------------------------------------------------------------------------------
--- *** Brief description ***
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- Non restoring iterative SQRT implementation.
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
--- Achieves low precision (just 9 bits => 9 + 1 cycles, taking into account precision + magnitude
--- bits) but an analysis of the app (input signal normalization) shows that 7 precision bits are
--- more than enough.
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
 --
--- ** Ports **
---
--- rst -> synchronous reset
--- i -> input value. Partially hardcoded format: signed, 2s complement, 18 bits. Fraction length: configurable
---
--- Dependencies:
--- 
--- *** Changelog ***
---
--- Revision 0.04 - Even if pipeline width is hardcoded, we need to adjust to fraction length
--- changes. Added prec generic.
---
--- Revision 0.03 - RST is now synchronous, as with the rest of the components
--- of the design
---
--- MARK -> revision 0.02 has been tested. Works OK. Noise and precision not
--- clearly obtained. Co-simulation should be run
---
--- Revision 0.02 - Some corrections (one bit negated) were making tests results fail. Test is passed now
---
--- Revision 0.01 - Original implementation
---------------------------------------------------------------------------------
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+
 library WORK;
 use WORK.COMMON.all;
 library IEEE;
@@ -37,6 +26,16 @@ use IEEE.NUMERIC_STD.all;
 use IEEE.MATH_REAL.all;
 
 
+--! @brief Non restoring iterative SQRT implementation.
+--!
+--! Achieves low precision (just 9 bits => 9 + 1 cycles, taking into account precision + magnitude
+--! bits) but an analysis of the app (input signal normalization) shows that 7 precision bits are
+--! more than enough.
+--!
+--! @par Ports
+--!
+--! rst -> synchronous reset
+--! i -> input value. Partially hardcoded format: signed, 2s complement, 18 bits. Fraction length: configurable
 entity sqrt is
      -- rev 0.04
      generic (

@@ -1,16 +1,22 @@
-----------------------------------------------------------------------------------------------------
--- *** Brief description ***
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- This is the WRAPPER around p2_sync entity (full SyncMVA design) for implementation on the
--- Digilent board
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
--- Thsi is a 1-1 copy of the spll_fpga entity. Take a look at it for more information / documentation.
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
 --
--- *** Changelog ***
---
--- For changelog, check Mercurial project repo.
---
-----------------------------------------------------------------------------------------------------
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
 
 library IEEE;
 library WORK;
@@ -19,7 +25,11 @@ use IEEE.NUMERIC_STD.ALL;
 use IEEE.MATH_REAL.all;
 use WORK.COMMON.ALL;
 
-entity p2_sync_fpga is	
+-- @brief Wrapper around p2_sync entity (full SyncMVA design) for implementation on the
+-- Digilent board
+--
+-- This is a 1-1 copy of the spll_fpga entity. Take a look at it for more information / documentation.
+entity p2_sync_fpga is
      generic (
           width : natural := PIPELINE_WIDTH;
           prec : natural := PIPELINE_PREC);

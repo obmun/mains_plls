@@ -1,10 +1,22 @@
-----------------------------------------------------------------------------------------------------
--- *** Brief description ***
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- Wrapper around 'sqrt' entity which takes care of, given x[n] input, calculating:
--- y[n] = sign(x[n])(sqrt(abs(x[n])))
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
-----------------------------------------------------------------------------------------------------
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
 
 library WORK;
 use WORK.COMMON.all;
@@ -12,6 +24,8 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 
 
+--! @brief Wrapper around 'sqrt' entity which takes care of, given x[n] input, calculating:
+--! y[n] = sign(x[n])(sqrt(abs(x[n])))
 entity signed_sqrt is
      generic (
           prec : natural := PIPELINE_PREC);
@@ -43,7 +57,7 @@ begin
                rst  => rst,
                i(0) => i(18 - 1),
                o(0) => sign_REG_s);
-     
+
      sqrt_i : entity work.sqrt(alg)
           generic map (
                prec => prec)
@@ -64,6 +78,5 @@ begin
                i => sqrt_o_s,
                o => inv_sqrt_o_s);
 
-     o <= sqrt_o_s when (sign_REG_s = '0') else inv_sqrt_o_s;     
+     o <= sqrt_o_s when (sign_REG_s = '0') else inv_sqrt_o_s;
 end architecture structural;
-                         

@@ -1,55 +1,22 @@
---------------------------------------------------------------------------------
--- *** BRIEF DESCRIPTION ***
--- Discrete integrator using forward Euler method with sync reset.
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- Class: sequential
--- Latency: 0 cycles [each time the a new value is given, the ouput value is updated]
--- Throughoutput: 1 sample / cycle [the internal state must be updated]
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
--- *** DESCRIPTION ***
--- Implements the expression:
--- y[n] = y[n - 1] + K * Ts * x[n - 1]
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
 --
--- Integrator which exposes the integrated kcm so its constant can be set to a specific
--- value. Includes a synchronous reset in case of saturation condition achieved or for its usage
--- during initialization.
---
--- Sampling period found on "common" package is used
---
--- Works in clock's rising edge. Has synchronous reset.
---
--- ** RATIONALE **
---
--- If kcm is not touched and system Ts is used, PRECISION problems arise.
--- I always recommend using an integrator with a previous hi gain (at least 30) constant multiplier.
--- Set constant multiplier to <your_value>. Interally we take care of scaling this constant
--- by Ts.
---
--- ** PORTS **
--- rst -> sync reset: set's internal register to 0.
--- clk -> clk input
--- run_en -> NO THIRD STATE OUTPUT; allows to stop the integrator even if clk
--- signal keeps running
---
--- ** Stability **
---
--- IT'S esential to make a correct use of the RST signal!!!
---
--- ONE must be very very carefull with this entity. If, for example, during simulation, for some
--- reason a X or U bit is stored in the output register, THERE IS NO WAY of getting it that bit out of
--- that X state, due to the output to input feedback. 
---
--- *** Revisions ***
---
--- Revision 0.03 - Input real constant, making use of new COMMON transformation
--- routines
---
--- Revision 0.02 - Addition of new seq. block control iface.
---
--- Revision 0.01 - File Created, derived from rev 0.02 of integrator
---
--- TODO:
---------------------------------------------------------------------------------
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
 
 #include "configuration.inc"
 
@@ -60,6 +27,44 @@ use IEEE.NUMERIC_STD.ALL;
 use WORK.COMMON.all;
 
 
+--! @brief Discrete integrator using forward Euler method with sync reset.
+--!
+--! Class: sequential
+--! Latency: 0 cycles [each time the a new value is given, the ouput value is updated]
+--! Throughoutput: 1 sample / cycle [the internal state must be updated]
+--!
+--! *** DESCRIPTION ***
+--! Implements the expression:
+--! y[n] = y[n - 1] + K * Ts * x[n - 1]
+--!
+--! Integrator which exposes the integrated kcm so its constant can be set to a specific
+--! value. Includes a synchronous reset in case of saturation condition achieved or for its usage
+--! during initialization.
+--!
+--! Sampling period found on "common" package is used
+--!
+--! Works in clock's rising edge. Has synchronous reset.
+--!
+--! ** RATIONALE **
+--!
+--! If kcm is not touched and system Ts is used, PRECISION problems arise.
+--! I always recommend using an integrator with a previous hi gain (at least 30) constant multiplier.
+--! Set constant multiplier to <your_value>. Interally we take care of scaling this constant
+--! by Ts.
+--!
+--! ** PORTS **
+--! rst -> sync reset: set's internal register to 0.
+--! clk -> clk input
+--! run_en -> NO THIRD STATE OUTPUT; allows to stop the integrator even if clk
+--! signal keeps running
+--!
+--! ** Stability **
+--!
+--! IT'S esential to make a correct use of the RST signal!!!
+--!
+--! ONE must be very very carefull with this entity. If, for example, during simulation, for some
+--! reason a X or U bit is stored in the output register, THERE IS NO WAY of getting it that bit out of
+--! that X state, due to the output to input feedback.
 entity kcm_integrator is
      -- rev 0.02
      generic (
