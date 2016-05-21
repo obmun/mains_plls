@@ -1,17 +1,6 @@
 -- -*- Mode: vhdl -*-
 
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
---
--- Create Date:    
--- Design Name:    
--- Module Name:    integrator - alg
--- Project Name:   
--- Target Device:  
--- Tool versions:  
--- Description:
---
 -- *** SPECS ***
 -- Latency: 0 cycles [each time the a new value is given, the ouput value is updated]
 -- Throughoutput: 1 sample / cycle

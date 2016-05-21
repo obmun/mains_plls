@@ -3,10 +3,10 @@ library WORK;
 use WORK.COMMON.all;
 use IEEE.STD_LOGIC_1164.all;
 
-entity kcm_cosim_tb is
-end kcm_cosim_tb;
+entity kcm_simulink_cosim_tb is
+end kcm_simulink_cosim_tb;
 
-architecture beh of kcm_cosim_tb is
+architecture beh of kcm_simulink_cosim_tb is
         signal i_2_s, o_2_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         signal i_05_s, o_05_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         signal i_001_s, o_001_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);

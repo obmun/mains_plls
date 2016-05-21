@@ -1,6 +1,8 @@
--- KCM wrapper is an stupid VHDL entity around KCM to be able to synthesize it
--- for synthesis comparison purposes. It's needed because KCM needs some actuals to be applied
--- to some of its generics without default values.
+--------------------------------------------------------------------------------
+-- KCM wrapper is an stupid VHDL entity around KCM to be able to synthesize it for synthesis
+-- comparison purposes. It's needed because KCM needs some actuals to be applied to some of its
+-- generics without default values.
+--------------------------------------------------------------------------------
 
 library WORK;
 use WORK.COMMON.all;

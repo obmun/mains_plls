@@ -36,7 +36,7 @@ architecture structural of p2_sync is
      signal sin_speedup_reg_out_s : std_logic_vector(PIPELINE_WIDTH downto 0);
      signal cos_speedup_reg_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
      signal in_sin_doubler_out_E_s, in_cos_doubler_out_E_s, sin_fa_out_E_s, cos_fa_out_E_s : std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
-     signal sin_fa_out_s, cos_fa_out_s, sin_sin_mul_out_s, cos_cos_mul_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
+     signal sin_fa_out_s, sin_fa_out_REG_s, cos_fa_out_s, cos_fa_out_REG_s, sin_sin_mul_out_s, cos_cos_mul_out_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
      signal phase_error_s, big_phase_s, main_phase_det_k_s : std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
 begin  -- structural
 
@@ -210,6 +210,19 @@ begin  -- structural
           port map (
                i => sin_fa_out_E_s,
                o => sin_fa_out_s);
+
+     -- FA output is direcly required (combinational) on the recovered signal output.
+     -- We know that the output of this element, after the cycle it finishes calculation, is no
+     -- longer valid, so it must be registered. The same happens with the cos fa output.
+     sin_fa_out_reg : entity work.reg(alg)
+          generic map (
+               width => PIPELINE_WIDTH)
+          port map (
+               clk => clk,
+               we => sin_fa_delayed_run_s,
+               rst => rst,
+               i => sin_fa_out_s,
+               o => sin_fa_out_REG_s);
      
      cos_fa_input_conv : entity work.pipeline_conv(alg)
           generic map (
@@ -246,6 +259,16 @@ begin  -- structural
           port map (
                i => cos_fa_out_E_s,
                o => cos_fa_out_s);
+
+     cos_fa_out_reg : entity work.reg(alg)
+          generic map (
+               width => PIPELINE_WIDTH)
+          port map (
+               clk => clk,
+               we => cos_fa_delayed_run_s,
+               rst => rst,
+               i => cos_fa_out_s,
+               o => cos_fa_out_REG_s);
 
      fas_done_pulsed_and_i : entity work.pulsed_done_and(beh)
           generic map (
@@ -335,7 +358,7 @@ begin  -- structural
                prec  => PIPELINE_PREC)
           port map (
                a => sin_s,
-               b => sin_fa_out_s,
+               b => sin_fa_out_REG_s,
                o => sin_sin_mul_out_s);
 
      cos_cos_mul : entity work.mul(beh)
@@ -344,7 +367,7 @@ begin  -- structural
                prec  => PIPELINE_PREC)
           port map (
                a => cos_s,
-               b => cos_fa_out_s,
+               b => cos_fa_out_REG_s,
                o => cos_cos_mul_out_s);
 
      out_signal_adder_i : entity work.adder(alg)

@@ -1,3 +1,9 @@
+--------------------------------------------------------------------------------
+-- Entity for Matlab (not Simulink) driven testbench for KCM entity
+--
+-- See launch_kcm_tb.m script for details on the Matlab simulation
+--------------------------------------------------------------------------------
+
 library IEEE;
 library WORK;
 use WORK.COMMON.all;

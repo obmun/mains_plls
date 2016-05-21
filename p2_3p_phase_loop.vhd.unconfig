@@ -44,6 +44,11 @@ entity p2_3p_phase_loop is
 end p2_3p_phase_loop;
 
 architecture structural of p2_3p_phase_loop is
+     type state_t is (
+          ST_PRE_CORDIC, ST_CORDIC);
+     
+     signal st : state_t; -- Se podría hacer con una variable compartida, aunque debido al posible comportamiento no determinista se prefiere simular (como en la realidad) mediante una señal
+
      -- Types
      type coef_1st_ord is array (0 to 1) of real;
 
@@ -183,8 +188,46 @@ begin
                sin   => sin,
                cos   => cos,
                done  => cordic_done_s);
+
+     state_ctrl : process(clk)
+     begin
+          if (rising_edge(clk)) then
+               if (rst = '1') then
+                    st <= ST_CORDIC;
+               else
+                    case st is
+                         when ST_PRE_CORDIC =>
+                              if (freq2phase_done_s = '1') then
+                                   st <= ST_CORDIC;
+                              else
+                                   st <= ST_PRE_CORDIC;
+                              end if;
+                         when ST_CORDIC =>
+                              if (filter_run_s = '1') then
+                                   st <= ST_PRE_CORDIC;
+                              else
+                                   st <= ST_CORDIC;
+                              end if;
+                         when others =>
+                              assert false
+                                   report "Unkown state! Should not happen!"
+                                   severity error;
+                              st <= st;
+                    end case;
+               end if;
+          end if;
+     end process state_ctrl;
+
+     signals_gen : process(st, cordic_done_s)
+     begin
+          case st is
+               when ST_PRE_CORDIC =>
+                    done <= '0';
+               when ST_CORDIC =>
+                    done <= cordic_done_s;
+          end case;
+     end process signals_gen;
      
      phase <= phase_s;
-     done <= cordic_done_s;
      filter_run_s <= pulsed_run_s and cordic_done_s;
 end structural;

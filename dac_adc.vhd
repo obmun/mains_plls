@@ -57,7 +57,8 @@
 -- ** Sample frequency **
 --
 -- We set the INPUT and OUPUT sampling freq. to 10 KHz, so we have enough room. Also, higher
--- sampling freq is not needed in our app.
+-- sampling freq is not needed in our app. Input clock signal must have a certain _specific_
+-- frequency. Check 'clk' in port documentation.
 -- 
 -- * How to set DAC fs *
 --
