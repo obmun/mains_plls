@@ -7,6 +7,7 @@
 --
 -- Entity that transforms freq + phase error info to instant phase for
 -- normalized signal generation. Return angle is in range - PI < angle <= PI
+--
 -- Works on rising clock edge and has synchronous reset.
 -- 
 -- *** DESCRIPTION ***
@@ -15,6 +16,18 @@
 -- due to the "PI module" limited cycled output, so a RST signal is not
 -- needed. It's still implemented in case user wants to set the element in a
 -- known state.
+--
+-- ** REQUIRED PIPELINE **
+--
+-- 1) _Minimum_ magnitude size is 2 (3 with sign bit).
+--   See the "implementation" details below, but we need at least to output (-3.1415, 3.1415), and 2
+--   magn bits max value is 3.99999, just enough.
+--
+-- 2) _Minimum_ # of prec bits must be high enough, unless you use set high gain using this entity
+-- generic.
+--
+--   _Input_ value gets scaled by the sampling period, which is a very low value. Of course, if you
+--   have 0 input, there is no problem with precision.
 -- 
 -- ** PORT DESCRIPTION **
 --
@@ -26,7 +39,7 @@
 -- Why return between (-PI, PI] and not [0, 2PI)? It must be done this way and
 -- not with a normal integrator for two reasons:
 -- -> Output angle abs value must be limited to 0 < abs < PI. Other-
---    wise, some magn short pipeline paths can get saturated (PI = 3.14!!, 2*PI > 6, we're
+--    wise, some small magnitude pipeline paths can get saturated (PI = 3.14!!, 2*PI > 6, we're
 --    magnitude limited)
 -- -> We require central freq. offset to be sumed and later integrated.
 --    But central freq = 50 * 2 * PI >> max available magnitude!!!!
@@ -57,6 +70,8 @@
 -- Revision 0.01 - First version
 --
 -- *** TODO ***
+--
+-- 1) Implement as assertions checks for the minimum required pipeline magnitude size
 --
 --------------------------------------------------------------------------------
 

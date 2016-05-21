@@ -1,28 +1,7 @@
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
---
--- Create Date:    11:41:50 06/16/06
--- Design Name:    
--- Module Name:    k_2_mul - alg
--- Project Name:   
--- Target Device:  
--- Tool versions:
---
 -- *** Brief description ***
--- Optimal non-extended doubler for pipeline with 2s complement number representation. Be
--- careful. Result can overload!!!!
 --
--- ** Description **
--- Called non extended because given a n bits input, it does not return a n + 1
--- result, so output can be overloaded if a too big value is received.
---
--- Dependencies:
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
+-- Times 2 constant multiplier. NON SATURATED!
 --------------------------------------------------------------------------------
 library IEEE;
 use WORK.COMMON.all;

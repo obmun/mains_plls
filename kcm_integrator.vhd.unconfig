@@ -1,7 +1,6 @@
 --------------------------------------------------------------------------------
 -- *** BRIEF DESCRIPTION ***
--- Discrete integrator (from continuous integrator using invariant
--- impulse response transform; forward Euler integration) with sync reset
+-- Discrete integrator using forward Euler method with sync reset.
 --
 -- Class: sequential
 -- Latency: 0 cycles [each time the a new value is given, the ouput value is updated]
@@ -113,7 +112,8 @@ begin
           port map (
                clk => clk, we => run_en, rst => rst,
                i => i, o => a);
-     
+
+     -- Retardo de realimentación
      d_i2 : reg
           generic map (
                width => width)

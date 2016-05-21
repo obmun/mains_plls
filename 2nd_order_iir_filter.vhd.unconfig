@@ -94,7 +94,7 @@ end filter_2nd_order_iir;
 -- *** Brief description ***
 --
 -- Latency: 1 clk [pipeline is "registered" at final output pt, for reducing combinational path length]
--- Throughoutput:  sample/clk [internal state must be updated]
+-- Throughoutput: 1 sample/clk [internal state must be updated]
 architecture structural_tdfii of filter_2nd_order_iir is
         signal o_s : std_logic_vector(width - 1 downto 0);
         signal o_reg_s : std_logic_vector(width - 1 downto 0);
