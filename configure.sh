@@ -1,7 +1,7 @@
 #/bin/bash
 
 C_PREPRO=cpp
-C_PREPRO_OPTS=-P
+C_PREPRO_OPTS="-P -x assembler-with-cpp"
 
 ARGS=1
 E_BADARGS=65
