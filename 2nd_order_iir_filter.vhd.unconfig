@@ -1,65 +1,26 @@
---------------------------------------------------------------------------------
--- === Brief DESCRIPTION ===
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- !MUST BE PREPROCESSED!
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
--- Class: sequential
--- Latency: 1 clk [see each architecture notes]
--- Throughoutput: depends on architecture
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
 --
--- 2nd order IIR filter, implemented with a Transposed-Form IIR filter
--- structure.
---
--- === Description ===
---
--- The IIR form which better stands coefficient quantization artifacts is the
--- IIR cascade form. We're implementing a Transposed-Form because it minimizes
--- the # of adders and memory elements to be used (see http://cnx.org/content/m11919/latest/)
---
--- Implements the following transfer function (in z):
---  b_0 + b_1 * z^-1 + b_2 * z^-2
--- -------------------------------
---   1 + a_1 * z^-1 + a_2 * z^-2
---
--- == Ports ==
---
--- See description of the "run_passthru" interface for a definition of the control signals.
---
--- = Generics =
--- * width: ports and internal pipeline width
--- * prec: ports and internal pipeline precision
--- * b0, b1, b2, a1, a2: see previous transfer function. Self-explained.
---
--- = Inputs =
--- -> CLK
--- -> RST: synchronous reset
--- -> RUN:
---
--- = Outputs =
--- ->
---
--- == Speed ==
---
--- The combinational path between input and output, due to the multiple adders and constant
--- multiplications, is deep, even if this element has registers for unit delay
--- implementation. Therefore, internally, an additional register is added for speeding things up.
---
--- Register is positioned in 2 different places, resulting in 2 different architectures:
--- * structural_tdfii
---   With the speed-up register just buffering the final output signal. Stupid solution that can be
---   easily improved. Just don't use it. See next architecture.
--- * fast_structural_tdfii
---   Speed-up register is buffering the final output, but input to feedback multipliers is also
---   taken from this input register, greatly reducing the max delay without adding additional
---   latency to the block. However, throughtput is reduced by a half, as total # of cycles per sample is 2,
---   but latency is kept at 1 cycle. In our usual configurations, this is not a problem as we have
---   to wait more for an initial long iterative element like a CORDIC.
--- 
--- === Changelog ===
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
---------------------------------------------------------------------------------
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+
+--! @file
+--! @brief 2nd order IIR filter entity
+--! @remark REQUIRES PREPROCESSING
 
 #include "configuration.inc"
 
@@ -69,6 +30,52 @@ use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
 
 
+--! @brief 2nd order IIR filter, implemented with a Transposed-Form IIR filter
+--! structure.
+--!
+--! Class: sequential
+--! Latency: 1 clk [see each architecture notes]
+--! Throughoutput: depends on architecture
+--!
+--! The IIR form which better stands coefficient quantization artifacts is the
+--! IIR cascade form. We're implementing a Transposed-Form because it minimizes
+--! the # of adders and memory elements to be used (see http://cnx.org/content/m11919/latest/)
+--!
+--! Implements the following transfer function (in z):
+--!  b_0 + b_1 * z^-1 + b_2 * z^-2
+--! -------------------------------
+--!   1 + a_1 * z^-1 + a_2 * z^-2
+--!
+--! @par Ports
+--!
+--! See description of the "run_passthru" interface for a definition of the control signals.
+--!
+--! Generics:
+--! * width: ports and internal pipeline width
+--! * prec: ports and internal pipeline precision
+--! * b0, b1, b2, a1, a2: see previous transfer function. Self-explained.
+--!
+--! Inputs:
+--! * CLK
+--! * RST: synchronous reset
+--! * RUN:
+--!
+--! @par Speed
+--!
+--! The combinational path between input and output, due to the multiple adders and constant
+--! multiplications, is deep, even if this element has registers for unit delay
+--! implementation. Therefore, internally, an additional register is added for speeding things up.
+--!
+--! Register is positioned in 2 different places, resulting in 2 different architectures:
+--! * structural_tdfii
+--!   With the speed-up register just buffering the final output signal. Stupid solution that can be
+--!   easily improved. Just don't use it. See next architecture.
+--! * fast_structural_tdfii
+--!   Speed-up register is buffering the final output, but input to feedback multipliers is also
+--!   taken from this input register, greatly reducing the max delay without adding additional
+--!   latency to the block. However, throughtput is reduced by a half, as total # of cycles per sample is 2,
+--!   but latency is kept at 1 cycle. In our usual configurations, this is not a problem as we have
+--!   to wait more for an initial long iterative element like a CORDIC.
 entity filter_2nd_order_iir is
         generic (
                 width : natural := PIPELINE_WIDTH;
@@ -91,10 +98,8 @@ entity filter_2nd_order_iir is
 end filter_2nd_order_iir;
 
 
--- *** Brief description ***
---
--- Latency: 1 clk [pipeline is "registered" at final output pt, for reducing combinational path length]
--- Throughoutput:  sample/clk [internal state must be updated]
+--! Latency: 1 clk [pipeline is "registered" at final output pt, for reducing combinational path length]
+--! Throughoutput:  sample/clk [internal state must be updated]
 architecture structural_tdfii of filter_2nd_order_iir is
         signal o_s : std_logic_vector(width - 1 downto 0);
         signal o_reg_s : std_logic_vector(width - 1 downto 0);
@@ -213,7 +218,7 @@ begin
                         rst => rst,
                         i => o_s,
                         o => o_reg_s);
-        
+
         delayer : entity work.reg(alg)
                 generic map (
                         width => delayer_width)
@@ -225,7 +230,7 @@ begin
         single_delayer_gen: if (delayer_width = 1) generate
                 delayer_in_s(0) <= run_en;
         end generate single_delayer_gen;
-        
+
         broad_delayer_gen: if (delayer_width > 1) generate
                 delayer_in_s(0) <= run_en;
                 delayer_in_s(delayer_width - 1 downto 1) <= delayer_in(delayer_width - 1 downto 1);
@@ -236,12 +241,8 @@ begin
 end structural_tdfii;
 
 
--- *** Brief description ***
---
--- ** Specs **
---
--- Latency: 1 clk [pipeline is "registered" for reducing combinational path length]
--- Throughoutput: 2 clks/sample [internal state must be updated in 2 different steps]
+--! Latency: 1 clk [pipeline is "registered" for reducing combinational path length]
+--! Throughoutput: 2 clks/sample [internal state must be updated in 2 different steps]
 architecture fast_structural_tdfii of filter_2nd_order_iir is
         signal o_s : std_logic_vector(width - 1 downto 0);
         signal o_reg_s : std_logic_vector(width - 1 downto 0);
@@ -370,7 +371,7 @@ begin
                         rst => rst,
                         i => o_s,
                         o => o_reg_s);
-        
+
         delayer : entity work.reg(alg)
                 generic map (
                         width => delayer_width)
@@ -382,12 +383,12 @@ begin
         single_delayer_gen: if (delayer_width = 1) generate
                 delayer_in_s(0) <= run_en;
         end generate single_delayer_gen;
-        
+
         broad_delayer_gen: if (delayer_width > 1) generate
                 delayer_in_s(0) <= run_en;
                 delayer_in_s(delayer_width - 1 downto 1) <= delayer_in(delayer_width - 1 downto 1);
         end generate broad_delayer_gen;
 
         delayer_out <= delayer_out_s;
-        run_passthru <= std_logic(delayer_out_s(0));        
+        run_passthru <= std_logic(delayer_out_s(0));
 end fast_structural_tdfii;

@@ -1,56 +1,23 @@
---------------------------------------------------------------------------------
--- *** Brief description ***
--- Class: sequential block
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- Bloque que implementa una estructura de filtrado IIR de orden 1 con una función de transferencia
--- de un LPF. Los coeficientes están hardcoded.
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
--- NOTA: nunca usar esta entidad. Emplear siempre la entidad "filter_1st_order_iir".
--- 
--- *** Descripción detallada ***
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
 --
--- Este filtro es utilizado exclusivamente en el bucle de amplitud del diseño "spll". Es un bloque
--- _muy_ viejo.
---
--- En este bloque no había dejado comentarios acerca de la implementación.
---
--- No dispone de ningún registro para la aceleración de su funcionamiento. Por lo tanto, para evitar
--- ciclos de lógica excesivamente altos, el usuario de este bloque debe utilizar registros externos.
---
--- ** Función de tranasferencia implementada **
---
--- He deducido a mano que la función de transferencia implementada es:
--- \[
--- H(z) = \frac{0.048 + 0.905z^{-1}}{1 - 0.905z^{-1}}
--- \]
---
--- Si se simula en Matlab usando freqz, se ve que efectivamente es un filtro paso bajo. Deduzco que
--- se obtuvo de los coeficientes de un filtro paso bajo diseñado en contínua (de una transformada
--- s), pero no sé que tipo de cambio de s -> se aplicó. Probablemente bilineal. El problema es que
--- "perdí" el modelo exacto de Matlab del que se obtuvo este elemento.
---
--- Aplicando una transformada bilineal inversa, se llega a la expresión transformada en s para la
--- función de transferencia siguiente del filtro "analógico" equivalente:
--- \[
--- H(s) = \frac{(0.047 + 0.905) + sT/2(0.047 - 0.905)}{(1-0.905) + sT/2(1 + 0.905)}
--- \]
--- en donde T es el período de muestreo (1/10 KHz)
---
--- Es un LPF de orden 1, con un polo en 160 Hz y el cero en unos 3.53 KHz. Sorprendentemente, tiene
--- una ganancia de 10! en contínua, que debería haber sido reducida a ganancia unitaria.
--- 
--- *** Todo ***
---
--- > Check if alfa^(-1) and -beta / alfa values can be automatically calculated from Kp. Right now user has to precalc them.
---
--- *** ChangeLog ***
--- Revision 0.04 - Add correct parametrization!!!!
--- Revision 0.03 - Converted to new sequential block interface
--- Revision 0.02 - Added RUN/DONE interface
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
---------------------------------------------------------------------------------
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+
 #include "configuration.inc"
 
 library IEEE;
@@ -59,13 +26,52 @@ use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
 use WORK.COMMON.all;
 
-
+--! @brief Bloque que implementa una estructura de filtrado IIR de orden 1 con una función de
+--! transferencia de un LPF. Los coeficientes están hardcoded.
+--!
+--! @deprecated Nunca usar esta entidad. Emplear siempre la entidad "filter_1st_order_iir".
+--!
+--! Class: sequential block
+--!
+--! @par Some details
+--!
+--! Este filtro es utilizado exclusivamente en el bucle de amplitud del diseño "spll". Es un bloque
+--! _muy_ viejo.
+--!
+--! En este bloque no había dejado comentarios acerca de la implementación.
+--!
+--! No dispone de ningún registro para la aceleración de su funcionamiento. Por lo tanto, para evitar
+--! ciclos de lógica excesivamente altos, el usuario de este bloque debe utilizar registros externos.
+--!
+--! ** Función de tranasferencia implementada **
+--!
+--! He deducido a mano que la función de transferencia implementada es:
+--! \[
+--! H(z) = \frac{0.048 + 0.905z^{-1}}{1 - 0.905z^{-1}}
+--! \]
+--!
+--! Si se simula en Matlab usando freqz, se ve que efectivamente es un filtro paso bajo. Deduzco que
+--! se obtuvo de los coeficientes de un filtro paso bajo diseñado en contínua (de una transformada
+--! s), pero no sé que tipo de cambio de s -> se aplicó. Probablemente bilineal. El problema es que
+--! "perdí" el modelo exacto de Matlab del que se obtuvo este elemento.
+--!
+--! Aplicando una transformada bilineal inversa, se llega a la expresión transformada en s para la
+--! función de transferencia siguiente del filtro "analógico" equivalente:
+--! \[
+--! H(s) = \frac{(0.047 + 0.905) + sT/2(0.047 - 0.905)}{(1-0.905) + sT/2(1 + 0.905)}
+--! \]
+--! en donde T es el período de muestreo (1/10 KHz)
+--!
+--! Es un LPF de orden 1, con un polo en 160 Hz y el cero en unos 3.53 KHz. Sorprendentemente, tiene
+--! una ganancia de 10! en contínua, que debería haber sido reducida a ganancia unitaria.
+--!
+--! @todo Check if alfa^(-1) and -beta / alfa values can be automatically calculated from Kp. Right now user has to precalc them.
 entity first_order_lpf is
         -- rev 0.03
 	generic (
 		width : natural := PIPELINE_WIDTH;
                 prec : natural := PIPELINE_PREC;
-                delayer_width : natural := 1);        
+                delayer_width : natural := 1);
 	port (
 		clk, rst : in std_logic;
 		i : in std_logic_vector(width - 1 downto 0);

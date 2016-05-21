@@ -1,3 +1,23 @@
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
+--
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
+--
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
@@ -28,7 +48,7 @@ package common is
         subtype ext_pipeline_integer is integer range -131073 to 131072;
         subtype pipeline_vector is std_logic_vector(PIPELINE_WIDTH - 1 downto 0);
         subtype ext_pipeline_vector is std_logic_vector(EXT_PIPELINE_WIDTH - 1 downto 0);
-        
+
         -- *
         -- * Special types for some algorithms
         -- *
@@ -79,7 +99,7 @@ package common is
         -- @brief 'high like attribute in function form for unsigned type
         pure function high ( u : unsigned ) return natural;
         -- pure function high ( s : signed ) return integer;
-        
+
         -- pure function low ( u : unsigned ) return natural;
         -- pure function low ( s : signed ) return integer;
 
@@ -125,8 +145,8 @@ package body common is
         pure function high ( u : unsigned ) return natural is
         begin
              return 2**u'length - 1;
-        end;        
-        
+        end;
+
         pure function to_pipeline_integer ( val : real ) return integer is
         begin
                 return to_integer(val, PIPELINE_WIDTH, PIPELINE_PREC);
@@ -158,9 +178,10 @@ package body common is
                                 return q_func(v, i, j - 1) + 1;
                         end if;
                 end if;
-        end;           
+        end;
 
-        -- Simplified 2s complement to CSD algorithm
+        --! @brief Simplified 2s complement to CSD algorithm
+        --
         -- Sólo funciona con VALORES DE ENTRADA POSITIVOS. Así que, no intentes
         -- meterle valores negativos.
         pure function vector_to_csd ( v : std_logic_vector ) return csd_logic_vector is
@@ -197,8 +218,8 @@ package body common is
                         res(i) := '0';
                 end if;
                 return res;
-        end;           
-        
+        end;
+
         pure function min_magn_size ( val : real ) return natural is
         begin
                 return natural(round(ceil(log2(abs(val)))));

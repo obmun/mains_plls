@@ -1,6 +1,7 @@
 ==== Block interfaces ====
 
 === A little bit of history ===
+
 Todo comenzó con el diseño de la interfaz para un algoritmo iterativo lento como el Cordic. Sin tener en mente la necesidad posterior de interconectar (encadenar) múltiples bloques entre si, se diseño una interfaz genérica para controlar la ejecución del algoritmo (lanzarlo) y recoger los resultados cuando estuviesen listos. Surgió entonces el interfaz RUN / DONE [se puede consultar versiones antiguas cordic.vhd para su definición].
 
 A medida que se fueron desarrollando más bloques, y especialmente en cuanto se comenzaron a interconectar, se vió la necesidad de diseñar un interfaz digital de forma que la secuenciación de los distintos bloques de cálculo en serie / paralelo fuese tan sencilla como encadenar una serie de líneas y utilizar alguna AND cuando fuese necesario. Los elementos de cálculo combinacional (hay varios) no necesitan por supupuesto de estas sofisticaciones. Son única y exclusivamente los elementos secuenciales los difíciles de llevar. Así se llegó a la conclusión (sin pensarlo demasiado) de que la interfaz RUN / DONE parecía valer bien para todos los elementos y se comenzó a implementar en todos los bloques secuenciales (integradores, filtros paso bajo, FVA, ...).

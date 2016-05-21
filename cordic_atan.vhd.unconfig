@@ -1,73 +1,24 @@
 -- -*- Mode: vhdl -*-
 
---------------------------------------------------------------------------------
--- Company: UVigo
--- Engineer: Jacobo Cabaleiro
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
 --
--- Create Date:    
--- Design Name:    
--- Module Name:    cordic - beh
--- Project Name:   
--- Target Device:  
--- Tool versions:  
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
 --
--- === IMPORTANT NOTES ===
--- MUST BE PREPROCESSED
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
 --
--- === SPECS ===
--- Latency: VARIABLE (depends on pipeline precision)
--- Throughoutput: VARIABLE (depends on pipeline precision)
--- 
--- === Brief DESCRIPTION ===
--- Cordic based sequential engine for calculating atan2 and hypot (vector modulus).
--- Based on a CORDIC engine working in vectoring mode
--- 
--- === Description ===
---
--- This block implements an atan2 + modulus calculation of an input vector, given its x and y
--- coords, by means of a CORDIC in vectoring mode.
---
--- Entity is pipeline parametrizable: it automatically adjusts the # of steps as well as the
--- final CORDIC gain depending on the input pipeline format.
---
--- We have a limit on the max supported input vector modulus: max(|input_v|) =(very approx) (2^(width
--- - prec - 1)) * 0.60726.
---
--- For example, for a fx4.16, max valid input vector is approx 4.86.
---
--- Reason for this less than available magnitude input vector mod is that, internally, we don't
--- multiply by the CORDIC gain constant until the end, instead scaling the input vectors already at
--- the beggining of the calculation. Therefore, the output modulus is internally 1/Ki bigger (were
--- Ki is 0.607 when n_iterations -> inf).
---
--- == # of iterations ==
--- See cordic.vhd
---
--- == Ports ==
--- * Inputs *
--- -> CLK
--- -> RST: synchronous reset
--- -> RUN: run/done iface run signal. See block_interfaces.txt for description
--- -> X:
--- -> Y:
--- * Outputs *
--- -> ANGLE:
--- -> MOD:
--- -> DONE: run/done iface done signal. See below for description
---
--- Dependencies:
---
--- === TODO ===
---
--- * We could improve the supported input vector modulus range by premultiplying using KCM by the
--- final CORDIC gain. But there is a tradeoff. We'll be using more logic (as we add a second KCM:
--- one for the x component and a new one for the y component).
---
--- === Changelog ===
--- Revision 0.01 - File created, based on cordic.vhd
--- Additional Comments:
--- 
---------------------------------------------------------------------------------
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
 
 #include "configuration.inc"
 
@@ -77,6 +28,46 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use IEEE.MATH_REAL.all;
 
+--! @brief Cordic based sequential engine for calculating atan2 and hypot (vector modulus).
+--!
+--! This block implements an atan2 + modulus calculation of an input vector, given its x and y
+--! coords, by means of a CORDIC in vectoring mode.
+--!
+--! Entity is pipeline parametrizable: it automatically adjusts the # of steps as well as the
+--! final CORDIC gain depending on the input pipeline format.
+--!
+--! We have a limit on the max supported input vector modulus: max(|input_v|) =(very approx) (2^(width
+--! - prec - 1)) * 0.60726.
+--!
+--! For example, for a fx4.16, max valid input vector is approx 4.86.
+--!
+--! Reason for this less than available magnitude input vector mod is that, internally, we don't
+--! multiply by the CORDIC gain constant until the end, instead scaling the input vectors already at
+--! the beggining of the calculation. Therefore, the output modulus is internally 1/Ki bigger (were
+--! Ki is 0.607 when n_iterations -> inf).
+--!
+--! @par Specs
+--!
+--! Latency: VARIABLE (depends on pipeline precision)
+--! Throughoutput: VARIABLE (depends on pipeline precision)
+--!
+--! @port Ports
+--!
+--! Inputs:
+--! -> CLK
+--! -> RST: synchronous reset
+--! -> RUN: run/done iface run signal. See block_interfaces.txt for description
+--! -> X:
+--! -> Y:
+--!
+--! Outputs:
+--! -> ANGLE:
+--! -> MOD:
+--! -> DONE: run/done iface done signal. See below for description
+--!
+--! @todo We could improve the supported input vector modulus range by premultiplying using KCM by the
+--! final CORDIC gain. But there is a tradeoff. We'll be using more logic (as we add a second KCM:
+--! one for the x component and a new one for the y component).
 entity cordic_atan is
      -- rev 0.01
      generic (
@@ -95,7 +86,7 @@ architecture structural of cordic_atan is
           );
 
      signal st : state_t; -- Se podría hacer con una variable compartida, aunque debido al posible comportamiento no determinista se prefiere simular (como en la realidad) mediante una señal
-     
+
      signal step_s : natural;
 
      -- Control signals (generated by FSM)
@@ -317,18 +308,17 @@ begin
 
      z_add_sub_op_s <= n_y_msb_s;
 
-     
      -- *******************
      -- * State processes *
      -- *******************
-     
+
      -- Counter process. For the internal process counter.
      -- # of steps = PREC BITS! See description for more info
      step_counter : process(clk)
           variable step_counter : std_logic_vector((integer(round(ceil(log2(real(prec - 1))))) - 1) downto 0);
      begin
           -- assert false report "Cordic step counter width: " & integer'image(integer(round(ceil(log2(real(prec)))))) severity note;
-          
+
           if (rising_edge(clk)) then
                if (init_s = '1') then
                     step_counter := (others => '0');

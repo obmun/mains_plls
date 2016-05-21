@@ -1,4 +1,32 @@
---------------------------------------------------------------------------------
+-- Copyright (c) 2012-2016 Jacobo Cabaleiro Cayetano
+--
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
+--
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+
+#include "configuration.inc"
+
+library IEEE;
+library WORK;
+use IEEE.STD_LOGIC_1164.all;
+use IEEE.NUMERIC_STD.all;
+use IEEE.MATH_REAL.all;
+use WORK.COMMON.all;
+
 -- *** Description ***
 --
 -- Alpha == the multiplication factor needed for normalizing the input signal
@@ -18,11 +46,11 @@
 -- Nuestra señal recuperada, también está normalizada.
 --
 -- Una reducción hasta un 10% de amplitud supone rango = [-0.1, 0.1]. Al cuadrado: [0, 0.01]
---   Con 12 bits de parte fraccionaria, la precisión es: 2^-12 = 0.000244
+-- Con 12 bits de parte fraccionaria, la precisión es: 2^-12 = 0.000244
 --
 -- Una amplitud doble (lo que en efecto serían tensiones de red de 460 V) supondría rango = [-2, 2].
 -- Al cuadrado: rango = [0, 4]
---  Con 3 bits de magn (la magnitud normal), la amplitud max es approx 7.999
+-- Con 3 bits de magn (la magnitud normal), la amplitud max es approx 7.999
 --
 -- En los productos de entrada y sumadores de cálculo de error, "deberíamos" tener suficiente
 -- precisión y amplitud como para trabajar con el formato de pipeline _normal_.
@@ -41,7 +69,7 @@
 -- sufrir limit cycles por desbordamiento (recordemos que no estamos usando aritmética de
 -- saturación).
 --
---  La pipeline ext. para filtros usa prec = 15 => 2 bits magn! (hasta 3.9999). Muy justa.
+-- La pipeline ext. para filtros usa prec = 15 => 2 bits magn! (hasta 3.9999). Muy justa.
 --
 -- 2) El multiplicador de la entrada al cuadrado por alfa tiene que soportar bien factores en una de
 -- las entradas de hasta 10!
@@ -73,25 +101,7 @@
 -- Pero, como justificamos antes, NO PUEDO USAR la prec ext. de 15 bits y el ancho total de 18. NO
 -- ME LLEGAN!
 --
--- *** Revisions ***
---
--- NO MORE REVISIONS - Check project Mercurial history
--- Revision 0.01 - File Created
---
--- *** TODO ***
---
--- 1) Change the name of the architecture. It's not an 'algorithmic' one, but structural
---------------------------------------------------------------------------------
-#include "configuration.inc"
-
-library IEEE;
-library WORK;
-use IEEE.STD_LOGIC_1164.all;
-use IEEE.NUMERIC_STD.all;
-use IEEE.MATH_REAL.all;
-use WORK.COMMON.all;
-
-
+--! @todo Change the name of the architecture. It's not an 'algorithmic' one, but structural
 entity ampl_loop is
      -- rev 0.01
      port (
@@ -108,7 +118,7 @@ architecture alg of ampl_loop is
 
      -- PREC definition
      constant AMPL_LOOP_EXT_PREC : natural := 14;
-     
+
      -- Gain and filter constants
      constant PI_I_CONST : real := 10.0;
      constant PI_P_CONST : real := 2.0;
@@ -249,9 +259,9 @@ begin
                run_en => first_run_pulsed_REG_s, run_passthru => lpf_done_s,
                delayer_in(0) => '-',
                delayer_out(0) => garbage_2_s);
-     
+
      filter_stage_done_i_s(0) <= lpf_done_s;
-     filter_stage_done_i_s(1) <= pi_integrator_done_s;     
+     filter_stage_done_i_s(1) <= pi_integrator_done_s;
      filter_stage_done_gen_i : entity work.pulsed_done_and(beh)
           generic map (
                width => 2)
@@ -277,7 +287,6 @@ begin
                a => error_adder_1_out_EXT_s, b => to_vector(1.0, EXT_PIPELINE_WIDTH, AMPL_LOOP_EXT_PREC),
                o => squared_alpha_EXT_s);
 
-     
      -- Element with HARDCODED EXTENDED PIPELINE
      sqrt_i : entity work.signed_sqrt(structural)
           generic map ( AMPL_LOOP_EXT_PREC )
@@ -322,7 +331,7 @@ begin
                port map (
                     clk => clk, rst => fa_rst_s,
                     i => fa_i_s, o => out_s,
-                    run_en => fa_run_en_s, 
+                    run_en => fa_run_en_s,
                     run_passthru => int_fa_done_s,
                     delayer_in(0) => '-',
                     delayer_out(0) => garbage_1_s);
@@ -355,7 +364,7 @@ begin
                generic map (
                     PIPELINE_WIDTH, PIPELINE_PREC,
                     EXT_PIPELINE_WIDTH, AMPL_LOOP_EXT_PREC)
-               port map ( in_reg_out_s, in_reg_out_EXT_s);          
+               port map ( in_reg_out_s, in_reg_out_EXT_s);
 
           norm_mul : entity work.mul(beh)
                generic map (width => EXT_PIPELINE_WIDTH, prec => AMPL_LOOP_EXT_PREC)
